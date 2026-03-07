@@ -1,0 +1,139 @@
+name: CI
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  docs-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce docs updates for code changes
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "Skipping docs policy check for non-PR event."
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED_FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          REQUIRE_DOCS=false
+          HAS_DOCS_UPDATE=false
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+
+            case "$file" in
+              client/*|server/*|database/*|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|client/package.json|server/package.json)
+                REQUIRE_DOCS=true
+                ;;
+            esac
+
+            case "$file" in
+              README.md|docs/*)
+                HAS_DOCS_UPDATE=true
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          if [[ "$REQUIRE_DOCS" == "true" && "$HAS_DOCS_UPDATE" != "true" ]]; then
+            echo "::error::Documentation update required. This PR changes app/code configuration but does not update README.md or docs/."
+            exit 1
+          fi
+
+          if [[ "$REQUIRE_DOCS" == "true" ]]; then
+            echo "Docs policy satisfied."
+            exit 0
+          fi
+
+          echo "Docs policy not required for this PR."
+
+  db-migration-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Enforce migration updates for schema changes
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "Skipping DB migration policy check for non-PR event."
+            exit 0
+          fi
+
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED_FILES="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          SCHEMA_CHANGED=false
+          MIGRATION_CHANGED=false
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+
+            case "$file" in
+              server/db/schema.ts|database/schema.sql)
+                SCHEMA_CHANGED=true
+                ;;
+            esac
+
+            case "$file" in
+              database/migrations/*.sql|database/migrations/meta/*)
+                MIGRATION_CHANGED=true
+                ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          if [[ "$SCHEMA_CHANGED" == "true" && "$MIGRATION_CHANGED" != "true" ]]; then
+            echo "::error::Schema files changed without migration updates. Run 'pnpm run db:generate' and commit generated migration files."
+            exit 1
+          fi
+
+          echo "DB migration policy satisfied."
+
+  quality:
+    needs: [docs-policy, db-migration-policy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type check
+        run: pnpm run tsc
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build

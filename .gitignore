@@ -1,0 +1,9 @@
+node_modules
+.pnpm-store
+.DS_Store
+.vscode
+*.log
+.env
+coverage
+client/coverage
+server/coverage
