@@ -15,6 +15,20 @@
       "when": 1772732852824,
       "tag": "0001_omniscient_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772929269650,
+      "tag": "0002_dry_rogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772935948054,
+      "tag": "0003_hard_ikaris",
+      "breakpoints": true
     }
   ]
 }

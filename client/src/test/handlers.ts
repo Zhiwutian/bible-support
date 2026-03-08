@@ -1,107 +1,147 @@
 import { http, HttpResponse } from 'msw';
 
-type Todo = {
-  todoId: number;
-  task: string;
-  isCompleted: boolean;
-  createdAt: string;
-  updatedAt: string;
+type Emotion = {
+  emotionId: number;
+  slug: string;
+  name: string;
+  description: string | null;
 };
 
-let nextTodoId = 2;
-let todos: Todo[] = [makeTodo(1, 'Wire up first feature', false)];
+type Scripture = {
+  scriptureId: number;
+  emotionId: number;
+  reference: string;
+  verseText: string;
+  translation: string;
+  displayOrder: number;
+};
 
-/** Build a deterministic todo object for MSW mock state. */
-function makeTodo(todoId: number, task: string, isCompleted: boolean): Todo {
-  const timestamp = new Date().toISOString();
-  return {
-    todoId,
-    task,
-    isCompleted,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-}
+const emotions: Emotion[] = [
+  { emotionId: 1, slug: 'fear', name: 'Fear', description: null },
+  { emotionId: 2, slug: 'anger', name: 'Anger', description: null },
+  { emotionId: 3, slug: 'sadness', name: 'Sadness', description: null },
+  { emotionId: 4, slug: 'anxiety', name: 'Anxiety', description: null },
+  { emotionId: 5, slug: 'loneliness', name: 'Loneliness', description: null },
+  { emotionId: 6, slug: 'joy', name: 'Joy', description: null },
+  { emotionId: 7, slug: 'peace', name: 'Peace', description: null },
+  { emotionId: 8, slug: 'grief', name: 'Grief', description: null },
+];
+
+const scripturesByEmotionSlug: Record<string, Scripture[]> = {
+  fear: [
+    {
+      scriptureId: 1,
+      emotionId: 1,
+      reference: 'Psalm 23:4',
+      verseText:
+        'Even though I walk through the darkest valley, I will fear no evil.',
+      translation: 'NIV',
+      displayOrder: 1,
+    },
+    {
+      scriptureId: 2,
+      emotionId: 1,
+      reference: 'Isaiah 41:10',
+      verseText: 'So do not fear, for I am with you.',
+      translation: 'NIV',
+      displayOrder: 2,
+    },
+  ],
+  anger: [
+    {
+      scriptureId: 3,
+      emotionId: 2,
+      reference: 'James 1:19-20',
+      verseText: 'Everyone should be quick to listen, slow to speak.',
+      translation: 'NIV',
+      displayOrder: 1,
+    },
+  ],
+};
+
+const scripturesById = Object.values(scripturesByEmotionSlug)
+  .flat()
+  .reduce<Record<number, Scripture>>((acc, scripture) => {
+    acc[scripture.scriptureId] = scripture;
+    return acc;
+  }, {});
 
 /** Reset in-memory API state between tests to avoid cross-test coupling. */
 export function resetApiMockState() {
-  nextTodoId = 2;
-  todos = [makeTodo(1, 'Wire up first feature', false)];
+  // No-op for now: handlers return deterministic seeded payloads.
 }
 
 export const handlers = [
-  http.get('/api/hello', () => {
-    return HttpResponse.json({ data: { message: 'Hello, World!' } });
+  http.get('/api/emotions', () => {
+    return HttpResponse.json({ data: emotions });
   }),
-  http.get('/api/todos', () => {
-    return HttpResponse.json({ data: todos });
-  }),
-  http.post('/api/todos', async ({ request }) => {
-    const body = (await request.json()) as { task?: string };
-    if (!body.task || !body.task.trim()) {
-      return HttpResponse.json(
-        {
-          error: {
-            code: 'validation_error',
-            message: 'task is required',
-          },
-        },
-        { status: 400 },
-      );
-    }
-    const newTodo = makeTodo(nextTodoId++, body.task.trim(), false);
-    todos = [newTodo, ...todos];
-    return HttpResponse.json({ data: newTodo }, { status: 201 });
-  }),
-  http.patch('/api/todos/:todoId', async ({ params, request }) => {
-    const todoId = Number(params.todoId);
-    const body = (await request.json()) as { isCompleted?: boolean };
-    const todo = todos.find((item) => item.todoId === todoId);
-    if (!todo) {
+  http.get('/api/emotions/:slug/scriptures', ({ params }) => {
+    const slug = String(params.slug);
+    const emotion = emotions.find((item) => item.slug === slug);
+    if (!emotion) {
       return HttpResponse.json(
         {
           error: {
             code: 'client_error',
-            message: 'todo not found',
+            message: 'emotion not found',
           },
         },
         { status: 404 },
       );
     }
-    if (typeof body.isCompleted !== 'boolean') {
-      return HttpResponse.json(
-        {
-          error: {
-            code: 'validation_error',
-            message: 'isCompleted must be a boolean',
-          },
-        },
-        { status: 400 },
-      );
-    }
-    const updatedTodo = {
-      ...todo,
-      isCompleted: body.isCompleted,
-      updatedAt: new Date().toISOString(),
-    };
-    todos = todos.map((item) => (item.todoId === todoId ? updatedTodo : item));
-    return HttpResponse.json({ data: updatedTodo });
+    const scriptures = scripturesByEmotionSlug[slug] ?? [];
+    return HttpResponse.json({ data: { emotion, scriptures } });
   }),
-  http.delete('/api/todos/:todoId', ({ params }) => {
-    const todoId = Number(params.todoId);
-    const todo = todos.find((item) => item.todoId === todoId);
-    if (!todo) {
+  http.get('/api/emotions/:slug/scriptures/random', ({ params }) => {
+    const slug = String(params.slug);
+    const emotion = emotions.find((item) => item.slug === slug);
+    if (!emotion) {
       return HttpResponse.json(
         {
           error: {
             code: 'client_error',
-            message: 'todo not found',
+            message: 'emotion not found',
           },
         },
         { status: 404 },
       );
     }
-    todos = todos.filter((item) => item.todoId !== todoId);
-    return new HttpResponse(null, { status: 204 });
+    const scriptures = scripturesByEmotionSlug[slug] ?? [];
+    const randomScripture = scriptures[scriptures.length - 1];
+    if (!randomScripture) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'client_error',
+            message: 'no scriptures found for emotion',
+          },
+        },
+        { status: 404 },
+      );
+    }
+    return HttpResponse.json({ data: { emotion, scripture: randomScripture } });
+  }),
+  http.get('/api/scripture-context', ({ request }) => {
+    const url = new URL(request.url);
+    const scriptureId = Number(url.searchParams.get('scriptureId') ?? '');
+    const scriptureFromId =
+      Number.isInteger(scriptureId) && scriptureId > 0
+        ? scripturesById[scriptureId]
+        : undefined;
+    const reference =
+      scriptureFromId?.reference || url.searchParams.get('reference') || '';
+    return HttpResponse.json({
+      data: {
+        reference,
+        chapterReference: reference.split(':')[0] ?? reference,
+        summary:
+          'This chapter expands the message around the selected verse and provides broader context for interpretation.',
+        fullContext:
+          'This chapter expands the message around the selected verse and provides broader context for interpretation.\n\nThis is a longer paragraph-style context block that can be expanded in the UI.',
+        sourceName: 'Seeded Study Context',
+        sourceUrl: '',
+        isFallback: false,
+      },
+    });
   }),
 ];

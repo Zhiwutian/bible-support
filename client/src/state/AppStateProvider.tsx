@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useReducer } from 'react';
+import { ReactNode, useReducer } from 'react';
 import {
   AppDispatchContext,
   AppStateContext,
@@ -15,10 +15,9 @@ type Props = {
  */
 export function AppStateProvider({ children }: Props) {
   const [state, dispatch] = useReducer(appStateReducer, initialState);
-  const memoizedState = useMemo(() => state, [state]);
 
   return (
-    <AppStateContext.Provider value={memoizedState}>
+    <AppStateContext.Provider value={state}>
       <AppDispatchContext.Provider value={dispatch}>
         {children}
       </AppDispatchContext.Provider>

@@ -17,6 +17,8 @@ This folder contains maintainable project documentation for application structur
 - `app-startup-walkthrough.md`
   - Step-by-step startup timeline from `pnpm run dev` to first render/API calls
   - Server bootstrap order, route handling path, and error flow
+- `conversation-running-log.md`
+  - Running record of user prompts and assistant response summaries across this implementation cycle
 
 ## Documentation Maintenance Rules
 

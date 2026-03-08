@@ -1,27 +1,9 @@
 import { desc, eq, sql } from 'drizzle-orm';
-import { DbClient, getDrizzleDb } from '@server/db/drizzle.js';
 import { todos } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
+import { requireDb } from './require-db.js';
 
-export type TodoRecord = {
-  todoId: number;
-  task: string;
-  isCompleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-/** Ensure database connectivity is configured before service operations. */
-function requireDb(): DbClient {
-  const db = getDrizzleDb();
-  if (!db) {
-    throw new ClientError(
-      503,
-      'database is not configured. set DATABASE_URL and run migrations.',
-    );
-  }
-  return db;
-}
+export type TodoRecord = typeof todos.$inferSelect;
 
 /** Return all todos in newest-first order. */
 export async function readTodos(): Promise<TodoRecord[]> {

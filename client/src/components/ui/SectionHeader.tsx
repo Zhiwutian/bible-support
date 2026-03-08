@@ -24,7 +24,9 @@ export function SectionHeader({
         {metadata}
       </div>
       {description && (
-        <p className="mt-1 text-sm text-slate-600">{description}</p>
+        <p className="mt-2 text-base leading-relaxed text-slate-700">
+          {description}
+        </p>
       )}
     </header>
   );

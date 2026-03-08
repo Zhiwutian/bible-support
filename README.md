@@ -52,6 +52,9 @@ Outside devcontainers, this repo also includes `.nvmrc` and engine constraints i
    - Set `TOKEN_SECRET` in `server/.env`.
    - Set `CORS_ORIGIN` to your allowed frontend origin(s) (comma-separated exact origins, for example `http://localhost:5173,http://localhost:4173`).
    - Tune `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` (read), and `RATE_LIMIT_WRITE_MAX` (mutations) as needed.
+   - Configure database TLS behavior with:
+     - `DB_SSL` (`true`/`false`)
+     - `DB_SSL_REJECT_UNAUTHORIZED` (`true`/`false`, only used when `DB_SSL=true`)
    - Mirror non-secret env updates in `server/.env.example`.
 
 ### 4) Create your database
@@ -86,7 +89,25 @@ sudo service postgresql start
 pnpm run dev
 ```
 
-Open the app and confirm the client can hit `/api/hello`.
+Open the app and confirm the home page renders the 8 emotion tiles.
+
+## MVP Definition (Current Freeze)
+
+Included in the current MVP baseline:
+
+- Emotion selection landing page with 8 themed emotion tiles.
+- Scripture viewer for each emotion with fixed-order looping navigation.
+- Mobile swipe navigation and desktop button navigation.
+- Context summary panel and dedicated full-context route with back navigation.
+- Full chapter external link integration.
+- Database-backed emotion/scripture/context data with seeded default content.
+- Standardized API envelope responses and core server hardening (security middleware, rate limiting, error handling).
+
+Out of scope for this MVP baseline:
+
+- User accounts/auth flows for end users.
+- Personalized saved state/history across sessions.
+- Remote context providers as required runtime dependencies.
 
 ## Example API Endpoints
 
@@ -99,7 +120,12 @@ Responses use an API envelope:
 - `GET /api/hello` - basic connectivity check
 - `GET /api/health` - API + database health report
 - `GET /api/ready` - readiness check (returns `503` if DB is unavailable/not configured)
-- `GET /api/todos` - list todos (Drizzle-backed)
+- `GET /api/emotions` - list all emotion tiles
+- `GET /api/emotions/:slug/scriptures` - list fixed-order scriptures for one emotion
+- `GET /api/emotions/:slug/scriptures/random` - fetch one random scripture for one emotion
+- `GET /api/scripture-context?scriptureId=<id>` - preferred context lookup for one scripture row (`404` if scripture id does not exist)
+- `GET /api/scripture-context?reference=<ref>` - legacy context lookup (backward compatibility)
+- `GET /api/todos` - legacy todo demo endpoint (still available)
 - `POST /api/todos` - create todo with `{ "task": "..." }`
 - `PATCH /api/todos/:todoId` - update completion with `{ "isCompleted": true|false }`
 - `DELETE /api/todos/:todoId` - remove todo
@@ -119,7 +145,7 @@ Responses use an API envelope:
 - `pnpm run db:import` - resets/imports schema and seed data
 - `pnpm run db:generate` - generates Drizzle SQL migrations from schema
 - `pnpm run db:migrate` - applies Drizzle migrations
-- `pnpm run db:seed` - inserts starter data if tables are empty
+- `pnpm run db:seed` - transactionally upserts starter data (safe to rerun; heals partial seed state)
 - `pnpm run db:studio` - opens Drizzle Studio
 - `pnpm run psql` - opens `psql` using `DATABASE_URL`
 - `pnpm run deploy` - pushes `main` to `pub` for deployment workflow
@@ -144,6 +170,7 @@ Long-form project documentation is in `/docs`:
 - `docs/project-structure.md` - folder-by-folder ownership and purpose
 - `docs/development-workflow.md` - local workflow, CI, and deployment process
 - `docs/app-startup-walkthrough.md` - startup timeline from dev command to first render/API calls
+- `docs/conversation-running-log.md` - running record of prompts and response summaries for this implementation cycle
 
 ## Documentation Quality Gates
 

@@ -1,4 +1,11 @@
-import { ReactNode, useCallback, useMemo, useState } from 'react';
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { cn } from '@/lib';
 import { ToastContext, ToastInput, ToastVariant } from './toast-context';
 
@@ -17,15 +24,30 @@ const variantClassMap: Record<ToastVariant, string> = {
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutIdsRef = useRef<number[]>([]);
 
   const showToast = useCallback((toast: ToastInput) => {
     const id = crypto.randomUUID();
     setToasts((current) => [...current, { id, variant: 'info', ...toast }]);
 
-    window.setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== id));
+      timeoutIdsRef.current = timeoutIdsRef.current.filter(
+        (currentId) => currentId !== timeoutId,
+      );
     }, 3500);
+    timeoutIdsRef.current.push(timeoutId);
   }, []);
+
+  useEffect(
+    () => () => {
+      timeoutIdsRef.current.forEach((timeoutId) =>
+        window.clearTimeout(timeoutId),
+      );
+      timeoutIdsRef.current = [];
+    },
+    [],
+  );
 
   const contextValue = useMemo(() => ({ showToast }), [showToast]);
 
