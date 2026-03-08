@@ -11,6 +11,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
   RATE_LIMIT_WRITE_MAX: z.coerce.number().int().positive().default(60),
   DATABASE_URL: z.string().optional().default(''),
+  DB_SSL: z.coerce.boolean().default(false),
+  DB_SSL_REJECT_UNAUTHORIZED: z.coerce.boolean().default(true),
   TOKEN_SECRET: z.string().min(1, 'TOKEN_SECRET is required'),
 });
 

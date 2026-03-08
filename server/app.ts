@@ -15,6 +15,11 @@ function parseCorsOrigins(): string[] {
     .filter(Boolean);
 }
 
+/** Identify mutating API methods for write throttling. */
+function isWriteMethod(method: string): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+}
+
 /**
  * Construct and configure the Express application instance.
  * Keep server startup concerns in `server.ts`.
@@ -27,12 +32,14 @@ export function createApp(): express.Express {
     max: env.RATE_LIMIT_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => isWriteMethod(req.method),
   });
   const apiWriteRateLimiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_WRITE_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => !isWriteMethod(req.method),
   });
 
   // Create paths for static directories.
@@ -58,13 +65,7 @@ export function createApp(): express.Express {
   app.use(httpLogger);
   app.use(express.json());
   app.use('/api', apiReadRateLimiter);
-  app.use('/api', (req, res, next) => {
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-      apiWriteRateLimiter(req, res, next);
-      return;
-    }
-    next();
-  });
+  app.use('/api', apiWriteRateLimiter);
 
   app.use('/api', apiRouter);
 

@@ -14,11 +14,21 @@ export function getDbPool(): pg.Pool | null {
   if (!pool) {
     pool = new pg.Pool({
       connectionString,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+      ssl: env.DB_SSL
+        ? {
+            rejectUnauthorized: env.DB_SSL_REJECT_UNAUTHORIZED,
+          }
+        : undefined,
     });
   }
 
   return pool;
+}
+
+/** Gracefully close a previously initialized database pool, if any. */
+export async function closeDbPool(): Promise<void> {
+  if (!pool) return;
+  const existingPool = pool;
+  pool = undefined;
+  await existingPool.end();
 }

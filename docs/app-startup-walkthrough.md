@@ -52,22 +52,18 @@ File flow:
    - `BrowserRouter`
    - `AppStateProvider` (Context + reducer)
 3. `client/src/App.tsx` renders app shell + route config.
-4. Route-level pages are lazy-loaded (`TodosPage`, `AboutPage`) with `Suspense`.
+4. Route-level pages are lazy-loaded (`EmotionsPage`, `EmotionScripturePage`, `FullContextPage`, `AboutPage`) with `Suspense`.
 
 ## 4) Initial Route Render (`/`)
 
 For the default route:
 
-1. `TodosPage` mounts.
-2. `useTodos()` runs its initial `useEffect`.
-3. `useTodos()` requests:
-   - `GET /api/hello`
-   - `GET /api/todos`
-4. Responses are parsed through `client/src/features/todos/todo-api.ts`.
-5. Page updates:
-   - header status message
-   - todo list
-   - counts/badges
+1. `EmotionsPage` mounts.
+2. It requests `GET /api/emotions`.
+3. Response is parsed through `client/src/features/emotions/emotion-api.ts`.
+4. Page updates:
+   - emotion tile grid
+   - route links for scripture viewer
 
 ## Startup Sequence Diagram
 
@@ -84,32 +80,30 @@ sequenceDiagram
     Dev->>Vite: pnpm run dev
     Vite-->>Browser: Serve app bundle
     Browser->>React: Mount main.tsx providers
-    React->>React: Resolve "/" route -> TodosPage
-    React->>API: GET /api/hello
-    API-->>React: { data: { message }, meta }
-    React->>API: GET /api/todos
-    API->>Drizzle: readTodos()
-    Drizzle->>DB: SELECT todos...
+    React->>React: Resolve "/" route -> EmotionsPage
+    React->>API: GET /api/emotions
+    API->>Drizzle: readEmotions()
+    Drizzle->>DB: SELECT emotions...
     DB-->>Drizzle: rows
-    Drizzle-->>API: todo records
-    API-->>React: { data: todos[], meta }
-    React-->>Browser: Render server message + todo list
+    Drizzle-->>API: emotion records
+    API-->>React: { data: emotions[], meta }
+    React-->>Browser: Render emotion tile grid
 ```
 
 ## Error Path Diagram
 
 ```mermaid
 sequenceDiagram
-    participant React as TodosPage / useTodos
+    participant React as EmotionsPage / EmotionScripturePage
     participant API as Express API
     participant Middleware as errorMiddleware
     participant Toast as ToastProvider
     participant Boundary as ErrorBoundary
 
-    React->>API: Request (for example GET /api/todos)
+    React->>API: Request (for example GET /api/emotions/fear/scriptures)
     API->>Middleware: Throw/forward error
     Middleware-->>React: { error: { code, message }, meta }
-    React->>React: todo-api maps envelope -> Error
+    React->>React: emotion-api maps envelope -> Error
     React->>Toast: showToast("Request failed")
     Note over React,Toast: User sees non-blocking failure feedback
 
@@ -119,18 +113,26 @@ sequenceDiagram
     end
 ```
 
-## 5) Backend Request Path (example: `GET /api/todos`)
+## 5) Backend Request Path (example: `GET /api/emotions/:slug/scriptures`)
 
 Request path:
 
-1. Express receives request under `/api/todos`
+1. Express receives request under `/api/emotions/:slug/scriptures`
 2. Router (`server/routes/api.ts`) selects handler
-3. Controller (`server/controllers/todo-controller.ts`) invokes service
-4. Service (`server/services/todo-service.ts`) uses Drizzle client
+3. Controller (`server/controllers/emotion-controller.ts`) invokes service
+4. Service (`server/services/emotion-service.ts`) uses Drizzle client
 5. Drizzle queries PostgreSQL
 6. Controller returns standardized API envelope:
    - success: `{ data, meta: { requestId } }`
    - error: `{ error: { code, message, details? }, meta: { requestId } }`
+
+For scripture context lookups, the preferred path is:
+
+- `GET /api/scripture-context?scriptureId=<id>`
+
+Legacy compatibility is retained for:
+
+- `GET /api/scripture-context?reference=<reference>`
 
 ## 6) What Happens on Errors
 
@@ -139,7 +141,7 @@ Request path:
   - Errors become normalized API envelopes with status codes
 - Client:
   - API layer throws readable errors
-  - `TodosPage` shows toast notifications for failures
+  - emotion pages show toast notifications for failures
   - `ErrorBoundary` catches render-time crashes and shows fallback UI
 
 ## 7) Health vs Readiness
@@ -158,8 +160,8 @@ If app does not load data:
 1. Confirm `pnpm run dev` is running.
 2. Check server log for startup line (`Listening on port ...`).
 3. Hit endpoints manually:
-   - `http://localhost:8080/api/hello`
    - `http://localhost:8080/api/health`
    - `http://localhost:8080/api/ready`
+   - `http://localhost:8080/api/emotions`
 4. Verify `DATABASE_URL` and DB state.
 5. Use `pnpm run dev:fresh` if stale local processes are suspected.

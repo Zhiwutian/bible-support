@@ -27,13 +27,18 @@
 - Include a short rationale in your PR for why the schema change is needed.
 - If a new/changed query pattern is introduced, evaluate indexes and note index decisions in the PR.
 - Apply migrations with `pnpm run db:migrate`.
-- Seed starter data with `pnpm run db:seed` (idempotent: skips when table has rows).
+- Seed starter data with `pnpm run db:seed` (transactional + upsert-based; safe to rerun and can repair partial seed state).
 - Optionally add/update sample data in `database/data.sql`.
 - Rebuild local DB state with:
 
 ```sh
 pnpm run db:import
 ```
+
+Important:
+
+- `db:import` is intentionally destructive for local rebuild workflows (drops and recreates schema).
+- Do not run `db:import` against shared/staging/production databases.
 
 ## CI Workflow
 

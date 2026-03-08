@@ -1,8 +1,4 @@
-import {
-  type ApiErrorEnvelope,
-  type ApiSuccessEnvelope,
-} from '@shared/api-contracts';
-import { getApiErrorMessage } from '@/lib';
+import { fetchJson, fetchNoContent } from '@/lib';
 
 export type Todo = {
   todoId: number;
@@ -11,25 +7,6 @@ export type Todo = {
   createdAt: string;
   updatedAt: string;
 };
-
-/**
- * Fetch JSON from an API endpoint and throw on non-2xx responses.
- */
-async function fetchJson<T>(
-  input: RequestInfo,
-  init?: RequestInit,
-): Promise<T> {
-  const response = await fetch(input, init);
-  if (!response.ok) {
-    const errorBody = (await response
-      .json()
-      .catch(() => null)) as ApiErrorEnvelope | null;
-    const message = getApiErrorMessage(response.status, errorBody);
-    throw new Error(message);
-  }
-  const responseBody = (await response.json()) as ApiSuccessEnvelope<T>;
-  return responseBody.data;
-}
 
 /** Read starter hello message from backend. */
 export async function readHelloMessage(): Promise<string> {
@@ -62,14 +39,7 @@ export async function toggleTodo(todo: Todo): Promise<Todo> {
 
 /** Delete a todo by identifier. */
 export async function deleteTodo(todoId: number): Promise<void> {
-  const response = await fetch(`/api/todos/${todoId}`, {
+  await fetchNoContent(`/api/todos/${todoId}`, {
     method: 'DELETE',
   });
-  if (!response.ok) {
-    const errorBody = (await response
-      .json()
-      .catch(() => null)) as ApiErrorEnvelope | null;
-    const message = getApiErrorMessage(response.status, errorBody);
-    throw new Error(message);
-  }
 }

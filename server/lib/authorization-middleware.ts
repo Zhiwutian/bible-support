@@ -11,8 +11,10 @@ export function authMiddleware(
   res: Response,
   next: NextFunction,
 ): void {
-  // The token will be in the Authorization header with the format `Bearer ${token}`
-  const token = req.get('authorization')?.split('Bearer ')[1];
+  // The token must be in the Authorization header: `Bearer <token>`.
+  const authorization = req.get('authorization') ?? '';
+  const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i);
+  const token = bearerMatch?.[1]?.trim();
   if (!token) {
     throw new ClientError(401, 'authentication required');
   }

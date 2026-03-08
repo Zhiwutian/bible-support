@@ -8,6 +8,20 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added full emotion-scripture application baseline as default template experience:
+  - emotion tile landing page
+  - scripture viewer with fixed-order looping navigation
+  - full-context route and chapter-reading actions
+- Added shared frontend API client utilities in `client/src/lib/api-client.ts` to reduce duplicate fetch/error-envelope handling.
+- Added scripture link helper module in `client/src/features/emotions/scripture-links.ts` for shared chapter parsing + BibleGateway URL building.
+- Added backend graceful shutdown handling in `server/server.ts` with HTTP server close + DB pool close sequence.
+- Added DB safety constraints/indexes:
+  - lowercase slug check on `emotions.slug`
+  - positive display-order check on `scriptures.displayOrder`
+  - index on `scriptures.reference`
+- Added transactional, advisory-lock protected seed behavior with upsert semantics in `server/scripts/seed.ts`.
+- Added scripture-context API support for stable `scriptureId` lookup, with legacy `reference` compatibility.
+- Added conversation running log at `docs/conversation-running-log.md`.
 - Established backend layering with concrete examples:
   - `server/app.ts` for app composition
   - `server/routes/api.ts` for route modules
@@ -43,6 +57,14 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated frontend scripture/context flow to use a single scripture list request and `scriptureId` for context fetches.
+- Updated frontend async data-loading patterns with cancellation guards to avoid stale state writes after route changes.
+- Updated emotion-page retry action to in-page refetch instead of full-page reload.
+- Updated Toast provider lifecycle to clear pending timers on unmount.
+- Updated server auth middleware to strict bearer-token parsing behavior.
+- Updated read/write rate-limit middleware behavior to avoid write requests consuming read budget.
+- Updated DB pool SSL configuration to environment-driven toggles (`DB_SSL`, `DB_SSL_REJECT_UNAUTHORIZED`).
+- Updated docs to reflect preferred `scriptureId` context contract, transactional seed semantics, and DB workflow safety notes.
 - Upgraded development environment:
   - Devcontainer uses Node 22 via feature (`ghcr.io/devcontainers/features/node:1`).
   - Devcontainer uses persistent bind mount to `/workspace` from local folder.

@@ -1,11 +1,15 @@
 import request from 'supertest';
 import { Express } from 'express';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getDrizzleDb } from '@server/db/drizzle.js';
+
+vi.mock('@server/db/drizzle.js', () => ({
+  getDrizzleDb: vi.fn(),
+}));
 
 describe('api routes', () => {
   let app: Express;
-  const originalDatabaseUrl = process.env.DATABASE_URL;
-  const originalTokenSecret = process.env.TOKEN_SECRET;
+  const getDrizzleDbMock = vi.mocked(getDrizzleDb);
 
   beforeAll(async () => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET ?? 'test-token-secret';
@@ -13,12 +17,8 @@ describe('api routes', () => {
     app = createApp();
   });
 
-  afterEach(() => {
-    process.env.DATABASE_URL = originalDatabaseUrl;
-  });
-
-  afterAll(() => {
-    process.env.TOKEN_SECRET = originalTokenSecret;
+  beforeEach(() => {
+    getDrizzleDbMock.mockReset();
   });
 
   it('returns hello message from /api/hello', async () => {
@@ -29,8 +29,8 @@ describe('api routes', () => {
     );
   });
 
-  it('returns not_configured from /api/health when DATABASE_URL is missing', async () => {
-    delete process.env.DATABASE_URL;
+  it('returns not_configured from /api/health when database is unavailable', async () => {
+    getDrizzleDbMock.mockReturnValue(null);
 
     const res = await request(app).get('/api/health').expect(200);
     expect(res.body.data.api).toBe('ok');
@@ -38,17 +38,29 @@ describe('api routes', () => {
     expect(typeof res.body.data.checkedAt).toBe('string');
   });
 
-  it('returns 503 from /api/ready when DATABASE_URL is missing', async () => {
-    delete process.env.DATABASE_URL;
+  it('returns 503 from /api/ready when database is unavailable', async () => {
+    getDrizzleDbMock.mockReturnValue(null);
 
     const res = await request(app).get('/api/ready').expect(503);
     expect(res.body.data.database).toBe('not_configured');
   });
 
-  it('returns 503 from /api/todos when DATABASE_URL is missing', async () => {
-    delete process.env.DATABASE_URL;
+  it('returns 503 from /api/todos when database is unavailable', async () => {
+    getDrizzleDbMock.mockReturnValue(null);
 
     const res = await request(app).get('/api/todos').expect(503);
+    expect(res.body.error).toEqual(
+      expect.objectContaining({
+        code: 'client_error',
+        message: expect.stringContaining('database is not configured'),
+      }),
+    );
+  });
+
+  it('returns 503 from /api/emotions when database is unavailable', async () => {
+    getDrizzleDbMock.mockReturnValue(null);
+
+    const res = await request(app).get('/api/emotions').expect(503);
     expect(res.body.error).toEqual(
       expect.objectContaining({
         code: 'client_error',

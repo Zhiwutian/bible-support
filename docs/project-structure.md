@@ -24,12 +24,13 @@
 - `src/`
   - React application source.
   - `App.tsx` provides app shell layout and route definitions.
-  - `pages/` contains route-level screens (for example, `TodosPage`, `AboutPage`).
+  - `pages/` contains route-level screens (for example, `EmotionsPage`, `EmotionScripturePage`, `AboutPage`).
   - `components/app/` contains app-level cross-cutting UI components/providers (error boundary, toasts, nav link button wrapper).
   - `components/ui/` contains reusable Tailwind-based UI primitives (`Button`, `Input`, `Card`, `Badge`, `EmptyState`, `SectionHeader`) and a barrel export at `components/ui/index.ts`.
-  - `features/todos/` contains Todo-specific form schema/UI, API module (`todo-api.ts`), and data hook orchestration (`useTodos`).
+  - `features/emotions/` contains emotion/scripture API module, scripture link helpers, and scripture-view state hook orchestration.
+  - `features/todos/` contains legacy Todo form/API/hook example code.
   - `state/` contains app-level Context + reducer state (`AppStateProvider` and hooks).
-  - `lib/index.ts` exposes shared frontend utilities through a barrel export.
+  - `lib/index.ts` exposes shared frontend utilities through a barrel export (for example, API client helpers).
   - Recommended growth pattern:
     - `components/` for reusable UI pieces
     - `pages/` for route-level screens
@@ -56,8 +57,10 @@
   - Route handlers that format request/response behavior.
 - `services/`
   - Business logic independent of Express request/response types.
+  - Includes shared DB guard helper (`services/require-db.ts`) to keep DB-availability behavior consistent.
 - `db/`
   - Database access setup, Drizzle schema, and query helpers.
+  - Includes pool lifecycle helpers for startup/shutdown safety.
 - `scripts/`
   - Server-side utility scripts (for example, idempotent seed scripts).
 - `drizzle.config.ts`
@@ -70,12 +73,15 @@
   - Server-hosted static files (uploads or other direct-served assets).
 - Current example path:
   - `GET /api/health` -> route -> controller -> service -> Drizzle db client
+  - `GET /api/emotions` -> route -> controller -> service -> Drizzle db client
+  - `GET /api/emotions/:slug/scriptures` -> route -> controller -> service -> Drizzle db client
+  - `GET /api/scripture-context?scriptureId=...` -> route -> controller -> service -> Drizzle db client
   - `GET /api/todos` -> route -> controller -> service -> Drizzle db client
 
 ## Data Layer (`database`)
 
 - `schema.sql` - canonical schema definition
-- `data.sql` - optional seed content
+- `data.sql` - optional seed content (includes emotion/scripture starter rows)
 - `import.sh` - deterministic database rebuild/import script
 - `migrations/` - Drizzle-generated migration SQL files
 
