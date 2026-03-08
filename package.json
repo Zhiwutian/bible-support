@@ -37,6 +37,7 @@
     "test:coverage:server": "pnpm -C server test:coverage",
     "test:coverage": "npm-run-all --parallel --print-label test:coverage:client test:coverage:server",
     "test:changed": "node scripts/test-changed.mjs",
+    "smoke:deploy": "node scripts/smoke-deploy.mjs",
     "psql": ". server/.env && psql $DATABASE_URL",
     "tsc:client": "pnpm -C client exec tsc --project .",
     "tsc:server": "pnpm -C server exec tsc --project .",

@@ -140,6 +140,7 @@ Responses use an API envelope:
 - `pnpm run test` - runs frontend and backend unit/integration tests
 - `pnpm run test:coverage` - runs test coverage reports for client and server
 - `pnpm run test:changed` - runs related tests for changed files (fast local PR feedback)
+- `pnpm run smoke:deploy` - smoke tests a deployed URL (`DEPLOY_URL=...`)
 - `pnpm run build` - builds the client for production
 - `pnpm run start` - starts production server
 - `pnpm run db:import` - resets/imports schema and seed data
@@ -160,6 +161,59 @@ Responses use an API envelope:
   - `test`
   - `build`
 - Deployment runs from `/.github/workflows/main.yml` on pushes to `pub`.
+- Existing deploy workflow applies `db:migrate` + `db:seed` on host startup (non-destructive).
+
+## Lightweight Free-Tier Deployment
+
+Recommended first deployment path:
+
+- Web/API: Render free Web Service (single Node service)
+- Database: Neon free Postgres
+
+Setup:
+
+1. Create Neon database and copy `DATABASE_URL`.
+2. Create Render service (or Blueprint via `render.yaml`).
+3. Set required environment variables:
+   - `NODE_ENV=production`
+   - `TOKEN_SECRET=<strong-random-secret>`
+   - `DATABASE_URL=<neon-url>`
+   - `DB_SSL=true`
+   - `DB_SSL_REJECT_UNAUTHORIZED=true`
+   - `CORS_ORIGIN=<your-deployed-origin>`
+4. Bootstrap hosted DB safely:
+
+```sh
+pnpm run db:migrate
+pnpm run db:seed
+```
+
+If you use the provided `render.yaml` Blueprint, these run automatically via `preDeployCommand`.
+
+5. Smoke test deployment:
+
+```sh
+DEPLOY_URL=https://your-service-url pnpm run smoke:deploy
+```
+
+Detailed guide: `docs/deployment-render-neon.md`.
+
+## Optional Phase 2: Better Free-Tier UX
+
+Split hosting to avoid frontend cold starts:
+
+- Frontend: Vercel static hosting (`client`)
+- API: Render free web service (`server` runtime via root scripts)
+- Database: Neon
+
+Frontend deployment detail:
+
+- Set Vercel Root Directory to `client`
+- Set `VITE_API_BASE_URL` to your Render API origin
+- Keep backend `CORS_ORIGIN` aligned with your Vercel origin(s)
+
+Detailed guide: `docs/deployment-vercel-render.md`.
+Main deployment hub: `docs/deployment/README.md`.
 
 ## Project Docs
 

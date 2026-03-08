@@ -53,5 +53,6 @@ jobs:
             corepack enable
             pnpm install --frozen-lockfile
             sh scripts/ec2env.sh
-            pnpm run db:import
+            pnpm run db:migrate
+            pnpm run db:seed
             pm2 start --time pnpm -- start

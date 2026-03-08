@@ -2,6 +2,7 @@ import {
   type ApiErrorEnvelope,
   type ApiSuccessEnvelope,
 } from '@shared/api-contracts';
+import { resolveApiInput } from './api-base-url';
 import { getApiErrorMessage } from './api-error';
 
 /**
@@ -11,7 +12,7 @@ export async function fetchJson<T>(
   input: RequestInfo,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(input, init);
+  const response = await fetch(resolveApiInput(input), init);
   if (!response.ok) {
     const errorBody = (await response
       .json()
@@ -29,7 +30,7 @@ export async function fetchNoContent(
   input: RequestInfo,
   init?: RequestInit,
 ): Promise<void> {
-  const response = await fetch(input, init);
+  const response = await fetch(resolveApiInput(input), init);
   if (!response.ok) {
     const errorBody = (await response
       .json()

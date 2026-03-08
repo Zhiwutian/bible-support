@@ -8,6 +8,17 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added deployment documentation hub `docs/deployment/README.md` with links to per-service account setup guides.
+- Added service onboarding guides:
+  - `docs/deployment/neon-account-setup.md`
+  - `docs/deployment/render-account-setup.md`
+  - `docs/deployment/vercel-account-setup.md`
+- Added split-hosting guide `docs/deployment-vercel-render.md` for Vercel frontend + Render API + Neon DB deployment.
+- Added frontend `VITE_API_BASE_URL` support via `client/src/lib/api-base-url.ts` to enable separate frontend/backend hosts without endpoint rewrites.
+- Added `client/vercel.json` SPA rewrite config and `client/.env.example` for frontend deployment environment setup.
+- Added Render Blueprint config at `render.yaml` for low-friction Node 22 web service deployment on free tier.
+- Added Render+Neon deployment runbook at `docs/deployment-render-neon.md` with env, bootstrap, and smoke-test guidance.
+- Added deployment smoke-test script `pnpm run smoke:deploy` (`scripts/smoke-deploy.mjs`) for `/`, `/api/health`, emotion/scripture, and context checks against a deployed URL.
 - Added full emotion-scripture application baseline as default template experience:
   - emotion tile landing page
   - scripture viewer with fixed-order looping navigation
@@ -57,6 +68,9 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated deployment docs to include split-hosting CORS guidance for separate frontend and API origins.
+- Updated EC2 deploy workflow to run non-destructive hosted DB bootstrap (`pnpm run db:migrate` + `pnpm run db:seed`) instead of `db:import`.
+- Updated README and docs workflow/structure content to include lightweight free-tier deployment guidance and post-deploy verification.
 - Updated frontend scripture/context flow to use a single scripture list request and `scriptureId` for context fetches.
 - Updated frontend async data-loading patterns with cancellation guards to avoid stale state writes after route changes.
 - Updated emotion-page retry action to in-page refetch instead of full-page reload.

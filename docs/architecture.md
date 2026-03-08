@@ -90,4 +90,5 @@ Example server paths in this template:
 
 - `pnpm run build` builds the frontend bundle.
 - `pnpm run start` runs the server in production mode.
-- Deploy workflow pushes app code and runs startup on EC2.
+- Deploy can run as a single Node web service (for example Render) with external Postgres (for example Neon).
+- Legacy workflow also supports EC2-based deployment via GitHub Actions.

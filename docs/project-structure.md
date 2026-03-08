@@ -12,12 +12,17 @@
   - Defines reproducible development container setup.
 - `.github/workflows/`
   - CI and deployment automation.
+- `render.yaml`
+  - Render Blueprint config for lightweight free-tier hosting.
 - `shared/`
   - Shared frontend/backend TypeScript contracts (for example, API envelope and error code types).
 - `database/`
   - SQL schema, seed data, and import script.
+- `scripts/`
+  - Root utility scripts (for example, deploy smoke checks and dev/test helpers).
 - `docs/`
   - Project documentation and architecture notes.
+  - Includes deployment hub and service account setup guides under `docs/deployment/`.
 
 ## Frontend (`client`)
 
@@ -44,6 +49,10 @@
   - Tailwind CSS entrypoint (`@import 'tailwindcss'`) and shared global styles.
 - `package.json`
   - Frontend runtime and build-time dependencies.
+- `.env.example`
+  - Optional frontend env template (for example `VITE_API_BASE_URL` in split hosting).
+- `vercel.json`
+  - SPA rewrite config for Vercel static hosting.
 
 ## Backend (`server`)
 

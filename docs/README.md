@@ -14,6 +14,21 @@ This folder contains maintainable project documentation for application structur
 - `development-workflow.md`
   - Local setup and daily development loop
   - CI and deployment lifecycle
+- `deployment-render-neon.md`
+  - Lightweight free-tier deployment guide
+  - Render web service + Neon Postgres setup and smoke verification
+- `deployment-vercel-render.md`
+  - Split-hosting guide for Vercel frontend + Render API
+  - `VITE_API_BASE_URL` and CORS setup for phase-2 free-tier UX
+- `deployment/README.md`
+  - Main deployment guide with end-to-end step sequence
+  - Links to per-service account setup guides
+- `deployment/neon-account-setup.md`
+  - Neon account/project/database setup checklist
+- `deployment/render-account-setup.md`
+  - Render account/workspace/service setup checklist
+- `deployment/vercel-account-setup.md`
+  - Vercel account/project/frontend setup checklist
 - `app-startup-walkthrough.md`
   - Step-by-step startup timeline from `pnpm run dev` to first render/API calls
   - Server bootstrap order, route handling path, and error flow

@@ -57,14 +57,27 @@ This catches most integration issues before merge.
 
 ## Deployment Workflow
 
-- Deployment is branch-driven through pushes to `pub`.
-- Root deploy script:
+- Primary lightweight path is Render + Neon (see `docs/deployment-render-neon.md`).
+- Optional better-UX free-tier path is split hosting (see `docs/deployment-vercel-render.md`).
+- Existing EC2 workflow remains branch-driven through pushes to `pub`.
+- Root deploy script for EC2 path:
 
 ```sh
 pnpm run deploy
 ```
 
 This pushes `main` to `pub`, triggering `/.github/workflows/main.yml`.
+
+Hosted DB safety:
+
+- Use `pnpm run db:migrate` and `pnpm run db:seed` in hosted environments.
+- Do not run `pnpm run db:import` on shared/staging/production databases.
+
+Production verification:
+
+```sh
+DEPLOY_URL=https://your-service-url pnpm run smoke:deploy
+```
 
 ## Recommended Branching
 
