@@ -8,6 +8,29 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added full-bible JSON import script:
+  - `pnpm run db:import:bible-json` (defaults to public-domain KJV JSON source)
+  - `server/scripts/import-bible-json.ts` with URL/file override support and idempotent translation refresh.
+- Added verse search and save feature foundation:
+  - three-mode search support (`guided`, `reference`, `keyword`) with a new Search page
+  - anonymous device-scoped saved scripture collection with a new Saved page
+  - global accessibility controls for larger text and high-contrast mode
+- Added backend scripture search/saved APIs:
+  - `GET /api/scriptures/search`
+  - `GET /api/saved-scriptures`
+  - `POST /api/saved-scriptures`
+  - `PATCH /api/saved-scriptures/:savedId`
+  - `DELETE /api/saved-scriptures/:savedId`
+- Added scripture source diagnostics endpoint:
+  - `GET /api/admin/scripture-sources` for DB/local translation status and fallback readiness.
+- Added new DB entities and migration for searchable verse corpus + saved references:
+  - `scripture_verses`
+  - `saved_scripture_items`
+  - `database/migrations/0005_brisk_search_and_saved_scriptures.sql`
+- Added shared contracts/utilities:
+  - `shared/scripture-search-contracts.ts`
+  - `shared/bible-books.ts`
+- Added implementation documentation: `docs/verse-search-save.md`.
 - Added deployment documentation hub `docs/deployment/README.md` with links to per-service account setup guides.
 - Added service onboarding guides:
   - `docs/deployment/neon-account-setup.md`
@@ -36,8 +59,8 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Established backend layering with concrete examples:
   - `server/app.ts` for app composition
   - `server/routes/api.ts` for route modules
-  - `server/controllers/hello-controller.ts`
-  - `server/controllers/health-controller.ts`
+  - `server/controllers/system/hello-controller.ts`
+  - `server/controllers/health/health-controller.ts`
   - `server/services/health-service.ts`
   - `server/db/pool.ts`
 - Added `GET /api/health` endpoint demonstrating route -> controller -> service -> db flow.
@@ -68,6 +91,17 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated scripture search fallback normalization to keep canonical translation codes (`KJV`/`ASV`/`WEB`) across local and remote results.
+- Updated accessibility controls to `Small`/`Medium`/`Large`/`XL`, plus mobile display-settings modal cancel rollback semantics for both text-size and high-contrast values.
+- Updated admin diagnostics route protection so `/api/admin/scripture-sources` now requires bearer authentication.
+- Updated route-level test coverage for scripture search/saved CRUD + translation patch + diagnostics authorization.
+- Updated DB schema parity by aligning Drizzle schema checks/indexes with SQL/migration constraints and adding saved-items listing sort index support.
+- Updated modal implementation consistency by introducing shared UI modal shell primitives and reusing them across display/translation/confirm dialogs.
+- Updated seed behavior to avoid writing seeded emotion verses into `scripture_verses`, preventing corpus translation drift.
+- Updated search UI translation options to include `ASV` and use shared supported-translation constants.
+- Updated saved-verse dedupe behavior in search UI to match backend uniqueness tuple semantics (translation/book/chapter/range).
+- Updated shared contracts with canonical scripture translation constants and shared diagnostics response types.
+- Updated docs/runbooks to include translation sync/import workflow and scripture diagnostics verification steps.
 - Updated deployment docs to include split-hosting CORS guidance for separate frontend and API origins.
 - Updated EC2 deploy workflow to run non-destructive hosted DB bootstrap (`pnpm run db:migrate` + `pnpm run db:seed`) instead of `db:import`.
 - Updated README and docs workflow/structure content to include lightweight free-tier deployment guidance and post-deploy verification.

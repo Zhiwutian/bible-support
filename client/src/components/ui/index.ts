@@ -1,6 +1,8 @@
 export { Badge } from './Badge';
 export { Button } from './Button';
 export { Card } from './Card';
+export { ConfirmModal } from './ConfirmModal';
 export { EmptyState } from './EmptyState';
 export { Input } from './Input';
+export { ModalShell } from './ModalShell';
 export { SectionHeader } from './SectionHeader';

@@ -29,11 +29,19 @@ This folder contains maintainable project documentation for application structur
   - Render account/workspace/service setup checklist
 - `deployment/vercel-account-setup.md`
   - Vercel account/project/frontend setup checklist
+- `proposals/README.md`
+  - Proposal index and structure for future project updates
+- `proposals/oauth-email-login-minimal-pii.md`
+  - Concrete OIDC/OAuth implementation path for email login with minimal PII storage
 - `app-startup-walkthrough.md`
   - Step-by-step startup timeline from `pnpm run dev` to first render/API calls
   - Server bootstrap order, route handling path, and error flow
 - `conversation-running-log.md`
   - Running record of user prompts and assistant response summaries across this implementation cycle
+- `verse-search-save.md`
+  - Search-mode UX contract and backend endpoint summary
+  - Device-scoped save behavior, hybrid source strategy, and validation steps
+  - Translation import/sync workflow and scripture diagnostics endpoint usage
 
 ## Documentation Maintenance Rules
 

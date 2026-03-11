@@ -52,7 +52,7 @@ File flow:
    - `BrowserRouter`
    - `AppStateProvider` (Context + reducer)
 3. `client/src/App.tsx` renders app shell + route config.
-4. Route-level pages are lazy-loaded (`EmotionsPage`, `EmotionScripturePage`, `FullContextPage`, `AboutPage`) with `Suspense`.
+4. Route-level pages are lazy-loaded (`EmotionsPage`, `EmotionScripturePage`, `FullContextPage`, `SearchPage`, `SavedScripturesPage`, `SavedBookScripturesPage`, `AboutPage`) with `Suspense`.
 
 ## 4) Initial Route Render (`/`)
 
@@ -119,7 +119,7 @@ Request path:
 
 1. Express receives request under `/api/emotions/:slug/scriptures`
 2. Router (`server/routes/api.ts`) selects handler
-3. Controller (`server/controllers/emotion-controller.ts`) invokes service
+3. Controller (`server/controllers/emotions/emotion-controller.ts`) invokes service
 4. Service (`server/services/emotion-service.ts`) uses Drizzle client
 5. Drizzle queries PostgreSQL
 6. Controller returns standardized API envelope:
