@@ -15,6 +15,14 @@ export const logger = pino({
       : env.NODE_ENV === 'development'
         ? 'debug'
         : 'info',
+  redact: {
+    paths: [
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'req.headers["set-cookie"]',
+    ],
+    remove: true,
+  },
 });
 
 /**
@@ -22,6 +30,22 @@ export const logger = pino({
  */
 export const httpLogger = pinoHttp({
   logger,
+  serializers: {
+    req: (req) => {
+      const url = typeof req.url === 'string' ? req.url : '';
+      if (url.startsWith('/api/auth/callback')) {
+        const safePath = url.split('?')[0] ?? '/api/auth/callback';
+        return {
+          method: req.method,
+          url: safePath,
+        };
+      }
+      return {
+        method: req.method,
+        url,
+      };
+    },
+  },
   customLogLevel: (_req, res, err) => {
     if (err || res.statusCode >= 500) return 'error';
     if (res.statusCode >= 400) return 'warn';

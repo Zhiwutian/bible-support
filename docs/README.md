@@ -29,6 +29,9 @@ This folder contains maintainable project documentation for application structur
   - Render account/workspace/service setup checklist
 - `deployment/vercel-account-setup.md`
   - Vercel account/project/frontend setup checklist
+- `deployment/auth0-setup.md`
+  - Auth0 OIDC setup checklist for server-side session auth
+  - Callback/logout URL config and auth env mapping
 - `proposals/README.md`
   - Proposal index and structure for future project updates
 - `proposals/oauth-email-login-minimal-pii.md`

@@ -4,10 +4,12 @@ import { Request } from 'express';
 declare global {
   namespace Express {
     export interface Request {
-      /** `User` object populated by `authMiddleware`. */
+      /** Admin bearer-token claims populated by `authMiddleware`. */
       user?: {
-        userId: number;
+        userId: string | number;
       };
+      /** Session user id populated by `attachUserSession` middleware. */
+      authUserId?: string;
     }
   }
 }

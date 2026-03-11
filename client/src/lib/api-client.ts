@@ -11,6 +11,7 @@ function withDefaultHeaders(init?: RequestInit): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set('x-device-id', getDeviceId());
   return {
+    credentials: 'include',
     ...init,
     headers,
   };

@@ -1,10 +1,14 @@
 import type {
-  SavedScriptureItem,
   ScriptureSearchMode,
   ScriptureSearchResponse,
   ScriptureTranslationCode,
   ScriptureVerseResult,
 } from '@shared/scripture-search-contracts';
+import type {
+  CreateSavedScriptureRequest,
+  SavedScriptureItem,
+  UpdateSavedScriptureTranslationRequest,
+} from '@shared/saved-scripture-contracts';
 import { fetchJson, fetchNoContent } from '@/lib';
 
 export type SearchInput = {
@@ -16,18 +20,6 @@ export type SearchInput = {
   verseStart?: number;
   verseEnd?: number;
   limit?: number;
-};
-
-export type SaveScriptureInput = {
-  label?: string;
-  translation: ScriptureTranslationCode;
-  book: string;
-  chapter: number;
-  verseStart: number;
-  verseEnd: number;
-  reference: string;
-  sourceMode: string;
-  queryText?: string;
 };
 
 /** Search scriptures across guided, reference, and keyword modes. */
@@ -57,7 +49,7 @@ export async function readSavedScriptures(): Promise<SavedScriptureItem[]> {
 
 /** Save one verse or verse range for this browser/device. */
 export async function saveScripture(
-  input: SaveScriptureInput,
+  input: CreateSavedScriptureRequest,
 ): Promise<SavedScriptureItem> {
   return fetchJson<SavedScriptureItem>('/api/saved-scriptures', {
     method: 'POST',
@@ -78,10 +70,11 @@ export async function updateSavedScriptureTranslation(
   savedId: number,
   translation: ScriptureTranslationCode,
 ): Promise<SavedScriptureItem> {
+  const payload: UpdateSavedScriptureTranslationRequest = { translation };
   return fetchJson<SavedScriptureItem>(`/api/saved-scriptures/${savedId}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ translation }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -90,7 +83,7 @@ export function toSavePayload(
   verse: ScriptureVerseResult,
   sourceMode: string,
   queryText?: string,
-): SaveScriptureInput {
+): CreateSavedScriptureRequest {
   return {
     translation: verse.translation,
     book: verse.book,

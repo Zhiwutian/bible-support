@@ -9,6 +9,7 @@ const readSavedScripturesMock = vi.fn();
 const createSavedScriptureMock = vi.fn();
 const updateSavedScriptureTranslationMock = vi.fn();
 const removeSavedScriptureMock = vi.fn();
+const migrateDeviceSavedScripturesToUserMock = vi.fn();
 const readScriptureSourcesDiagnosticsMock = vi.fn();
 
 vi.mock('@server/services/scripture-search-service.js', () => ({
@@ -21,6 +22,8 @@ vi.mock('@server/services/saved-scripture-service.js', () => ({
     readSavedScripturesMock(...args),
   createSavedScripture: (...args: unknown[]): unknown =>
     createSavedScriptureMock(...args),
+  migrateDeviceSavedScripturesToUser: (...args: unknown[]): unknown =>
+    migrateDeviceSavedScripturesToUserMock(...args),
   updateSavedScriptureTranslation: (...args: unknown[]): unknown =>
     updateSavedScriptureTranslationMock(...args),
   removeSavedScripture: (...args: unknown[]): unknown =>
@@ -35,19 +38,28 @@ vi.mock('@server/services/scripture-diagnostics-service.js', () => ({
 describe('scripture search + saved routes', () => {
   let app: Express;
   let authHeader: { authorization: string };
+  let sessionCookie: string;
 
   beforeAll(async () => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET ?? 'test-token-secret';
+    process.env.SESSION_SECRET =
+      process.env.SESSION_SECRET ?? 'test-session-secret';
     const { createApp } = await import('@server/app.js');
     app = createApp();
     const token = jwt.sign({ role: 'admin' }, process.env.TOKEN_SECRET);
     authHeader = { authorization: `Bearer ${token}` };
+    const sessionToken = jwt.sign(
+      { sid: 'test-sid', userId: 'user-test-1' },
+      process.env.SESSION_SECRET,
+    );
+    sessionCookie = `app_session=${sessionToken}`;
   });
 
   beforeEach(() => {
     searchScriptureVersesMock.mockReset();
     readSavedScripturesMock.mockReset();
     createSavedScriptureMock.mockReset();
+    migrateDeviceSavedScripturesToUserMock.mockReset();
     updateSavedScriptureTranslationMock.mockReset();
     removeSavedScriptureMock.mockReset();
     readScriptureSourcesDiagnosticsMock.mockReset();
@@ -116,6 +128,33 @@ describe('scripture search + saved routes', () => {
       .expect(200);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data[0].reference).toBe('John 3:16');
+  });
+
+  it('returns saved rows for authenticated /api/saved-scriptures without x-device-id', async () => {
+    readSavedScripturesMock.mockResolvedValue([
+      {
+        savedId: 11,
+        deviceId: 'device-12345678',
+        ownerUserId: 'user-test-1',
+        label: null,
+        translation: 'KJV',
+        book: 'John',
+        chapter: 3,
+        verseStart: 16,
+        verseEnd: 16,
+        reference: 'John 3:16',
+        sourceMode: 'local',
+        queryText: null,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+
+    const res = await request(app)
+      .get('/api/saved-scriptures')
+      .set('cookie', sessionCookie)
+      .expect(200);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data[0].ownerUserId).toBe('user-test-1');
   });
 
   it('creates saved row for POST /api/saved-scriptures', async () => {

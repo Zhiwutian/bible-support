@@ -3,7 +3,11 @@ import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env } from '@server/config/env.js';
-import { errorMiddleware, httpLogger } from '@server/lib/index.js';
+import {
+  attachUserSession,
+  errorMiddleware,
+  httpLogger,
+} from '@server/lib/index.js';
 import apiRouter from '@server/routes/api.js';
 
 /**
@@ -64,6 +68,7 @@ export function createApp(): express.Express {
   app.use(express.static(uploadsStaticDir));
   app.use(httpLogger);
   app.use(express.json());
+  app.use(attachUserSession);
   app.use('/api', apiReadRateLimiter);
   app.use('/api', apiWriteRateLimiter);
 

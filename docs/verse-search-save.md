@@ -17,7 +17,8 @@ This document describes the implemented search/save expansion for fast scripture
 ## Saved Collection Scope
 
 - Anonymous, device-scoped saves only (no sign-in required).
-- Client sends stable `x-device-id` header on API calls.
+- Client sends stable `x-device-id` header for anonymous save scope.
+- When authenticated via cookie session, saved-scripture routes can resolve user scope without requiring `x-device-id`.
 - Backend stores reference/query metadata, not full user-auth profile data.
 - Saved-item uniqueness is enforced by: `deviceId + translation + book + chapter + verseStart + verseEnd`.
 - Saved UI now shows grouped books first (`/saved`), with a detail route per book (`/saved/:book`) listing saved verses for that book.

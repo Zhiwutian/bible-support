@@ -1,12 +1,19 @@
 import { NextFunction, Request, Response } from 'express';
 import { z } from 'zod';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts.js';
+import type {
+  CreateSavedScriptureRequest,
+  UpdateSavedScriptureTranslationRequest,
+} from '@shared/saved-scripture-contracts.js';
+import { getSessionUserId } from '@server/lib/auth-context.js';
 import { sendSuccess } from '@server/lib/http-response.js';
 import { ClientError } from '@server/lib/client-error.js';
 import {
   createSavedScripture,
+  migrateDeviceSavedScripturesToUser,
   readSavedScriptures,
   removeSavedScripture,
+  type SavedScriptureOwnerScope,
   updateSavedScriptureTranslation,
 } from '@server/services/saved-scripture-service.js';
 
@@ -43,16 +50,29 @@ const updateSavedScriptureBodySchema = z.object({
   translation: z.enum(SUPPORTED_SCRIPTURE_TRANSLATIONS),
 });
 
-/** Read normalized device identifier from request headers. */
-function requireDeviceId(req: Request): string {
-  const parsed = deviceHeaderSchema.safeParse(req.headers);
-  if (!parsed.success) {
+/** Read optional normalized device identifier from request headers. */
+function readDeviceId(req: Request): string | null {
+  const raw = req.get('x-device-id');
+  if (!raw) return null;
+  const parsed = deviceHeaderSchema.safeParse({ 'x-device-id': raw });
+  if (!parsed.success) return null;
+  return parsed.data['x-device-id'];
+}
+
+/** Resolve owner scope from auth session + device header. */
+function resolveScope(req: Request): SavedScriptureOwnerScope {
+  const ownerUserId = getSessionUserId(req);
+  const deviceId = readDeviceId(req);
+  if (!ownerUserId && !deviceId) {
     throw new ClientError(
       400,
       'missing x-device-id header; frontend should send a stable device id',
     );
   }
-  return parsed.data['x-device-id'];
+  return {
+    deviceId,
+    ownerUserId,
+  };
 }
 
 /** Handle `GET /api/saved-scriptures`. */
@@ -62,8 +82,14 @@ export async function getSavedScriptures(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const deviceId = requireDeviceId(req);
-    const payload = await readSavedScriptures(deviceId);
+    const scope = resolveScope(req);
+    if (scope.ownerUserId && scope.deviceId) {
+      await migrateDeviceSavedScripturesToUser(
+        scope.deviceId,
+        scope.ownerUserId,
+      );
+    }
+    const payload = await readSavedScriptures(scope);
     sendSuccess(res, payload);
   } catch (err) {
     next(err);
@@ -77,10 +103,18 @@ export async function postSavedScripture(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const deviceId = requireDeviceId(req);
-    const body = savedScriptureBodySchema.parse(req.body);
+    const scope = resolveScope(req);
+    if (scope.ownerUserId && scope.deviceId) {
+      await migrateDeviceSavedScripturesToUser(
+        scope.deviceId,
+        scope.ownerUserId,
+      );
+    }
+    const body = savedScriptureBodySchema.parse(
+      req.body,
+    ) as CreateSavedScriptureRequest;
     const payload = await createSavedScripture({
-      deviceId,
+      scope,
       ...body,
     });
     sendSuccess(res, payload, 201);
@@ -96,9 +130,15 @@ export async function deleteSavedScripture(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const deviceId = requireDeviceId(req);
+    const scope = resolveScope(req);
+    if (scope.ownerUserId && scope.deviceId) {
+      await migrateDeviceSavedScripturesToUser(
+        scope.deviceId,
+        scope.ownerUserId,
+      );
+    }
     const params = savedIdParamsSchema.parse(req.params);
-    await removeSavedScripture(params.savedId, deviceId);
+    await removeSavedScripture(params.savedId, scope);
     res.sendStatus(204);
   } catch (err) {
     next(err);
@@ -112,12 +152,20 @@ export async function patchSavedScripture(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const deviceId = requireDeviceId(req);
+    const scope = resolveScope(req);
+    if (scope.ownerUserId && scope.deviceId) {
+      await migrateDeviceSavedScripturesToUser(
+        scope.deviceId,
+        scope.ownerUserId,
+      );
+    }
     const params = savedIdParamsSchema.parse(req.params);
-    const body = updateSavedScriptureBodySchema.parse(req.body);
+    const body = updateSavedScriptureBodySchema.parse(
+      req.body,
+    ) as UpdateSavedScriptureTranslationRequest;
     const payload = await updateSavedScriptureTranslation(
       params.savedId,
-      deviceId,
+      scope,
       body.translation,
     );
     sendSuccess(res, payload);

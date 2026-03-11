@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -132,11 +133,48 @@ export const scriptureVerses = pgTable(
   }),
 );
 
+export const users = pgTable('users', {
+  userId: uuid('userId').defaultRandom().primaryKey(),
+  createdAt: timestamp('createdAt', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp('updatedAt', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const authAccounts = pgTable(
+  'auth_accounts',
+  {
+    authAccountId: serial('authAccountId').primaryKey(),
+    userId: uuid('userId')
+      .notNull()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    providerSubject: text('providerSubject').notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    authAccountsProviderSubjectUnique: uniqueIndex(
+      'auth_accounts_provider_subject_unique',
+    ).on(table.provider, table.providerSubject),
+    authAccountsUserIdx: index('auth_accounts_user_idx').on(table.userId),
+  }),
+);
+
 export const savedScriptureItems = pgTable(
   'saved_scripture_items',
   {
     savedId: serial('savedId').primaryKey(),
-    deviceId: text('deviceId').notNull(),
+    deviceId: text('deviceId'),
+    ownerUserId: uuid('ownerUserId').references(() => users.userId, {
+      onDelete: 'cascade',
+    }),
     label: text('label'),
     translation: text('translation').notNull(),
     book: text('book').notNull(),
@@ -154,19 +192,39 @@ export const savedScriptureItems = pgTable(
     savedScriptureItemsDeviceIdx: index('saved_scripture_items_device_idx').on(
       table.deviceId,
     ),
+    savedScriptureItemsOwnerUserIdx: index(
+      'saved_scripture_items_owner_user_idx',
+    ).on(table.ownerUserId),
     savedScriptureItemsDeviceCreatedSortIdx: index(
       'saved_scripture_items_device_created_sort_idx',
     ).on(table.deviceId, table.createdAt, table.savedId),
+    savedScriptureItemsOwnerCreatedSortIdx: index(
+      'saved_scripture_items_owner_created_sort_idx',
+    ).on(table.ownerUserId, table.createdAt, table.savedId),
     savedScriptureItemsUnique: uniqueIndex(
       'saved_scripture_items_device_reference_unique',
-    ).on(
-      table.deviceId,
-      table.translation,
-      table.book,
-      table.chapter,
-      table.verseStart,
-      table.verseEnd,
-    ),
+    )
+      .on(
+        table.deviceId,
+        table.translation,
+        table.book,
+        table.chapter,
+        table.verseStart,
+        table.verseEnd,
+      )
+      .where(sql`${table.ownerUserId} is null`),
+    savedScriptureItemsOwnerUnique: uniqueIndex(
+      'saved_scripture_items_owner_reference_unique',
+    )
+      .on(
+        table.ownerUserId,
+        table.translation,
+        table.book,
+        table.chapter,
+        table.verseStart,
+        table.verseEnd,
+      )
+      .where(sql`${table.ownerUserId} is not null`),
     savedScriptureItemsChapterPositiveCheck: check(
       'saved_scripture_items_chapter_positive_check',
       sql`${table.chapter} > 0`,
@@ -182,6 +240,10 @@ export const savedScriptureItems = pgTable(
     savedScriptureItemsVerseRangeCheck: check(
       'saved_scripture_items_verse_range_check',
       sql`${table.verseEnd} >= ${table.verseStart}`,
+    ),
+    savedScriptureItemsOwnerOrDeviceCheck: check(
+      'saved_scripture_items_owner_or_device_check',
+      sql`${table.ownerUserId} is not null or ${table.deviceId} is not null`,
     ),
   }),
 );
