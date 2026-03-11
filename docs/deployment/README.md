@@ -22,7 +22,8 @@ Create each service account first:
 2. Create Render API service and configure environment variables.
 3. Deploy frontend on Vercel from `client` with `VITE_API_BASE_URL`.
 4. Align backend `CORS_ORIGIN` with Vercel domain.
-5. Run smoke checks.
+5. Bootstrap/refresh scripture corpus translations.
+6. Run smoke checks.
 
 ## Copy/Paste Checklist
 
@@ -91,6 +92,8 @@ VITE_API_BASE_URL=https://<your-render-api>.onrender.com
 
 ```sh
 DEPLOY_URL=https://<your-render-api>.onrender.com pnpm run smoke:deploy
+pnpm run db:sync:bible-sources
+pnpm run db:import:bible-translations
 ```
 
 ## Step-by-Step Deployment
@@ -142,6 +145,7 @@ This project already includes `client/vercel.json` for SPA route rewrites.
 ### 4) Verify
 
 - API health: `https://<render-host>/api/health`
+- Scripture diagnostics (authorized): `https://<render-host>/api/admin/scripture-sources`
 - Frontend route load: `https://<vercel-host>/`
 - Frontend data flow: open emotion tiles and scripture/context pages
 
@@ -149,6 +153,13 @@ Run smoke script against API:
 
 ```sh
 DEPLOY_URL=https://<render-host> pnpm run smoke:deploy
+```
+
+Refresh local JSON + DB scripture corpus when needed:
+
+```sh
+pnpm run db:sync:bible-sources
+pnpm run db:import:bible-translations
 ```
 
 ## Related Reference Docs

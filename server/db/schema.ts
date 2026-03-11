@@ -86,3 +86,102 @@ export const scriptures = pgTable(
     ),
   }),
 );
+
+export const scriptureVerses = pgTable(
+  'scripture_verses',
+  {
+    verseId: serial('verseId').primaryKey(),
+    translation: text('translation').notNull().default('KJV'),
+    book: text('book').notNull(),
+    chapter: integer('chapter').notNull(),
+    verse: integer('verse').notNull(),
+    reference: text('reference').notNull(),
+    verseText: text('verseText').notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    scriptureVersesUnique: uniqueIndex('scripture_verses_unique').on(
+      table.translation,
+      table.book,
+      table.chapter,
+      table.verse,
+    ),
+    scriptureVersesBookChapterVerseIdx: index(
+      'scripture_verses_book_chapter_verse_idx',
+    ).on(table.book, table.chapter, table.verse),
+    scriptureVersesReferenceIdx: index('scripture_verses_reference_idx').on(
+      table.reference,
+    ),
+    scriptureVersesTextFtsIdx: index('scripture_verses_text_fts_idx').using(
+      'gin',
+      sql`to_tsvector('simple', ${table.verseText})`,
+    ),
+    scriptureVersesChapterPositiveCheck: check(
+      'scripture_verses_chapter_positive_check',
+      sql`${table.chapter} > 0`,
+    ),
+    scriptureVersesVersePositiveCheck: check(
+      'scripture_verses_verse_positive_check',
+      sql`${table.verse} > 0`,
+    ),
+  }),
+);
+
+export const savedScriptureItems = pgTable(
+  'saved_scripture_items',
+  {
+    savedId: serial('savedId').primaryKey(),
+    deviceId: text('deviceId').notNull(),
+    label: text('label'),
+    translation: text('translation').notNull(),
+    book: text('book').notNull(),
+    chapter: integer('chapter').notNull(),
+    verseStart: integer('verseStart').notNull(),
+    verseEnd: integer('verseEnd').notNull(),
+    reference: text('reference').notNull(),
+    sourceMode: text('sourceMode').notNull().default('local'),
+    queryText: text('queryText'),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    savedScriptureItemsDeviceIdx: index('saved_scripture_items_device_idx').on(
+      table.deviceId,
+    ),
+    savedScriptureItemsDeviceCreatedSortIdx: index(
+      'saved_scripture_items_device_created_sort_idx',
+    ).on(table.deviceId, table.createdAt, table.savedId),
+    savedScriptureItemsUnique: uniqueIndex(
+      'saved_scripture_items_device_reference_unique',
+    ).on(
+      table.deviceId,
+      table.translation,
+      table.book,
+      table.chapter,
+      table.verseStart,
+      table.verseEnd,
+    ),
+    savedScriptureItemsChapterPositiveCheck: check(
+      'saved_scripture_items_chapter_positive_check',
+      sql`${table.chapter} > 0`,
+    ),
+    savedScriptureItemsVerseStartPositiveCheck: check(
+      'saved_scripture_items_verse_start_positive_check',
+      sql`${table.verseStart} > 0`,
+    ),
+    savedScriptureItemsVerseEndPositiveCheck: check(
+      'saved_scripture_items_verse_end_positive_check',
+      sql`${table.verseEnd} > 0`,
+    ),
+    savedScriptureItemsVerseRangeCheck: check(
+      'saved_scripture_items_verse_range_check',
+      sql`${table.verseEnd} >= ${table.verseStart}`,
+    ),
+  }),
+);

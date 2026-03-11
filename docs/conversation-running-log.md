@@ -512,3 +512,17 @@ Section timestamp window:
 121.  **User prompt (full):** "awesome, just make sure to @docs/conversation-running-log.md is updated and I will commit and push now."  
       **Included files in prompt:** `@docs/conversation-running-log.md`  
       **Assistant response summary:** Performed final conversation-log update with the latest entries before handoff.
+
+122.  **User prompt (full):** "The user initially requested a deployment strategy for the existing full-stack Node.js/React/PostgreSQL application..." (summary continuation covering deployment, search/save scripture features, local JSON fallbacks, admin diagnostics, and full-stack review priorities)  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Continued implementation and stabilization across deployment, scripture corpus, saved-verse UX, accessibility, backend contracts, and docs.
+
+123.  **User prompt (full):** "and, you should complete these:
+      Fix modal Cancel semantics (high-contrast rollback) and modal consistency.
+      Protect admin diagnostics endpoint.
+      Add route tests for scripture/saved/patch/diagnostics.
+      Reconcile DB schema drift (schema.ts vs SQL/migrations).
+      Update docs/changelog/conversation log to match current behavior.
+      Then do CSS/global styling optimization cleanup pass (tokenization + shared primitives)."  
+       **Included files in prompt:** None  
+       **Assistant response summary:** Applied targeted hardening updates including modal rollback semantics, admin diagnostics protection, expanded route tests, schema/index parity fixes, docs/changelog/log updates, and shared modal styling primitives.

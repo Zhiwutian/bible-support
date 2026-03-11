@@ -68,4 +68,16 @@ describe('api routes', () => {
       }),
     );
   });
+
+  it('returns 401 from /api/admin/scripture-sources without auth token', async () => {
+    const res = await request(app)
+      .get('/api/admin/scripture-sources')
+      .expect(401);
+    expect(res.body.error).toEqual(
+      expect.objectContaining({
+        code: 'client_error',
+        message: expect.stringContaining('authentication required'),
+      }),
+    );
+  });
 });

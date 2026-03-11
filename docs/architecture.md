@@ -41,12 +41,12 @@ At runtime, the browser loads static assets from the server and calls API routes
 
 Example server paths in this template:
 
-- `GET /api/health` -> `routes/api.ts` -> `controllers/health-controller.ts` -> `services/health-service.ts` -> `db/drizzle.ts`
-- `GET /api/ready` -> `routes/api.ts` -> `controllers/health-controller.ts` -> `services/health-service.ts` -> `db/drizzle.ts`
-- `GET /api/emotions` -> `routes/api.ts` -> `controllers/emotion-controller.ts` -> `services/emotion-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
-- `GET /api/emotions/:slug/scriptures` -> `routes/api.ts` -> `controllers/emotion-controller.ts` -> `services/emotion-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
-- `GET /api/scripture-context?scriptureId=...` -> `routes/api.ts` -> `controllers/scripture-context-controller.ts` -> `services/scripture-context-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
-- `GET /api/todos` -> `routes/api.ts` -> `controllers/todo-controller.ts` -> `services/todo-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET /api/health` -> `routes/api.ts` -> `controllers/health/health-controller.ts` -> `services/health-service.ts` -> `db/drizzle.ts`
+- `GET /api/ready` -> `routes/api.ts` -> `controllers/health/health-controller.ts` -> `services/health-service.ts` -> `db/drizzle.ts`
+- `GET /api/emotions` -> `routes/api.ts` -> `controllers/emotions/emotion-controller.ts` -> `services/emotion-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET /api/emotions/:slug/scriptures` -> `routes/api.ts` -> `controllers/emotions/emotion-controller.ts` -> `services/emotion-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET /api/scripture-context?scriptureId=...` -> `routes/api.ts` -> `controllers/scripture/scripture-context-controller.ts` -> `services/scripture-context-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET /api/todos` -> `routes/api.ts` -> `controllers/todos/todo-controller.ts` -> `services/todo-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
 
 ## Error Handling
 

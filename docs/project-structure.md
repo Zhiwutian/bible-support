@@ -64,6 +64,7 @@
   - Express route modules grouped by API surface.
 - `controllers/`
   - Route handlers that format request/response behavior.
+  - Grouped by subsystem (for example `controllers/scripture/`, `controllers/emotions/`, `controllers/todos/`).
 - `services/`
   - Business logic independent of Express request/response types.
   - Includes shared DB guard helper (`services/require-db.ts`) to keep DB-availability behavior consistent.

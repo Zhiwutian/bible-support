@@ -109,6 +109,12 @@ Out of scope for this MVP baseline:
 - Personalized saved state/history across sessions.
 - Remote context providers as required runtime dependencies.
 
+## Accessibility Controls
+
+- Global text-size control with persisted preferences: `Small`, `Medium`, `Large`, `XL`
+- Global high-contrast mode with persisted preference
+- Mobile display settings modal supports live preview and full rollback on `Cancel` (text size + high contrast)
+
 ## Example API Endpoints
 
 Responses use an API envelope:
@@ -120,15 +126,22 @@ Responses use an API envelope:
 - `GET /api/hello` - basic connectivity check
 - `GET /api/health` - API + database health report
 - `GET /api/ready` - readiness check (returns `503` if DB is unavailable/not configured)
+- `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness (admin bearer token required)
 - `GET /api/emotions` - list all emotion tiles
 - `GET /api/emotions/:slug/scriptures` - list fixed-order scriptures for one emotion
 - `GET /api/emotions/:slug/scriptures/random` - fetch one random scripture for one emotion
 - `GET /api/scripture-context?scriptureId=<id>` - preferred context lookup for one scripture row (`404` if scripture id does not exist)
 - `GET /api/scripture-context?reference=<ref>` - legacy context lookup (backward compatibility)
+- `GET /api/scriptures/search` - search verses by guided picker, reference, or keyword mode
+- `GET /api/saved-scriptures` - list saved verses for the current device (`x-device-id` required)
+- `POST /api/saved-scriptures` - save a verse/range for the current device (`x-device-id` required)
+- `PATCH /api/saved-scriptures/:savedId` - update saved verse translation (`x-device-id` required)
+- `DELETE /api/saved-scriptures/:savedId` - remove one saved verse (`x-device-id` required)
 - `GET /api/todos` - legacy todo demo endpoint (still available)
 - `POST /api/todos` - create todo with `{ "task": "..." }`
 - `PATCH /api/todos/:todoId` - update completion with `{ "isCompleted": true|false }`
 - `DELETE /api/todos/:todoId` - remove todo
+- Exception: `DELETE /api/saved-scriptures/:savedId` returns `204 No Content` on success (no response body).
 
 ## Scripts
 
@@ -147,6 +160,9 @@ Responses use an API envelope:
 - `pnpm run db:generate` - generates Drizzle SQL migrations from schema
 - `pnpm run db:migrate` - applies Drizzle migrations
 - `pnpm run db:seed` - transactionally upserts starter data (safe to rerun; heals partial seed state)
+- `pnpm run db:sync:bible-sources` - downloads and normalizes local public-domain JSON copies (`KJV`, `ASV`, `WEB`) to `server/data/bible`
+- `pnpm run db:import:bible-json` - imports full-bible JSON into `scripture_verses` (defaults to public KJV source)
+- `pnpm run db:import:bible-translations` - syncs local sources and imports canonical `KJV`, `ASV`, `WEB` into `scripture_verses`
 - `pnpm run db:studio` - opens Drizzle Studio
 - `pnpm run psql` - opens `psql` using `DATABASE_URL`
 - `pnpm run deploy` - pushes `main` to `pub` for deployment workflow
@@ -162,6 +178,7 @@ Responses use an API envelope:
   - `build`
 - Deployment runs from `/.github/workflows/main.yml` on pushes to `pub`.
 - Existing deploy workflow applies `db:migrate` + `db:seed` on host startup (non-destructive).
+- Scripture corpus import is separate from seed data; run translation import scripts after deploy bootstrap when corpus refresh is needed.
 
 ## Lightweight Free-Tier Deployment
 

@@ -6,15 +6,17 @@ type Props = {
   to: string;
   children: ReactNode;
   className?: string;
+  onClick?: () => void;
 };
 
 /**
  * Reusable navigation link styled like an app button.
  */
-export function NavLinkButton({ to, children, className }: Props) {
+export function NavLinkButton({ to, children, className, onClick }: Props) {
   return (
     <NavLink
       to={to}
+      onClick={onClick}
       className={({ isActive }) =>
         cn(
           'inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition',
