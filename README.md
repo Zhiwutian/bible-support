@@ -55,7 +55,20 @@ Outside devcontainers, this repo also includes `.nvmrc` and engine constraints i
    - Configure database TLS behavior with:
      - `DB_SSL` (`true`/`false`)
      - `DB_SSL_REJECT_UNAUTHORIZED` (`true`/`false`, only used when `DB_SSL=true`)
-   - Mirror non-secret env updates in `server/.env.example`.
+
+- Optional auth configuration (OIDC + session cookie):
+  - `AUTH_ENABLED`
+  - `AUTH_ISSUER`
+  - `AUTH_CLIENT_ID`
+  - `AUTH_CLIENT_SECRET`
+  - `AUTH_REDIRECT_URI`
+  - `AUTH_LOGIN_REDIRECT_URI`
+  - `AUTH_LOGOUT_REDIRECT_URI`
+  - `SESSION_SECRET`
+  - `SESSION_TTL_SECONDS`
+  - `SESSION_COOKIE_SAME_SITE`
+    - use `none` for split-host frontend/api deployments so auth cookies are sent cross-site
+- Mirror non-secret env updates in `server/.env.example`.
 
 ### 4) Create your database
 
@@ -105,7 +118,6 @@ Included in the current MVP baseline:
 
 Out of scope for this MVP baseline:
 
-- User accounts/auth flows for end users.
 - Personalized saved state/history across sessions.
 - Remote context providers as required runtime dependencies.
 
@@ -126,6 +138,11 @@ Responses use an API envelope:
 - `GET /api/hello` - basic connectivity check
 - `GET /api/health` - API + database health report
 - `GET /api/ready` - readiness check (returns `503` if DB is unavailable/not configured)
+- `GET /api/auth/login` - starts OIDC login flow (redirect)
+- `GET /api/auth/callback` - OIDC callback endpoint (JSON errors for API clients, redirect with auth status for browser flow)
+- `POST /api/auth/logout` - clears app session cookie
+- `GET /api/auth/logout` - browser logout endpoint (clears session cookie and redirects to configured frontend logout URI)
+- `GET /api/auth/me` - returns minimal auth state (`isAuthenticated`, `userId`)
 - `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness (admin bearer token required)
 - `GET /api/emotions` - list all emotion tiles
 - `GET /api/emotions/:slug/scriptures` - list fixed-order scriptures for one emotion
@@ -133,10 +150,10 @@ Responses use an API envelope:
 - `GET /api/scripture-context?scriptureId=<id>` - preferred context lookup for one scripture row (`404` if scripture id does not exist)
 - `GET /api/scripture-context?reference=<ref>` - legacy context lookup (backward compatibility)
 - `GET /api/scriptures/search` - search verses by guided picker, reference, or keyword mode
-- `GET /api/saved-scriptures` - list saved verses for the current device (`x-device-id` required)
-- `POST /api/saved-scriptures` - save a verse/range for the current device (`x-device-id` required)
-- `PATCH /api/saved-scriptures/:savedId` - update saved verse translation (`x-device-id` required)
-- `DELETE /api/saved-scriptures/:savedId` - remove one saved verse (`x-device-id` required)
+- `GET /api/saved-scriptures` - list saved verses for current auth scope (authenticated session or anonymous device)
+- `POST /api/saved-scriptures` - save a verse/range for current auth scope
+- `PATCH /api/saved-scriptures/:savedId` - update saved verse translation for current auth scope
+- `DELETE /api/saved-scriptures/:savedId` - remove one saved verse for current auth scope
 - `GET /api/todos` - legacy todo demo endpoint (still available)
 - `POST /api/todos` - create todo with `{ "task": "..." }`
 - `PATCH /api/todos/:todoId` - update completion with `{ "isCompleted": true|false }`

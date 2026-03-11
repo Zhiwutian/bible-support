@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { authMiddleware } from '@server/lib/authorization-middleware.js';
 import {
+  getAuthCallback,
+  getAuthLogin,
+  getAuthLogout,
+  getAuthMe,
+  postAuthLogout,
+} from '@server/controllers/auth/auth-controller.js';
+import {
   getEmotions,
   getEmotionScriptures,
   getRandomEmotionScripture,
@@ -31,6 +38,11 @@ const apiRouter = Router();
 apiRouter.get('/hello', readHello);
 apiRouter.get('/health', readHealth);
 apiRouter.get('/ready', readReady);
+apiRouter.get('/auth/login', getAuthLogin);
+apiRouter.get('/auth/callback', getAuthCallback);
+apiRouter.get('/auth/logout', getAuthLogout);
+apiRouter.post('/auth/logout', postAuthLogout);
+apiRouter.get('/auth/me', getAuthMe);
 apiRouter.get(
   '/admin/scripture-sources',
   authMiddleware,

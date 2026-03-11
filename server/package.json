@@ -13,9 +13,9 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:sync:bible-sources": "tsx scripts/sync-bible-sources.ts",
     "db:import:bible-json": "tsx scripts/import-bible-json.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test": "AUTH_ENABLED=false vitest run",
+    "test:watch": "AUTH_ENABLED=false vitest",
+    "test:coverage": "AUTH_ENABLED=false vitest run --coverage"
   },
   "dependencies": {
     "argon2": "^0.44.0",
@@ -26,6 +26,7 @@
     "express-rate-limit": "^8.3.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.0",
+    "openid-client": "^6.8.2",
     "pg": "^8.7.3",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",

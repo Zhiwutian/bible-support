@@ -5,6 +5,7 @@ set client_min_messages to warning;
 drop schema "public" cascade;
 
 create schema "public";
+create extension if not exists "pgcrypto";
 
 create table "todos" (
   "todoId" serial primary key,
@@ -61,9 +62,28 @@ create index "scripture_verses_reference_idx"
 create index "scripture_verses_text_fts_idx"
   on "scripture_verses" using gin (to_tsvector('simple', "verseText"));
 
+create table "users" (
+  "userId" uuid primary key default gen_random_uuid(),
+  "createdAt" timestamptz not null default now(),
+  "updatedAt" timestamptz not null default now()
+);
+
+create table "auth_accounts" (
+  "authAccountId" serial primary key,
+  "userId" uuid not null references "users"("userId") on delete cascade,
+  "provider" text not null,
+  "providerSubject" text not null,
+  "createdAt" timestamptz not null default now(),
+  "updatedAt" timestamptz not null default now(),
+  unique ("provider", "providerSubject")
+);
+
+create index "auth_accounts_user_idx" on "auth_accounts" ("userId");
+
 create table "saved_scripture_items" (
   "savedId" serial primary key,
-  "deviceId" text not null,
+  "deviceId" text,
+  "ownerUserId" uuid references "users"("userId") on delete cascade,
   "label" text,
   "translation" text not null,
   "book" text not null,
@@ -75,10 +95,20 @@ create table "saved_scripture_items" (
   "queryText" text,
   "createdAt" timestamptz not null default now(),
   check ("verseEnd" >= "verseStart"),
-  unique ("deviceId", "translation", "book", "chapter", "verseStart", "verseEnd")
+  check ("ownerUserId" is not null or "deviceId" is not null)
 );
 
 create index "saved_scripture_items_device_idx"
   on "saved_scripture_items" ("deviceId");
+create index "saved_scripture_items_owner_user_idx"
+  on "saved_scripture_items" ("ownerUserId");
 create index "saved_scripture_items_device_created_sort_idx"
   on "saved_scripture_items" ("deviceId", "createdAt", "savedId");
+create index "saved_scripture_items_owner_created_sort_idx"
+  on "saved_scripture_items" ("ownerUserId", "createdAt", "savedId");
+create unique index "saved_scripture_items_device_reference_unique"
+  on "saved_scripture_items" ("deviceId", "translation", "book", "chapter", "verseStart", "verseEnd")
+  where "ownerUserId" is null;
+create unique index "saved_scripture_items_owner_reference_unique"
+  on "saved_scripture_items" ("ownerUserId", "translation", "book", "chapter", "verseStart", "verseEnd")
+  where "ownerUserId" is not null;

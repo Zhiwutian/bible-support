@@ -13,6 +13,8 @@ describe('api routes', () => {
 
   beforeAll(async () => {
     process.env.TOKEN_SECRET = process.env.TOKEN_SECRET ?? 'test-token-secret';
+    process.env.SESSION_SECRET =
+      process.env.SESSION_SECRET ?? 'test-session-secret';
     const { createApp } = await import('@server/app.js');
     app = createApp();
   });
@@ -79,5 +81,57 @@ describe('api routes', () => {
         message: expect.stringContaining('authentication required'),
       }),
     );
+  });
+
+  it('returns unauthenticated payload from /api/auth/me without session', async () => {
+    const res = await request(app).get('/api/auth/me').expect(200);
+    expect(res.body.data).toEqual({
+      isAuthenticated: false,
+      userId: null,
+    });
+  });
+
+  it('returns 503 from /api/auth/login when auth is disabled', async () => {
+    const res = await request(app).get('/api/auth/login').expect(503);
+    expect(res.body.error).toEqual(
+      expect.objectContaining({
+        code: 'client_error',
+        message: expect.stringContaining('not enabled'),
+      }),
+    );
+  });
+
+  it('returns 204 from /api/auth/logout', async () => {
+    await request(app).post('/api/auth/logout').expect(204);
+  });
+
+  it('returns endpoint error from /api/auth/callback when auth is disabled', async () => {
+    const res = await request(app).get('/api/auth/callback').expect(503);
+    expect(res.body.error).toEqual(
+      expect.objectContaining({
+        code: 'client_error',
+        message: expect.stringContaining('not enabled'),
+        details: expect.objectContaining({
+          reason: 'auth_not_enabled',
+        }),
+      }),
+    );
+  });
+
+  it('redirects callback failures for browser-style accept header', async () => {
+    const res = await request(app)
+      .get('/api/auth/callback')
+      .set('accept', 'text/html')
+      .expect(302);
+    expect(res.headers.location).toContain('auth=error');
+    expect(res.headers.location).toContain('reason=auth_not_enabled');
+  });
+
+  it('returns JSON payload from /api/auth/logout for API clients', async () => {
+    const res = await request(app)
+      .get('/api/auth/logout')
+      .set('accept', 'application/json')
+      .expect(200);
+    expect(res.body.data).toEqual({ loggedOut: true });
   });
 });

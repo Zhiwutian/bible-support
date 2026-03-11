@@ -1,5 +1,15 @@
 import { NavLinkButton } from '@/components/app/NavLinkButton';
+import { useToast } from '@/components/app/toast-context';
 import { EmptyState, Input, ModalShell } from '@/components/ui';
+import type {
+  AuthFailureReason,
+  AuthRedirectOutcome,
+} from '@shared/auth-contracts';
+import {
+  logout as logoutAuth,
+  readAuthMe,
+  redirectToLogin,
+} from '@/features/auth/auth-api';
 import { useAppDispatch, useAppState } from '@/state';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
@@ -31,6 +41,7 @@ const SavedBookScripturesPage = lazy(async () => ({
  * Render the app shell and route-level pages.
  */
 export default function App() {
+  const { showToast } = useToast();
   const state = useAppState();
   const dispatch = useAppDispatch();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -42,6 +53,8 @@ export default function App() {
     'sm' | 'md' | 'lg' | 'xl'
   >('md');
   const [initialHighContrast, setInitialHighContrast] = useState(false);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const textScaleClassName =
     state.textScale === 'xl'
       ? 'app-text-scale-xl'
@@ -87,6 +100,107 @@ export default function App() {
   const applyDisplaySettingsModal = useCallback(() => {
     setIsTextSizeModalOpen(false);
   }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+    readAuthMe()
+      .then((payload) => {
+        if (!isCancelled) {
+          setAuthUserId(payload.isAuthenticated ? payload.userId : null);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setAuthUserId(null);
+        }
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsAuthLoading(false);
+        }
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const authOutcome = url.searchParams.get(
+      'auth',
+    ) as AuthRedirectOutcome | null;
+    if (!authOutcome) return;
+
+    if (authOutcome === 'success') {
+      readAuthMe()
+        .then((payload) => {
+          setAuthUserId(payload.isAuthenticated ? payload.userId : null);
+          if (payload.isAuthenticated) {
+            showToast({
+              title: 'Signed in',
+              description: 'Your account session is active.',
+              variant: 'success',
+            });
+            return;
+          }
+          showToast({
+            title: 'Sign-in incomplete',
+            description: 'Could not confirm session state. Please try again.',
+            variant: 'error',
+          });
+        })
+        .catch(() => {
+          showToast({
+            title: 'Sign-in incomplete',
+            description: 'Could not confirm session state. Please try again.',
+            variant: 'error',
+          });
+        });
+    } else {
+      const reason = url.searchParams.get('reason') as AuthFailureReason | null;
+      const callbackMessage = url.searchParams.get('message');
+      const description =
+        callbackMessage ||
+        (reason === 'provider_rejected'
+          ? 'Sign-in was cancelled at the provider.'
+          : reason === 'invalid_state'
+            ? 'Sign-in session expired. Please try again.'
+            : reason === 'auth_not_enabled'
+              ? 'Authentication is not enabled for this environment.'
+              : 'Could not complete sign-in. Please try again.');
+      showToast({
+        title: 'Sign-in failed',
+        description,
+        variant: 'error',
+      });
+    }
+
+    url.searchParams.delete('auth');
+    url.searchParams.delete('reason');
+    url.searchParams.delete('message');
+    window.history.replaceState({}, '', url.toString());
+  }, [showToast]);
+
+  const handleLogin = useCallback(() => {
+    redirectToLogin();
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logoutAuth();
+      setAuthUserId(null);
+      showToast({
+        title: 'Signed out',
+        variant: 'success',
+      });
+    } catch (err) {
+      showToast({
+        title: 'Could not sign out',
+        description: err instanceof Error ? err.message : 'Please try again.',
+        variant: 'error',
+      });
+    }
+  }, [showToast]);
 
   useEffect(() => {
     function handleEscapeClose(event: KeyboardEvent) {
@@ -173,6 +287,17 @@ export default function App() {
           </button>
 
           <div className="ml-auto hidden items-center gap-3 md:flex">
+            <button
+              type="button"
+              className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              onClick={authUserId ? () => void handleLogout() : handleLogin}
+              disabled={isAuthLoading}>
+              {isAuthLoading
+                ? 'Checking login...'
+                : authUserId
+                  ? 'Log out'
+                  : 'Sign in'}
+            </button>
             <label className="flex items-center gap-2 text-sm font-medium">
               Text size
               <select
@@ -246,6 +371,24 @@ export default function App() {
                 {textSizeLabel}
                 {state.highContrast ? ' + High contrast' : ''}
               </span>
+            </button>
+            <button
+              type="button"
+              className="min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-base font-semibold text-slate-800"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                if (authUserId) {
+                  void handleLogout();
+                  return;
+                }
+                handleLogin();
+              }}
+              disabled={isAuthLoading}>
+              {isAuthLoading
+                ? 'Checking login...'
+                : authUserId
+                  ? 'Log out'
+                  : 'Sign in'}
             </button>
           </div>
         )}

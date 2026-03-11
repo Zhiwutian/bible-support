@@ -20,18 +20,4 @@ export type ScriptureSearchResponse = {
   total: number;
   verses: ScriptureVerseResult[];
 };
-
-export type SavedScriptureItem = {
-  savedId: number;
-  deviceId: string;
-  label: string | null;
-  translation: ScriptureTranslationCode;
-  book: string;
-  chapter: number;
-  verseStart: number;
-  verseEnd: number;
-  reference: string;
-  sourceMode: string;
-  queryText: string | null;
-  createdAt: string;
-};
+export type { SavedScriptureItem } from './saved-scripture-contracts';

@@ -15,6 +15,7 @@ Create each service account first:
 - [Neon account setup](./neon-account-setup.md)
 - [Render account setup](./render-account-setup.md)
 - [Vercel account setup](./vercel-account-setup.md)
+- [Auth0 setup (OIDC)](./auth0-setup.md)
 
 ## Recommended Deployment Flow
 
@@ -69,7 +70,20 @@ CORS_ORIGIN=https://<your-frontend>.vercel.app
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX=200
 RATE_LIMIT_WRITE_MAX=60
+AUTH_ENABLED=true
+AUTH_PROVIDER=auth0
+AUTH_ISSUER=https://<tenant>.auth0.com/
+AUTH_CLIENT_ID=<client-id>
+AUTH_CLIENT_SECRET=<client-secret>
+AUTH_REDIRECT_URI=https://<api-host>/api/auth/callback
+AUTH_LOGIN_REDIRECT_URI=https://<frontend-host>/
+AUTH_LOGOUT_REDIRECT_URI=https://<frontend-host>/
+SESSION_SECRET=<long-random-secret>
+SESSION_TTL_SECONDS=604800
+SESSION_COOKIE_SAME_SITE=none
 ```
+
+For split-host deployments (`<frontend-host>` and `<api-host>` on different domains), use `SESSION_COOKIE_SAME_SITE=none` so browser session cookies are sent on cross-site API requests.
 
 If you have multiple frontend domains:
 

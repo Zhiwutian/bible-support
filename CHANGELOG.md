@@ -97,6 +97,14 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Updated route-level test coverage for scripture search/saved CRUD + translation patch + diagnostics authorization.
 - Updated DB schema parity by aligning Drizzle schema checks/indexes with SQL/migration constraints and adding saved-items listing sort index support.
 - Updated modal implementation consistency by introducing shared UI modal shell primitives and reusing them across display/translation/confirm dialogs.
+- Updated auth callback semantics to return endpoint-level JSON errors for API clients while preserving browser redirect UX markers (`auth`, `reason`, `message`).
+- Updated provider-declined callback handling to preserve existing app session (clear login-state cookie only).
+- Updated logout UX to keep signed-in state when logout API fails and surface explicit error toast feedback.
+- Added dedicated Auth0 setup guide and expanded deployment docs with auth environment variables, including `AUTH_LOGIN_REDIRECT_URI`.
+- Updated saved-scripture uniqueness semantics so anonymous saves are constrained by device only when `ownerUserId is null`, while authenticated saves remain constrained by owner scope.
+- Updated save-route ownership resolution so authenticated requests can operate without `x-device-id`, and migration bridge now runs consistently across read/create/update/delete flows when device id is present.
+- Updated callback request logging to avoid leaking auth query payload on `/api/auth/callback`.
+- Updated auth routes to include `GET /api/auth/logout` for browser redirect flows using `AUTH_LOGOUT_REDIRECT_URI`.
 - Updated seed behavior to avoid writing seeded emotion verses into `scripture_verses`, preventing corpus translation drift.
 - Updated search UI translation options to include `ASV` and use shared supported-translation constants.
 - Updated saved-verse dedupe behavior in search UI to match backend uniqueness tuple semantics (translation/book/chapter/range).
