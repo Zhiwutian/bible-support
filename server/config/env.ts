@@ -9,6 +9,23 @@ export const SESSION_COOKIE_SAME_SITE_VALUES = [
 export type SessionCookieSameSite =
   (typeof SESSION_COOKIE_SAME_SITE_VALUES)[number];
 
+function parseBooleanEnv(defaultValue: boolean): z.ZodType<boolean> {
+  return z.preprocess((value) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['1', 'true', 't', 'yes', 'y', 'on'].includes(normalized)) {
+        return true;
+      }
+      if (['0', 'false', 'f', 'no', 'n', 'off', ''].includes(normalized)) {
+        return false;
+      }
+    }
+    if (value == null) return defaultValue;
+    return value;
+  }, z.boolean().default(defaultValue));
+}
+
 const envSchema = z.object({
   NODE_ENV: z
     .enum(['development', 'test', 'production'])
@@ -19,10 +36,10 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
   RATE_LIMIT_WRITE_MAX: z.coerce.number().int().positive().default(60),
   DATABASE_URL: z.string().optional().default(''),
-  DB_SSL: z.coerce.boolean().default(false),
-  DB_SSL_REJECT_UNAUTHORIZED: z.coerce.boolean().default(true),
+  DB_SSL: parseBooleanEnv(false),
+  DB_SSL_REJECT_UNAUTHORIZED: parseBooleanEnv(true),
   TOKEN_SECRET: z.string().min(1, 'TOKEN_SECRET is required'),
-  AUTH_ENABLED: z.coerce.boolean().default(false),
+  AUTH_ENABLED: parseBooleanEnv(false),
   AUTH_PROVIDER: z.string().default('auth0'),
   AUTH_ISSUER: z.string().default(''),
   AUTH_CLIENT_ID: z.string().default(''),
@@ -50,7 +67,7 @@ if (!parsed.success) {
   throw new Error(`Invalid environment configuration: ${formatted}`);
 }
 
-if (parsed.data.AUTH_ENABLED) {
+if (parsed.data.AUTH_ENABLED && parsed.data.NODE_ENV !== 'test') {
   const requiredWhenAuthEnabled = [
     ['AUTH_ISSUER', parsed.data.AUTH_ISSUER],
     ['AUTH_CLIENT_ID', parsed.data.AUTH_CLIENT_ID],

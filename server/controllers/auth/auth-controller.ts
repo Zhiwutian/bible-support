@@ -75,16 +75,19 @@ function sendAuthFailure(
 }
 
 /** Handle GET /api/auth/login by redirecting to provider. */
-export async function getAuthLogin(
-  _req: Request,
-  res: Response,
-  next: (error?: unknown) => void,
-): Promise<void> {
-  try {
-    if (!isAuthEnabled()) {
-      throw new ClientError(503, 'authentication is not enabled');
-    }
+export async function getAuthLogin(req: Request, res: Response): Promise<void> {
+  if (!isAuthEnabled()) {
+    sendAuthFailure(
+      req,
+      res,
+      503,
+      'auth_not_enabled',
+      'authentication is not enabled',
+    );
+    return;
+  }
 
+  try {
     const state = randomState();
     const nonce = randomNonce();
     const codeVerifier = randomPKCECodeVerifier();
@@ -96,8 +99,14 @@ export async function getAuthLogin(
 
     setLoginStateCookie(res, { state, nonce, codeVerifier });
     res.redirect(302, redirectUrl);
-  } catch (err) {
-    next(err);
+  } catch {
+    sendAuthFailure(
+      req,
+      res,
+      500,
+      'server_error',
+      'could not start authentication login',
+    );
   }
 }
 
