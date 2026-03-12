@@ -8,6 +8,7 @@
 4. Run `pnpm install` if dependencies changed.
 5. Ensure PostgreSQL is running (`sudo service postgresql start`).
 6. Run `pnpm run dev` for client + server watchers.
+   - `pnpm run dev` now validates `server/.env` and `client/.env.local` first.
    - If you hit stale port/process issues, run `pnpm run dev:fresh` instead.
 7. Make incremental changes.
 8. Before commit, run:
@@ -17,6 +18,17 @@
    - `pnpm run build`
 9. Optionally run `pnpm run test:coverage` to inspect coverage trends.
 10. For quick feedback during active work, run `pnpm run test:changed`.
+
+## Configuration Workflow
+
+- Keep backend values in `server/.env` (copy from `server/.env.example`).
+- Keep frontend values in `client/.env.local` (copy from `client/.env.example`).
+- Do not commit local env files; only commit example templates.
+- For split hosting, set `client/.env.local` with `VITE_API_BASE_URL` in local dev as needed.
+- For hosted environments, mirror values into platform env dashboards:
+  - Render uses server keys.
+  - Vercel uses frontend `VITE_*` keys.
+- Reference: `docs/configuration.md`.
 
 ## Database Workflow
 

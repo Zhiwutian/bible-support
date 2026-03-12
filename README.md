@@ -47,28 +47,38 @@ Outside devcontainers, this repo also includes `.nvmrc` and engine constraints i
    pnpm install
    ```
 
-2. Configure environment:
-   - Update `server/.env` with your database name in `DATABASE_URL`.
-   - Set `TOKEN_SECRET` in `server/.env`.
-   - Set `CORS_ORIGIN` to your allowed frontend origin(s) (comma-separated exact origins, for example `http://localhost:5173,http://localhost:4173`).
-   - Tune `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` (read), and `RATE_LIMIT_WRITE_MAX` (mutations) as needed.
-   - Configure database TLS behavior with:
+2. Configure environment with separate backend/frontend files:
+
+   ```sh
+   pnpm run setup:env
+   ```
+
+   Backend (`server/.env`):
+   - Update `DATABASE_URL`.
+   - Set `TOKEN_SECRET`.
+   - Set `CORS_ORIGIN` to allowed frontend origin(s) (comma-separated exact origins, for example `http://localhost:5173,http://localhost:4173`).
+   - Tune `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX` (read), and `RATE_LIMIT_WRITE_MAX` (mutations).
+   - Configure database TLS behavior:
      - `DB_SSL` (`true`/`false`)
      - `DB_SSL_REJECT_UNAUTHORIZED` (`true`/`false`, only used when `DB_SSL=true`)
+   - Optional auth configuration (OIDC + session cookie):
+     - `AUTH_ENABLED`
+     - `AUTH_ISSUER`
+     - `AUTH_CLIENT_ID`
+     - `AUTH_CLIENT_SECRET`
+     - `AUTH_REDIRECT_URI`
+     - `AUTH_LOGIN_REDIRECT_URI`
+     - `AUTH_LOGOUT_REDIRECT_URI`
+     - `SESSION_SECRET`
+     - `SESSION_TTL_SECONDS`
+     - `SESSION_COOKIE_SAME_SITE`
+       - use `none` for split-host frontend/api deployments so auth cookies are sent cross-site
 
-- Optional auth configuration (OIDC + session cookie):
-  - `AUTH_ENABLED`
-  - `AUTH_ISSUER`
-  - `AUTH_CLIENT_ID`
-  - `AUTH_CLIENT_SECRET`
-  - `AUTH_REDIRECT_URI`
-  - `AUTH_LOGIN_REDIRECT_URI`
-  - `AUTH_LOGOUT_REDIRECT_URI`
-  - `SESSION_SECRET`
-  - `SESSION_TTL_SECONDS`
-  - `SESSION_COOKIE_SAME_SITE`
-    - use `none` for split-host frontend/api deployments so auth cookies are sent cross-site
-- Mirror non-secret env updates in `server/.env.example`.
+   Frontend (`client/.env.local`):
+   - Set `VITE_API_BASE_URL` when frontend and API run on different origins.
+
+See `docs/configuration.md` for full split-config guidance.
+Use `pnpm run setup:env:force` only when you intentionally want to reset local env files from templates.
 
 ### 4) Create your database
 
@@ -254,6 +264,7 @@ Main deployment hub: `docs/deployment/README.md`.
 Long-form project documentation is in `/docs`:
 
 - `docs/README.md` - documentation index and maintenance guidance
+- `docs/styleguide.md` - current UI design standards, tokens, and styling rules
 - `docs/architecture.md` - system architecture and request/data flow
 - `docs/project-structure.md` - folder-by-folder ownership and purpose
 - `docs/development-workflow.md` - local workflow, CI, and deployment process
