@@ -36,6 +36,9 @@ const SavedBookScripturesPage = lazy(async () => ({
   default: (await import('@/pages/SavedBookScripturesPage'))
     .SavedBookScripturesPage,
 }));
+const AdminPage = lazy(async () => ({
+  default: (await import('@/pages/AdminPage')).AdminPage,
+}));
 
 /**
  * Render the app shell and route-level pages.
@@ -53,7 +56,12 @@ export default function App() {
     'sm' | 'md' | 'lg' | 'xl'
   >('md');
   const [initialHighContrast, setInitialHighContrast] = useState(false);
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authSession, setAuthSession] = useState<{
+    userId: string;
+    role: 'user' | 'admin';
+    displayName: string | null;
+    avatarUrl: string | null;
+  } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const textScaleClassName =
     state.textScale === 'xl'
@@ -106,12 +114,21 @@ export default function App() {
     readAuthMe()
       .then((payload) => {
         if (!isCancelled) {
-          setAuthUserId(payload.isAuthenticated ? payload.userId : null);
+          setAuthSession(
+            payload.isAuthenticated && payload.userId && payload.role
+              ? {
+                  userId: payload.userId,
+                  role: payload.role,
+                  displayName: payload.displayName,
+                  avatarUrl: payload.avatarUrl,
+                }
+              : null,
+          );
         }
       })
       .catch(() => {
         if (!isCancelled) {
-          setAuthUserId(null);
+          setAuthSession(null);
         }
       })
       .finally(() => {
@@ -134,7 +151,16 @@ export default function App() {
     if (authOutcome === 'success') {
       readAuthMe()
         .then((payload) => {
-          setAuthUserId(payload.isAuthenticated ? payload.userId : null);
+          setAuthSession(
+            payload.isAuthenticated && payload.userId && payload.role
+              ? {
+                  userId: payload.userId,
+                  role: payload.role,
+                  displayName: payload.displayName,
+                  avatarUrl: payload.avatarUrl,
+                }
+              : null,
+          );
           if (payload.isAuthenticated) {
             showToast({
               title: 'Signed in',
@@ -188,7 +214,7 @@ export default function App() {
   const handleLogout = useCallback(async () => {
     try {
       await logoutAuth();
-      setAuthUserId(null);
+      setAuthSession(null);
       showToast({
         title: 'Signed out',
         variant: 'success',
@@ -238,6 +264,9 @@ export default function App() {
             <NavLinkButton to="/search">Search</NavLinkButton>
             <NavLinkButton to="/saved">Saved</NavLinkButton>
             <NavLinkButton to="/about">About</NavLinkButton>
+            {authSession?.role === 'admin' ? (
+              <NavLinkButton to="/admin">Admin</NavLinkButton>
+            ) : null}
           </div>
 
           <button
@@ -290,11 +319,11 @@ export default function App() {
             <button
               type="button"
               className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              onClick={authUserId ? () => void handleLogout() : handleLogin}
+              onClick={authSession ? () => void handleLogout() : handleLogin}
               disabled={isAuthLoading}>
               {isAuthLoading
                 ? 'Checking login...'
-                : authUserId
+                : authSession
                   ? 'Log out'
                   : 'Sign in'}
             </button>
@@ -361,6 +390,14 @@ export default function App() {
                 onClick={() => setIsMobileMenuOpen(false)}>
                 About
               </NavLinkButton>
+              {authSession?.role === 'admin' ? (
+                <NavLinkButton
+                  to="/admin"
+                  className="justify-start text-base font-semibold"
+                  onClick={() => setIsMobileMenuOpen(false)}>
+                  Admin
+                </NavLinkButton>
+              ) : null}
             </div>
             <button
               type="button"
@@ -377,7 +414,7 @@ export default function App() {
               className="min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-base font-semibold text-slate-800"
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                if (authUserId) {
+                if (authSession) {
                   void handleLogout();
                   return;
                 }
@@ -386,7 +423,7 @@ export default function App() {
               disabled={isAuthLoading}>
               {isAuthLoading
                 ? 'Checking login...'
-                : authUserId
+                : authSession
                   ? 'Log out'
                   : 'Sign in'}
             </button>
@@ -462,6 +499,19 @@ export default function App() {
           <Route path="/search" element={<SearchPage />} />
           <Route path="/saved" element={<SavedScripturesPage />} />
           <Route path="/saved/:book" element={<SavedBookScripturesPage />} />
+          <Route
+            path="/admin"
+            element={
+              authSession?.role === 'admin' ? (
+                <AdminPage authUserId={authSession.userId} />
+              ) : (
+                <EmptyState
+                  title="Admin access required"
+                  description="This page is only available to administrator accounts."
+                />
+              )
+            }
+          />
           <Route path="/emotions/:slug" element={<EmotionScripturePage />} />
           <Route path="/emotions/:slug/context" element={<FullContextPage />} />
           <Route path="/about" element={<AboutPage />} />

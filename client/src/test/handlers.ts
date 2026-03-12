@@ -74,7 +74,13 @@ export function resetApiMockState() {
 export const handlers = [
   http.get('/api/auth/me', () => {
     return HttpResponse.json({
-      data: { isAuthenticated: false, userId: null },
+      data: {
+        isAuthenticated: false,
+        userId: null,
+        role: null,
+        displayName: null,
+        avatarUrl: null,
+      },
     });
   }),
   http.get('/api/emotions', () => {

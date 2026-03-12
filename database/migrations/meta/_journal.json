@@ -71,6 +71,13 @@
       "when": 1773300000000,
       "tag": "0009_stillness_owner_device_nullability",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1773390000000,
+      "tag": "0010_auth_roles_profiles_audit",
+      "breakpoints": true
     }
   ]
 }

@@ -71,9 +71,77 @@ Current storage model:
 
 - stores internal `users.userId`
 - stores provider mapping in `auth_accounts(provider, providerSubject)`
-- does **not** persist email/name/avatar by default
+- stores optional `users.displayName` + `users.avatarUrl`
+- does **not** persist email
 
-## 7) Troubleshooting Login/Callback Failures
+Metadata behavior:
+
+- `displayName`/`avatarUrl` use `user_wins` policy.
+- Provider claims populate local metadata only when local value is currently `null`.
+- Callback flow does not overwrite existing local profile values.
+
+Avatar URL validation:
+
+- max length is enforced
+- production requires `https` URLs
+- development accepts `http` and `https`
+
+## 7) Admin Bootstrap Runbook
+
+After first successful login, promote one account to admin manually.
+
+1. Find user id from provider subject:
+
+```sql
+select u."userId", u."role", a."provider", a."providerSubject"
+from "users" u
+join "auth_accounts" a on a."userId" = u."userId"
+where a."provider" = 'auth0'
+order by u."createdAt" asc;
+```
+
+2. Grant first admin:
+
+```sql
+update "users"
+set "role" = 'admin', "updatedAt" = now()
+where "userId" = '<target-user-id>';
+```
+
+3. Verify current admin set:
+
+```sql
+select "userId", "role", "displayName", "createdAt"
+from "users"
+where "role" = 'admin'
+order by "createdAt" asc;
+```
+
+Rollback one role change:
+
+```sql
+update "users"
+set "role" = 'user', "updatedAt" = now()
+where "userId" = '<target-user-id>';
+```
+
+Break-glass recovery when admin set is lost:
+
+```sql
+with candidate as (
+  select a."userId"
+  from "auth_accounts" a
+  where a."provider" = 'auth0'
+  order by a."createdAt" asc
+  limit 1
+)
+update "users" u
+set "role" = 'admin', "updatedAt" = now()
+from candidate
+where u."userId" = candidate."userId";
+```
+
+## 8) Troubleshooting Login/Callback Failures
 
 If sign-in returns `auth=error&reason=server_error`:
 

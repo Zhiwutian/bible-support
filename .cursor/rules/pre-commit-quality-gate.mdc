@@ -7,6 +7,12 @@ alwaysApply: true
 
 Apply this rule only when preparing a change for commit/PR readiness.
 
+## Planning Mode
+
+- In planning mode, do not execute validation commands.
+- Defer this gate to execution mode after explicit user approval to implement/run checks.
+- If referencing status during planning, label it as last-known and not freshly executed.
+
 ## Required Checks
 
 - Run: `pnpm run lint`

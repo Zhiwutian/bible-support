@@ -64,3 +64,5 @@ For split-host auth cookies in production, use:
 
 - Never place backend secrets in client env files.
 - Anything under `VITE_*` is bundled into frontend code and visible to end users.
+- Email is intentionally not persisted in local auth tables.
+- Auth audit logs are designed to exclude token/cookie/secret values.

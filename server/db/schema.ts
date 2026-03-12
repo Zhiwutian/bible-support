@@ -133,15 +133,35 @@ export const scriptureVerses = pgTable(
   }),
 );
 
-export const users = pgTable('users', {
-  userId: uuid('userId').defaultRandom().primaryKey(),
-  createdAt: timestamp('createdAt', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updatedAt', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const users = pgTable(
+  'users',
+  {
+    userId: uuid('userId').defaultRandom().primaryKey(),
+    role: text('role').notNull().default('user'),
+    displayName: text('displayName'),
+    avatarUrl: text('avatarUrl'),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    usersRoleCheck: check(
+      'users_role_check',
+      sql`${table.role} in ('user', 'admin')`,
+    ),
+    usersDisplayNameLengthCheck: check(
+      'users_display_name_length_check',
+      sql`${table.displayName} is null or char_length(${table.displayName}) <= 120`,
+    ),
+    usersAvatarUrlLengthCheck: check(
+      'users_avatar_url_length_check',
+      sql`${table.avatarUrl} is null or char_length(${table.avatarUrl}) <= 2048`,
+    ),
+  }),
+);
 
 export const authAccounts = pgTable(
   'auth_accounts',
@@ -164,6 +184,51 @@ export const authAccounts = pgTable(
       'auth_accounts_provider_subject_unique',
     ).on(table.provider, table.providerSubject),
     authAccountsUserIdx: index('auth_accounts_user_idx').on(table.userId),
+  }),
+);
+
+export const authAuditEvents = pgTable(
+  'auth_audit_events',
+  {
+    authAuditEventId: serial('authAuditEventId').primaryKey(),
+    userId: uuid('userId').references(() => users.userId, {
+      onDelete: 'set null',
+    }),
+    provider: text('provider').notNull(),
+    eventType: text('eventType').notNull(),
+    outcome: text('outcome').notNull(),
+    reason: text('reason'),
+    message: text('message'),
+    ip: text('ip'),
+    userAgent: text('userAgent'),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    authAuditEventsCreatedAtIdx: index('auth_audit_events_created_at_idx').on(
+      table.createdAt,
+    ),
+    authAuditEventsUserIdx: index('auth_audit_events_user_idx').on(
+      table.userId,
+    ),
+    authAuditEventsTypeIdx: index('auth_audit_events_type_idx').on(
+      table.eventType,
+    ),
+    authAuditEventsEventTypeCheck: check(
+      'auth_audit_events_event_type_check',
+      sql`${table.eventType} in (
+        'login_start',
+        'callback_success',
+        'callback_failure',
+        'logout',
+        'admin_role_change'
+      )`,
+    ),
+    authAuditEventsOutcomeCheck: check(
+      'auth_audit_events_outcome_check',
+      sql`${table.outcome} in ('success', 'failure')`,
+    ),
   }),
 );
 

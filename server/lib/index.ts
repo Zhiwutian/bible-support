@@ -2,6 +2,7 @@ export * from './client-error.js';
 export * from './error-middleware.js';
 export * from './authorization-middleware.js';
 export * from './auth-context.js';
+export * from './admin-session-middleware.js';
 export * from './http-response.js';
 export * from './logger.js';
 export * from './session-auth.js';

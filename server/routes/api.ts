@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '@server/lib/authorization-middleware.js';
+import { requireAdminSession } from '@server/lib/admin-session-middleware.js';
 import {
   getAuthCallback,
   getAuthLogin,
@@ -7,6 +8,11 @@ import {
   getAuthMe,
   postAuthLogout,
 } from '@server/controllers/auth/auth-controller.js';
+import {
+  getAdminAuthEvents,
+  getAdminUsers,
+  patchAdminUserRole,
+} from '@server/controllers/admin/admin-controller.js';
 import {
   getEmotions,
   getEmotionScriptures,
@@ -48,6 +54,13 @@ apiRouter.get(
   authMiddleware,
   getScriptureSourcesDiagnostics,
 );
+apiRouter.get('/admin/users', requireAdminSession, getAdminUsers);
+apiRouter.patch(
+  '/admin/users/:userId/role',
+  requireAdminSession,
+  patchAdminUserRole,
+);
+apiRouter.get('/admin/auth-events', requireAdminSession, getAdminAuthEvents);
 apiRouter.get('/emotions', getEmotions);
 apiRouter.get('/emotions/:slug/scriptures', getEmotionScriptures);
 apiRouter.get('/emotions/:slug/scriptures/random', getRandomEmotionScripture);

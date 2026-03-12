@@ -64,8 +64,14 @@ create index "scripture_verses_text_fts_idx"
 
 create table "users" (
   "userId" uuid primary key default gen_random_uuid(),
+  "role" text not null default 'user',
+  "displayName" text,
+  "avatarUrl" text,
   "createdAt" timestamptz not null default now(),
-  "updatedAt" timestamptz not null default now()
+  "updatedAt" timestamptz not null default now(),
+  check ("role" in ('user', 'admin')),
+  check ("displayName" is null or char_length("displayName") <= 120),
+  check ("avatarUrl" is null or char_length("avatarUrl") <= 2048)
 );
 
 create table "auth_accounts" (
@@ -79,6 +85,24 @@ create table "auth_accounts" (
 );
 
 create index "auth_accounts_user_idx" on "auth_accounts" ("userId");
+
+create table "auth_audit_events" (
+  "authAuditEventId" serial primary key,
+  "userId" uuid references "users"("userId") on delete set null,
+  "provider" text not null,
+  "eventType" text not null,
+  "outcome" text not null,
+  "reason" text,
+  "message" text,
+  "ip" text,
+  "userAgent" text,
+  "createdAt" timestamptz not null default now(),
+  check ("eventType" in ('login_start', 'callback_success', 'callback_failure', 'logout', 'admin_role_change')),
+  check ("outcome" in ('success', 'failure'))
+);
+create index "auth_audit_events_created_at_idx" on "auth_audit_events" ("createdAt");
+create index "auth_audit_events_user_idx" on "auth_audit_events" ("userId");
+create index "auth_audit_events_type_idx" on "auth_audit_events" ("eventType");
 
 create table "saved_scripture_items" (
   "savedId" serial primary key,

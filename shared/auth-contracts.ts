@@ -20,4 +20,7 @@ export type AuthRedirectQuery = {
 export type AuthMeResponse = {
   isAuthenticated: boolean;
   userId: string | null;
+  role: 'user' | 'admin' | null;
+  displayName: string | null;
+  avatarUrl: string | null;
 };

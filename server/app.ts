@@ -1,7 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { env } from '@server/config/env.js';
 import {
   attachUserSession,
@@ -24,6 +24,16 @@ function isWriteMethod(method: string): boolean {
   return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 }
 
+/** Build stable rate-limit identity from auth/session/device/ip context. */
+function resolveRateLimitKey(req: express.Request): string {
+  if (req.authUserId) return `user:${req.authUserId}`;
+  const sessionHeader = req.get('x-session-id');
+  if (sessionHeader) return `session:${sessionHeader}`;
+  const deviceId = req.get('x-device-id');
+  if (deviceId) return `device:${deviceId}`;
+  return `ip:${ipKeyGenerator(req.ip || '')}`;
+}
+
 /**
  * Construct and configure the Express application instance.
  * Keep server startup concerns in `server.ts`.
@@ -39,12 +49,22 @@ export function createApp(): express.Express {
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => isWriteMethod(req.method),
+    keyGenerator: resolveRateLimitKey,
   });
   const apiWriteRateLimiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
     max: env.RATE_LIMIT_WRITE_MAX,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => !isWriteMethod(req.method),
+    keyGenerator: resolveRateLimitKey,
+  });
+  const adminWriteRateLimiter = rateLimit({
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    max: Math.max(10, Math.floor(env.RATE_LIMIT_WRITE_MAX / 2)),
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: resolveRateLimitKey,
     skip: (req) => !isWriteMethod(req.method),
   });
 
@@ -73,6 +93,7 @@ export function createApp(): express.Express {
   app.use(attachUserSession);
   app.use('/api', apiReadRateLimiter);
   app.use('/api', apiWriteRateLimiter);
+  app.use('/api/admin', adminWriteRateLimiter);
 
   app.use('/api', apiRouter);
 

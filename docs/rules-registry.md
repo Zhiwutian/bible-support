@@ -28,3 +28,9 @@ When adding or changing rules:
 1. Edit/create the relevant `.mdc` file in `.cursor/rules/`.
 2. Update this registry table in the same PR.
 3. If rule intent affects team workflow, update `docs/development-workflow.md`.
+
+## Planning Mode Deferral
+
+- In planning mode, pre-commit/release validation commands are deferred.
+- Always-on quality/release rules should be interpreted as execution-mode gates, not planning-mode actions.
+- Planning responses may reference last-known check status, but should not present it as fresh execution output.

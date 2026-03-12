@@ -7,6 +7,12 @@ alwaysApply: true
 
 Apply this rule when preparing deployment-related changes or validating release readiness.
 
+## Planning Mode
+
+- In planning mode, do not run release validation commands.
+- Capture release checks as deferred execution steps.
+- Run this gate only after the user approves execution-mode implementation.
+
 ## Required Validation
 
 - Run: `pnpm run lint`

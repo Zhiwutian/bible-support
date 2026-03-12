@@ -152,8 +152,11 @@ Responses use an API envelope:
 - `GET /api/auth/callback` - OIDC callback endpoint (JSON errors for API clients, redirect with auth status for browser flow)
 - `POST /api/auth/logout` - clears app session cookie
 - `GET /api/auth/logout` - browser logout endpoint (clears session cookie and redirects to configured frontend logout URI)
-- `GET /api/auth/me` - returns minimal auth state (`isAuthenticated`, `userId`)
+- `GET /api/auth/me` - returns auth session/profile state (`isAuthenticated`, `userId`, `role`, `displayName`, `avatarUrl`)
 - `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness (admin bearer token required)
+- `GET /api/admin/users` - paginated user list for admin sessions
+- `PATCH /api/admin/users/:userId/role` - admin role update with required reason + last-admin safeguards
+- `GET /api/admin/auth-events` - paginated recent authentication/admin-role audit events
 - `GET /api/emotions` - list all emotion tiles
 - `GET /api/emotions/:slug/scriptures` - list fixed-order scriptures for one emotion
 - `GET /api/emotions/:slug/scriptures/random` - fetch one random scripture for one emotion
@@ -271,6 +274,7 @@ Long-form project documentation is in `/docs`:
 - `docs/architecture.md` - system architecture and request/data flow
 - `docs/project-structure.md` - folder-by-folder ownership and purpose
 - `docs/development-workflow.md` - local workflow, CI, and deployment process
+- `docs/configuration.md` - split env config + auth/privacy safety notes
 - `docs/app-startup-walkthrough.md` - startup timeline from dev command to first render/API calls
 - `docs/conversation-running-log.md` - running record of prompts and response summaries for this implementation cycle
 
