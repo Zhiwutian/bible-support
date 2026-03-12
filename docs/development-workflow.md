@@ -69,6 +69,31 @@ PRs trigger `/.github/workflows/ci.yml`:
 
 This catches most integration issues before merge.
 
+## PR Documentation Checklist
+
+Before opening or merging a PR, verify:
+
+- If code/config behavior changed, update at least one of:
+  - `README.md`
+  - relevant file(s) under `docs/`
+- If scripts changed, update:
+  - `README.md` scripts section
+  - `docs/development-workflow.md` when workflow expectations changed
+- If deployment/auth/config behavior changed, update relevant runbooks:
+  - `docs/deployment/README.md`
+  - `docs/deployment/auth0-setup.md`
+  - `docs/configuration.md`
+- Add/update `CHANGELOG.md` under `## [Unreleased]`.
+- Append new session milestones to `docs/conversation-running-log.md` when this running-log process is active.
+
+CI enforcement note:
+
+- `/.github/workflows/ci.yml` includes a docs-policy gate that fails PRs if app/config files changed without updates to `README.md` or `docs/`.
+- Keep these CI gates as hard blockers for merge readiness:
+  - `docs-policy`
+  - `db-migration-policy`
+  - quality checks (`lint`, `tsc`, `test`, `build`)
+
 ## Deployment Workflow
 
 - Primary lightweight path is Render + Neon (see `docs/deployment-render-neon.md`).

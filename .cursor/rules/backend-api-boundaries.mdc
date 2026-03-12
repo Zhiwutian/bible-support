@@ -1,0 +1,22 @@
+---
+description: Backend API layering and boundary guard
+globs: server/**/*.ts
+alwaysApply: false
+---
+
+# Backend API Boundaries
+
+Apply this rule when editing backend route/controller/service/database code.
+
+## Layering Expectations
+
+- Keep route files thin: route registration only.
+- Keep controller files focused on request parsing/response mapping.
+- Keep business rules in service files.
+- Keep DB schema/query concerns in DB/service layers.
+
+## Contract Discipline
+
+- If request/response behavior changes, update shared contracts in `shared/`.
+- Keep API envelope semantics consistent.
+- Add or update route tests for changed behavior.

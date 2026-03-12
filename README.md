@@ -175,6 +175,9 @@ Responses use an API envelope:
 - `pnpm run dev` - runs both client and server watchers
 - `pnpm run dev:clean` - stops stale listeners on dev ports (`5173`, `8080`)
 - `pnpm run dev:fresh` - cleans stale listeners, then starts dev watchers
+- `pnpm run setup:env` - creates `server/.env` and `client/.env.local` from examples when missing
+- `pnpm run setup:env:force` - resets local env files from examples (overwrites existing local values)
+- `pnpm run validate:env` - validates split env files before local run/deploy commands
 - `pnpm run lint` - lints client and server
 - `pnpm run tsc` - type checks client and server
 - `pnpm run test` - runs frontend and backend unit/integration tests

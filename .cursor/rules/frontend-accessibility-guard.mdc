@@ -1,0 +1,26 @@
+---
+description: Frontend accessibility and UI consistency guard
+globs: "{client/src/**/*.{ts,tsx,css},docs/styleguide.md}"
+alwaysApply: false
+---
+
+# Frontend Accessibility Guard
+
+Apply this rule when changing UI components, styles, or interaction behavior.
+
+## Required Checks
+
+- Text-size modes remain functional (`Small`, `Medium`, `Large`, `XL`).
+- High-contrast mode remains legible across touched views.
+- Mobile menu/modal behavior keeps overlay + outside-click + Escape handling consistent.
+- Touch target sizing remains usable on mobile.
+
+## Style Consistency
+
+- Prefer Tailwind utilities for component styling.
+- Use global CSS only for shared primitives/tokens.
+- Keep style updates aligned with `docs/styleguide.md`.
+
+## Pre-Commit
+
+- Ensure UI behavior/documentation are updated together when UX changes.

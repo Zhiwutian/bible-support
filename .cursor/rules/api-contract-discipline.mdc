@@ -1,0 +1,28 @@
+---
+description: API contract + test + docs discipline
+globs: "{server/**/*.ts,shared/**/*contracts*.ts,docs/**/*.md,README.md}"
+alwaysApply: false
+---
+
+# API Contract Discipline
+
+Apply this rule when changing request/response behavior, route semantics, or shared contracts.
+
+## Required Pairing
+
+When API behavior changes, update together:
+
+- route/controller/service implementation
+- shared contract types under `shared/`
+- backend route tests
+- relevant docs (`README.md`, `docs/*`)
+
+## Behavior Consistency
+
+- Keep envelope semantics consistent (`data` on success, `error` on failure).
+- Keep status codes intentional and documented.
+- Add/adjust tests for error branches, not only happy paths.
+
+## Pre-Commit Gate
+
+- Ensure API changes are reflected in docs and tests in same PR.

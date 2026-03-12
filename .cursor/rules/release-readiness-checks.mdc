@@ -1,0 +1,28 @@
+---
+description: Release readiness and deployment sanity checks
+alwaysApply: true
+---
+
+# Release Readiness Checks
+
+Apply this rule when preparing deployment-related changes or validating release readiness.
+
+## Required Validation
+
+- Run: `pnpm run lint`
+- Run: `pnpm run tsc`
+- Run: `pnpm run test`
+- Run: `pnpm run build`
+
+## Deployment/Auth Sanity
+
+- Verify environment mapping docs are updated (`docs/configuration.md`, deployment docs).
+- For auth changes, verify:
+  - `/api/auth/login`
+  - `/api/auth/me`
+  - callback behavior and configured redirect URLs.
+
+## Hosted DB Safety
+
+- Use `db:migrate` + `db:seed` for hosted bootstrap.
+- Do not use destructive local-import commands on hosted databases.

@@ -8,6 +8,22 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added focused Cursor rule files and rule tracking docs:
+  - `.cursor/rules/style-enforcement-frontend.mdc`
+  - `.cursor/rules/backend-api-boundaries.mdc`
+  - `docs/rules-usage-guide.md`
+  - `docs/rules-registry.md` updates for new rule entries
+- Added split env-file workflow tooling for local setup:
+  - `pnpm run setup:env`
+  - `pnpm run setup:env:force`
+  - `pnpm run validate:env`
+  - `scripts/validate-env-files.mjs` for required key checks and auth-gated validation.
+- Added configuration/style documentation:
+  - `docs/configuration.md`
+  - `docs/styleguide.md`
+- Added Auth0 troubleshooting guidance for issuer discovery and application-authentication mode in:
+  - `docs/deployment/auth0-setup.md`
+  - `docs/deployment/README.md`
 - Added full-bible JSON import script:
   - `pnpm run db:import:bible-json` (defaults to public-domain KJV JSON source)
   - `server/scripts/import-bible-json.ts` with URL/file override support and idempotent translation refresh.
@@ -91,6 +107,12 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated Cursor rules activation strategy to keep only pre-commit/release gates always-on and scope domain-specific rules via file globs.
+- Updated client lint policy to enforce alias-first cross-folder imports using `@/` (disallow deep parent-relative import patterns).
+- Updated development workflow docs to treat CI docs/migration/quality jobs as hard merge gates.
+- Updated auth login endpoint to return explicit endpoint-level auth failures (`sendAuthFailure`) instead of generic middleware error responses.
+- Updated environment boolean parsing to correctly handle string values like `false`/`0` for `AUTH_ENABLED`, `DB_SSL`, and `DB_SSL_REJECT_UNAUTHORIZED`.
+- Updated Express proxy trust configuration to one-hop mode (`trust proxy = 1`) for Render compatibility and correct callback protocol handling.
 - Updated scripture search fallback normalization to keep canonical translation codes (`KJV`/`ASV`/`WEB`) across local and remote results.
 - Updated accessibility controls to `Small`/`Medium`/`Large`/`XL`, plus mobile display-settings modal cancel rollback semantics for both text-size and high-contrast values.
 - Updated admin diagnostics route protection so `/api/admin/scripture-sources` now requires bearer authentication.
