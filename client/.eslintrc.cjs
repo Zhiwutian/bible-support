@@ -15,5 +15,17 @@ module.exports = {
       { allowConstantExport: true },
     ],
     '@typescript-eslint/no-explicit-any': 'off',
+    'no-restricted-imports': [
+      'error',
+      {
+        patterns: [
+          {
+            group: ['../*', '../../*', '../../../*', '../../../../*'],
+            message:
+              'Prefer the @/ alias for cross-folder client imports.',
+          },
+        ],
+      },
+    ],
   },
 };

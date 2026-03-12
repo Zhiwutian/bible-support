@@ -1,0 +1,38 @@
+---
+description: Pre-commit quality and docs gate
+alwaysApply: true
+---
+
+# Pre-Commit Quality Gate
+
+Apply this rule only when preparing a change for commit/PR readiness.
+
+## Required Checks
+
+- Run: `pnpm run lint`
+- Run: `pnpm run tsc`
+- Run: `pnpm run test`
+- Run: `pnpm run build` when frontend/server behavior changed
+
+## Documentation Gate
+
+When app/config/workflow behavior changes, update:
+
+- `README.md` and/or relevant `docs/*` files
+- `CHANGELOG.md` under `## [Unreleased]`
+- `docs/conversation-running-log.md` for major session milestones (when this log process is active)
+
+## Database Gate
+
+If `server/db/schema.ts` or `database/schema.sql` changes:
+
+- Generate/commit migration files in `database/migrations/*`
+- Keep SQL schema and Drizzle schema in parity
+
+## Deployment/Auth Safety
+
+For auth/deploy changes, verify docs and env mapping updates:
+
+- `docs/deployment/README.md`
+- `docs/deployment/auth0-setup.md`
+- `docs/configuration.md`

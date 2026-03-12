@@ -526,3 +526,39 @@ Section timestamp window:
       Then do CSS/global styling optimization cleanup pass (tokenization + shared primitives)."  
        **Included files in prompt:** None  
        **Assistant response summary:** Applied targeted hardening updates including modal rollback semantics, admin diagnostics protection, expanded route tests, schema/index parity fixes, docs/changelog/log updates, and shared modal styling primitives.
+
+124.  **User prompt (full):** "yes, let's start the next package"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Implemented follow-up package: auth context hardening and nullable authenticated `deviceId` schema migration path with full validation.
+
+125.  **User prompt (full):** "yes, do your final tests, before I run the db:migration on neon
+
+and please provide instructions for how to run the migration on the deployed database with the current deploy split service setup."  
+ **Included files in prompt:** None  
+ **Assistant response summary:** Ran full verification suite and provided Render/Neon migration runbook for split-host deployment.
+
+126.  **User prompt (full):** "I got this while running the deploy: ... Invalid environment configuration ... required when AUTH_ENABLED=true"  
+      **Included files in prompt:** Inline CI failure logs  
+      **Assistant response summary:** Fixed test/runtime env parsing edge case (string booleans), stabilized server test env defaults, and restored CI green.
+
+127.  **User prompt (full):** "let's make the patch before I re deploy"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Patched `/api/auth/login` to return explicit endpoint-level auth failures (JSON/redirect) and revalidated tests.
+
+128.  **User prompt (full):** "on second thought, I would like separate config files for the front end and the back end to separate those concerns."  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Added split config model documentation, env file safety defaults, env setup scripts, validation script, and a new UI styleguide.
+
+129.  **User prompt (full):** "app has been deployed, getting this error:
+
+sign-in-failed could not start authentication log in, and then the page refreshes"  
+ **Included files in prompt:** None  
+ **Assistant response summary:** Performed live endpoint diagnostics; identified Auth0 bootstrap misconfiguration and guided issuer/credentials troubleshooting.
+
+130.  **User prompt (full):** "I am now able to go through the log in, but then I get this when it trys to route back to the app: ... could not complete authentication callback"  
+      **Included files in prompt:** Inline Render log payload  
+      **Assistant response summary:** Diagnosed callback-stage failures, guided Auth0 application-authentication setting correction, and added deployment docs troubleshooting.
+
+131.  **User prompt (full):** "the pull request failed for lack of documentation update. please update all relavent documentaion related to the current updates."  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Updated README/deployment/auth/config/changelog/conversation docs to match the latest auth/config/runtime changes and deployment troubleshooting guidance.

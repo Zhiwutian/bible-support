@@ -160,6 +160,7 @@ This project already includes `client/vercel.json` for SPA route rewrites.
 
 - API health: `https://<render-host>/api/health`
 - Scripture diagnostics (authorized): `https://<render-host>/api/admin/scripture-sources`
+- Auth bootstrap: `https://<render-host>/api/auth/login` should not return `auth_not_enabled` or generic `server_error`
 - Frontend route load: `https://<vercel-host>/`
 - Frontend data flow: open emotion tiles and scripture/context pages
 
@@ -175,6 +176,14 @@ Refresh local JSON + DB scripture corpus when needed:
 pnpm run db:sync:bible-sources
 pnpm run db:import:bible-translations
 ```
+
+Auth issuer sanity check:
+
+```sh
+curl -i "${AUTH_ISSUER%.}/.well-known/openid-configuration"
+```
+
+Expected `200` JSON. If `404`, issuer domain is incorrect (often Auth0 regional domain mismatch).
 
 ## Related Reference Docs
 

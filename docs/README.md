@@ -20,6 +20,12 @@ This folder contains maintainable project documentation for application structur
 - `styleguide.md`
   - Current UI design standards and accessibility-first styling rules
   - Global tokens/primitives and component styling conventions
+- `rules-registry.md`
+  - Index of active Cursor rules under `.cursor/rules/`
+  - Purpose, scope, and maintenance process for rule files
+- `rules-usage-guide.md`
+  - How rule enforcement works (rules vs lint/tests/CI hard gates)
+  - Best practices for designing focused, effective rule files
 - `deployment-render-neon.md`
   - Lightweight free-tier deployment guide
   - Render web service + Neon Postgres setup and smoke verification

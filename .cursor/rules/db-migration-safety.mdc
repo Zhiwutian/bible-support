@@ -1,0 +1,31 @@
+---
+description: Database migration safety checks
+globs: "{server/db/**/*.ts,database/**/*.sql,database/migrations/**/*}"
+alwaysApply: false
+---
+
+# Database Migration Safety
+
+Apply this rule when editing schema definitions or data-shape assumptions.
+
+## Required Updates
+
+If either file changes:
+
+- `server/db/schema.ts`
+- `database/schema.sql`
+
+Then also update:
+
+- `database/migrations/*.sql`
+- `database/migrations/meta/*` (when generated/required)
+
+## Consistency Rules
+
+- Keep Drizzle schema and SQL schema in parity.
+- Prefer additive, non-destructive migration paths for hosted environments.
+- Document operational impact in changelog/docs when schema behavior changes.
+
+## Verification
+
+- Run migration/type/test checks before commit for schema-related work.

@@ -1,0 +1,22 @@
+---
+description: Frontend styleguide enforcement
+globs: client/src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend Style Enforcement
+
+Apply this rule before generating or editing frontend UI code.
+
+## Pre-Generation Steps
+
+1. Read `docs/styleguide.md`.
+2. Reuse existing UI primitives before creating new component styles.
+3. Keep accessibility behavior consistent (text scale, high contrast, mobile modal/menu interactions).
+
+## Implementation Rules
+
+- Prefer Tailwind utilities in component files.
+- Use global CSS only for shared tokens/primitives in `client/src/index.css`.
+- Keep interactions readable and predictable; avoid hidden/complex controls.
+- For UI behavior changes, update `docs/styleguide.md` in the same PR.
