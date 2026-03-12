@@ -4,6 +4,10 @@ node_modules
 .vscode
 *.log
 .env
+server/.env
+client/.env
+client/.env.local
+client/.env.*.local
 coverage
 client/coverage
 server/coverage

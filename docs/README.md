@@ -14,6 +14,12 @@ This folder contains maintainable project documentation for application structur
 - `development-workflow.md`
   - Local setup and daily development loop
   - CI and deployment lifecycle
+- `configuration.md`
+  - Split frontend/backend env-file model
+  - Local file setup and Render/Vercel env mapping
+- `styleguide.md`
+  - Current UI design standards and accessibility-first styling rules
+  - Global tokens/primitives and component styling conventions
 - `deployment-render-neon.md`
   - Lightweight free-tier deployment guide
   - Render web service + Neon Postgres setup and smoke verification
