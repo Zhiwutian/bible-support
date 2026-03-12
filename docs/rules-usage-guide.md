@@ -27,6 +27,15 @@ Use both:
 - Rules for consistent intent.
 - Tooling for deterministic enforcement.
 
+## Planning Mode Behavior
+
+When operating in planning mode:
+
+- Do not run validation commands (`lint`, `tsc`, `test`, `build`).
+- Treat check execution as deferred work for execution mode.
+- If needed, report only last-known check state and clearly label it as stale/previous.
+- Run full pre-commit/release checks only after explicit user approval to execute changes.
+
 ## Writing Effective Rules
 
 For each rule:

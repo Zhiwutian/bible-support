@@ -19,10 +19,12 @@ import {
 } from '@server/lib/index.js';
 import {
   buildLoginRedirectUrl,
-  exchangeCodeForProviderSubject,
+  exchangeCodeForProviderIdentity,
   isAuthEnabled,
-  upsertUserFromProviderSubject,
+  readUserProfileById,
+  upsertUserFromProviderIdentity,
 } from '@server/services/auth-service.js';
+import { writeAuthAuditEvent } from '@server/services/auth-audit-service.js';
 import {
   randomNonce,
   randomPKCECodeVerifier,
@@ -74,6 +76,15 @@ function sendAuthFailure(
   res.redirect(302, buildAuthResultRedirectUrl('error', reason, message));
 }
 
+function readRequestIp(req: Request): string | null {
+  return req.ip ? String(req.ip) : null;
+}
+
+function readRequestUserAgent(req: Request): string | null {
+  const value = req.get('user-agent');
+  return value ? value.slice(0, 512) : null;
+}
+
 /** Handle GET /api/auth/login by redirecting to provider. */
 export async function getAuthLogin(req: Request, res: Response): Promise<void> {
   if (!isAuthEnabled()) {
@@ -88,6 +99,13 @@ export async function getAuthLogin(req: Request, res: Response): Promise<void> {
   }
 
   try {
+    await writeAuthAuditEvent({
+      provider: env.AUTH_PROVIDER,
+      eventType: 'login_start',
+      outcome: 'success',
+      ip: readRequestIp(req),
+      userAgent: readRequestUserAgent(req),
+    });
     const state = randomState();
     const nonce = randomNonce();
     const codeVerifier = randomPKCECodeVerifier();
@@ -100,6 +118,15 @@ export async function getAuthLogin(req: Request, res: Response): Promise<void> {
     setLoginStateCookie(res, { state, nonce, codeVerifier });
     res.redirect(302, redirectUrl);
   } catch {
+    await writeAuthAuditEvent({
+      provider: env.AUTH_PROVIDER,
+      eventType: 'login_start',
+      outcome: 'failure',
+      reason: 'server_error',
+      message: 'could not start authentication login',
+      ip: readRequestIp(req),
+      userAgent: readRequestUserAgent(req),
+    });
     sendAuthFailure(
       req,
       res,
@@ -129,6 +156,15 @@ export async function getAuthCallback(
 
     if (typeof req.query.error === 'string') {
       clearLoginStateCookie(res);
+      await writeAuthAuditEvent({
+        provider: env.AUTH_PROVIDER,
+        eventType: 'callback_failure',
+        outcome: 'failure',
+        reason: 'provider_rejected',
+        message: 'sign-in was cancelled or rejected by provider',
+        ip: readRequestIp(req),
+        userAgent: readRequestUserAgent(req),
+      });
       sendAuthFailure(
         req,
         res,
@@ -152,20 +188,37 @@ export async function getAuthCallback(
       req.originalUrl,
       `${req.protocol}://${req.get('host')}`,
     );
-    const providerSubject = await exchangeCodeForProviderSubject({
+    const providerIdentity = await exchangeCodeForProviderIdentity({
       callbackUrl,
       expectedState: loginState.state,
       expectedNonce: loginState.nonce,
       codeVerifier: loginState.codeVerifier,
     });
-    const userId = await upsertUserFromProviderSubject(providerSubject);
+    const userId = await upsertUserFromProviderIdentity(providerIdentity);
 
     setUserSessionCookie(res, userId);
     clearLoginStateCookie(res);
+    await writeAuthAuditEvent({
+      userId,
+      provider: env.AUTH_PROVIDER,
+      eventType: 'callback_success',
+      outcome: 'success',
+      ip: readRequestIp(req),
+      userAgent: readRequestUserAgent(req),
+    });
     res.redirect(302, buildAuthResultRedirectUrl('success'));
   } catch (err) {
     clearLoginStateCookie(res);
     if (err instanceof ZodError) {
+      await writeAuthAuditEvent({
+        provider: env.AUTH_PROVIDER,
+        eventType: 'callback_failure',
+        outcome: 'failure',
+        reason: 'invalid_callback_request',
+        message: 'invalid authentication callback request',
+        ip: readRequestIp(req),
+        userAgent: readRequestUserAgent(req),
+      });
       sendAuthFailure(
         req,
         res,
@@ -182,9 +235,27 @@ export async function getAuthCallback(
           : err.status >= 500
             ? 'server_error'
             : 'auth_failed';
+      await writeAuthAuditEvent({
+        provider: env.AUTH_PROVIDER,
+        eventType: 'callback_failure',
+        outcome: 'failure',
+        reason,
+        message: err.message,
+        ip: readRequestIp(req),
+        userAgent: readRequestUserAgent(req),
+      });
       sendAuthFailure(req, res, err.status, reason, err.message);
       return;
     }
+    await writeAuthAuditEvent({
+      provider: env.AUTH_PROVIDER,
+      eventType: 'callback_failure',
+      outcome: 'failure',
+      reason: 'server_error',
+      message: 'could not complete authentication callback',
+      ip: readRequestIp(req),
+      userAgent: readRequestUserAgent(req),
+    });
     sendAuthFailure(
       req,
       res,
@@ -197,11 +268,20 @@ export async function getAuthCallback(
 
 /** Handle POST /api/auth/logout by clearing session cookie. */
 export async function postAuthLogout(
-  _req: Request,
+  req: Request,
   res: Response,
 ): Promise<void> {
+  const session = readUserSessionCookie(req);
   clearUserSessionCookie(res);
   clearLoginStateCookie(res);
+  await writeAuthAuditEvent({
+    userId: session?.userId ?? null,
+    provider: env.AUTH_PROVIDER,
+    eventType: 'logout',
+    outcome: 'success',
+    ip: readRequestIp(req),
+    userAgent: readRequestUserAgent(req),
+  });
   res.sendStatus(204);
 }
 
@@ -210,8 +290,17 @@ export async function getAuthLogout(
   req: Request,
   res: Response,
 ): Promise<void> {
+  const session = readUserSessionCookie(req);
   clearUserSessionCookie(res);
   clearLoginStateCookie(res);
+  await writeAuthAuditEvent({
+    userId: session?.userId ?? null,
+    provider: env.AUTH_PROVIDER,
+    eventType: 'logout',
+    outcome: 'success',
+    ip: readRequestIp(req),
+    userAgent: readRequestUserAgent(req),
+  });
   if (prefersJson(req)) {
     sendSuccess(res, { loggedOut: true });
     return;
@@ -222,9 +311,15 @@ export async function getAuthLogout(
 /** Handle GET /api/auth/me with minimal account info. */
 export async function getAuthMe(req: Request, res: Response): Promise<void> {
   const session = readUserSessionCookie(req);
+  const profile = session?.userId
+    ? await readUserProfileById(session.userId)
+    : null;
   const payload: AuthMeResponse = {
-    isAuthenticated: Boolean(session?.userId),
-    userId: session?.userId ?? null,
+    isAuthenticated: Boolean(profile?.userId),
+    userId: profile?.userId ?? null,
+    role: profile?.role ?? null,
+    displayName: profile?.displayName ?? null,
+    avatarUrl: profile?.avatarUrl ?? null,
   };
   sendSuccess(res, payload);
 }

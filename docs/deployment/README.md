@@ -160,6 +160,7 @@ This project already includes `client/vercel.json` for SPA route rewrites.
 
 - API health: `https://<render-host>/api/health`
 - Scripture diagnostics (authorized): `https://<render-host>/api/admin/scripture-sources`
+- Admin users API (authenticated admin session): `https://<render-host>/api/admin/users`
 - Auth bootstrap: `https://<render-host>/api/auth/login` should not return `auth_not_enabled` or generic `server_error`
 - Frontend route load: `https://<vercel-host>/`
 - Frontend data flow: open emotion tiles and scripture/context pages
@@ -184,6 +185,50 @@ curl -i "${AUTH_ISSUER%.}/.well-known/openid-configuration"
 ```
 
 Expected `200` JSON. If `404`, issuer domain is incorrect (often Auth0 regional domain mismatch).
+
+## Admin Role Runbook
+
+Use this after first successful auth login in production.
+
+Grant first admin:
+
+```sql
+update "users"
+set "role" = 'admin', "updatedAt" = now()
+where "userId" = '<target-user-id>';
+```
+
+Verify admins:
+
+```sql
+select "userId", "role", "createdAt"
+from "users"
+where "role" = 'admin'
+order by "createdAt" asc;
+```
+
+Rollback role:
+
+```sql
+update "users"
+set "role" = 'user', "updatedAt" = now()
+where "userId" = '<target-user-id>';
+```
+
+Break-glass recovery (promote earliest known auth account):
+
+```sql
+with candidate as (
+  select "userId"
+  from "auth_accounts"
+  order by "createdAt" asc
+  limit 1
+)
+update "users" u
+set "role" = 'admin', "updatedAt" = now()
+from candidate
+where u."userId" = candidate."userId";
+```
 
 ## Related Reference Docs
 

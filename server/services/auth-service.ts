@@ -1,5 +1,5 @@
 import * as oidc from 'openid-client';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { env } from '@server/config/env.js';
 import { authAccounts, users } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
@@ -8,6 +8,19 @@ import { logger } from '@server/lib/logger.js';
 import { requireDb } from './require-db.js';
 
 let oidcConfigPromise: Promise<oidc.Configuration> | null = null;
+
+export type ProviderIdentity = {
+  providerSubject: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+export type AuthUserProfile = {
+  userId: string;
+  role: 'user' | 'admin';
+  displayName: string | null;
+  avatarUrl: string | null;
+};
 
 /** Return true when OIDC auth feature is enabled. */
 export function isAuthEnabled(): boolean {
@@ -56,13 +69,39 @@ export async function buildLoginRedirectUrl(
   return redirectUrl.toString();
 }
 
-/** Exchange auth code and return provider subject from verified ID token. */
-export async function exchangeCodeForProviderSubject(input: {
+function normalizeDisplayName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return normalized.slice(0, 120);
+}
+
+function normalizeAvatarUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  if (normalized.length > 2048) return null;
+  try {
+    const parsed = new URL(normalized);
+    const protocol = parsed.protocol.toLowerCase();
+    if (env.NODE_ENV === 'production') {
+      if (protocol !== 'https:') return null;
+    } else if (protocol !== 'https:' && protocol !== 'http:') {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Exchange auth code and return provider identity from verified ID token. */
+export async function exchangeCodeForProviderIdentity(input: {
   callbackUrl: URL;
   expectedState: string;
   expectedNonce: string;
   codeVerifier: string;
-}): Promise<string> {
+}): Promise<ProviderIdentity> {
   assertAuthEnabled();
   const config = await getOidcConfig();
   const tokenResponse = await oidc.authorizationCodeGrant(
@@ -79,12 +118,16 @@ export async function exchangeCodeForProviderSubject(input: {
   if (!subject) {
     throw new ClientError(401, 'id token subject claim is missing');
   }
-  return subject;
+  return {
+    providerSubject: subject,
+    displayName: normalizeDisplayName(claims?.name),
+    avatarUrl: normalizeAvatarUrl(claims?.picture),
+  };
 }
 
 /** Resolve existing local user by provider subject or create one. */
-export async function upsertUserFromProviderSubject(
-  providerSubject: string,
+export async function upsertUserFromProviderIdentity(
+  identity: ProviderIdentity,
 ): Promise<string> {
   const db = requireDb();
   const provider = env.AUTH_PROVIDER.trim().toLowerCase();
@@ -95,15 +138,30 @@ export async function upsertUserFromProviderSubject(
     .where(
       and(
         eq(authAccounts.provider, provider),
-        eq(authAccounts.providerSubject, providerSubject),
+        eq(authAccounts.providerSubject, identity.providerSubject),
       ),
     )
     .limit(1);
-  if (existingAccount?.userId) return existingAccount.userId;
+  if (existingAccount?.userId) {
+    await db
+      .update(users)
+      .set({
+        displayName: sql`coalesce(${users.displayName}, ${identity.displayName})`,
+        avatarUrl: sql`coalesce(${users.avatarUrl}, ${identity.avatarUrl})`,
+      })
+      .where(eq(users.userId, existingAccount.userId));
+    return existingAccount.userId;
+  }
 
-  const [createdUser] = await db.insert(users).values({}).returning({
-    userId: users.userId,
-  });
+  const [createdUser] = await db
+    .insert(users)
+    .values({
+      displayName: identity.displayName,
+      avatarUrl: identity.avatarUrl,
+    })
+    .returning({
+      userId: users.userId,
+    });
   if (!createdUser) {
     throw new ClientError(500, 'failed to create user');
   }
@@ -113,7 +171,7 @@ export async function upsertUserFromProviderSubject(
     .values({
       userId: createdUser.userId,
       provider,
-      providerSubject,
+      providerSubject: identity.providerSubject,
     })
     .onConflictDoNothing()
     .returning({ userId: authAccounts.userId });
@@ -126,16 +184,40 @@ export async function upsertUserFromProviderSubject(
     .where(
       and(
         eq(authAccounts.provider, provider),
-        eq(authAccounts.providerSubject, providerSubject),
+        eq(authAccounts.providerSubject, identity.providerSubject),
       ),
     )
     .limit(1);
   if (!accountAfterRace?.userId) {
     logger.error(
-      { provider, providerSubject },
+      { provider, providerSubject: identity.providerSubject },
       'auth account upsert race did not resolve',
     );
     throw new ClientError(500, 'failed to resolve user account');
   }
   return accountAfterRace.userId;
+}
+
+/** Return local user profile used by auth session APIs. */
+export async function readUserProfileById(
+  userId: string,
+): Promise<AuthUserProfile | null> {
+  const db = requireDb();
+  const [row] = await db
+    .select({
+      userId: users.userId,
+      role: users.role,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(users)
+    .where(eq(users.userId, userId))
+    .limit(1);
+  if (!row) return null;
+  return {
+    userId: row.userId,
+    role: row.role === 'admin' ? 'admin' : 'user',
+    displayName: row.displayName,
+    avatarUrl: row.avatarUrl,
+  };
 }

@@ -88,6 +88,9 @@ describe('api routes', () => {
     expect(res.body.data).toEqual({
       isAuthenticated: false,
       userId: null,
+      role: null,
+      displayName: null,
+      avatarUrl: null,
     });
   });
 

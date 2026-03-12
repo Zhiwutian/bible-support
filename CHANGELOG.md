@@ -8,6 +8,17 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added auth/admin expansion foundation:
+  - `users` role/profile columns (`role`, `displayName`, `avatarUrl`) with constraints
+  - `auth_audit_events` table with event/outcome checks and operability indexes
+  - migration `database/migrations/0010_auth_roles_profiles_audit.sql`
+- Added admin APIs and contracts:
+  - `GET /api/admin/users`
+  - `PATCH /api/admin/users/:userId/role`
+  - `GET /api/admin/auth-events`
+  - `shared/admin-contracts.ts`
+- Added minimal admin UI route/page (`/admin`) with user-role management and recent auth event visibility.
+- Added admin/session route tests in `server/routes/admin-api.test.ts`.
 - Added focused Cursor rule files and rule tracking docs:
   - `.cursor/rules/style-enforcement-frontend.mdc`
   - `.cursor/rules/backend-api-boundaries.mdc`
@@ -107,7 +118,13 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated auth callback/account linkage to support `user_wins` profile metadata population (set provider `displayName`/`avatarUrl` only when local fields are null).
+- Updated `/api/auth/me` payload contract to include role and optional profile metadata.
+- Updated rate-limit identity keying to prefer authenticated user id with stable session/device/ip fallback and stricter admin-write throttling.
+- Updated admin role enforcement to evaluate current DB role per request (immediate role-change propagation).
+- Updated deployment/auth docs with first-admin grant, rollback, verify, and break-glass SQL runbook guidance.
 - Updated Cursor rules activation strategy to keep only pre-commit/release gates always-on and scope domain-specific rules via file globs.
+- Updated rules/process docs to explicitly defer pre-commit/release check execution while in planning mode, with checks run only in execution mode.
 - Updated client lint policy to enforce alias-first cross-folder imports using `@/` (disallow deep parent-relative import patterns).
 - Updated development workflow docs to treat CI docs/migration/quality jobs as hard merge gates.
 - Updated auth login endpoint to return explicit endpoint-level auth failures (`sendAuthFailure`) instead of generic middleware error responses.
