@@ -30,6 +30,8 @@ function isWriteMethod(method: string): boolean {
  */
 export function createApp(): express.Express {
   const app = express();
+  // Trust one proxy hop (Render) so req.protocol reflects X-Forwarded-Proto.
+  app.set('trust proxy', 1);
   const allowedOrigins = parseCorsOrigins();
   const apiReadRateLimiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,
