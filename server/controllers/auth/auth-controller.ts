@@ -4,6 +4,7 @@ import type {
   AuthFailureReason,
   AuthMeResponse,
   AuthRedirectOutcome,
+  AuthSocialProvider,
 } from '@shared/auth-contracts.js';
 import { env } from '@server/config/env.js';
 import { ClientError } from '@server/lib/client-error.js';
@@ -35,6 +36,21 @@ const callbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
 });
+const loginQuerySchema = z.object({
+  provider: z.enum(['google', 'facebook']).optional(),
+});
+
+function mapLoginProviderToConnection(
+  provider: AuthSocialProvider | undefined,
+): string | undefined {
+  if (!provider) return undefined;
+  if (env.AUTH_PROVIDER.trim().toLowerCase() !== 'auth0') {
+    throw new ClientError(400, 'selected sign-in provider is not supported');
+  }
+  if (provider === 'google') return 'google-oauth2';
+  if (provider === 'facebook') return 'facebook';
+  return undefined;
+}
 
 /** Build post-auth frontend redirect URL with status marker. */
 function buildAuthResultRedirectUrl(
@@ -99,6 +115,8 @@ export async function getAuthLogin(req: Request, res: Response): Promise<void> {
   }
 
   try {
+    const loginQuery = loginQuerySchema.parse(req.query);
+    const connection = mapLoginProviderToConnection(loginQuery.provider);
     await writeAuthAuditEvent({
       provider: env.AUTH_PROVIDER,
       eventType: 'login_start',
@@ -113,11 +131,26 @@ export async function getAuthLogin(req: Request, res: Response): Promise<void> {
       state,
       nonce,
       codeVerifier,
+      connection,
     });
 
     setLoginStateCookie(res, { state, nonce, codeVerifier });
     res.redirect(302, redirectUrl);
-  } catch {
+  } catch (error) {
+    if (error instanceof ZodError) {
+      sendAuthFailure(
+        req,
+        res,
+        400,
+        'invalid_callback_request',
+        'invalid authentication login request',
+      );
+      return;
+    }
+    if (error instanceof ClientError) {
+      sendAuthFailure(req, res, error.status, 'auth_failed', error.message);
+      return;
+    }
     await writeAuthAuditEvent({
       provider: env.AUTH_PROVIDER,
       eventType: 'login_start',

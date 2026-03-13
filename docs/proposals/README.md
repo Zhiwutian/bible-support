@@ -23,3 +23,5 @@ Suggested proposal structure:
 Current proposals:
 
 - `oauth-email-login-minimal-pii.md`
+- `same-site-domain-auth-session-strategy.md`
+- `company-domain-multi-app-subdomain-strategy.md`
