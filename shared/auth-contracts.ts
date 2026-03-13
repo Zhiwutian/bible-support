@@ -11,6 +11,9 @@ export const AUTH_FAILURE_REASONS = [
 ] as const;
 export type AuthFailureReason = (typeof AUTH_FAILURE_REASONS)[number];
 
+export const AUTH_SOCIAL_PROVIDERS = ['google', 'facebook'] as const;
+export type AuthSocialProvider = (typeof AUTH_SOCIAL_PROVIDERS)[number];
+
 export type AuthRedirectQuery = {
   auth: AuthRedirectOutcome;
   reason?: AuthFailureReason;

@@ -65,6 +65,7 @@ export async function buildLoginRedirectUrl(
     nonce: params.nonce,
     code_challenge: await oidc.calculatePKCECodeChallenge(params.codeVerifier),
     code_challenge_method: 'S256',
+    ...(params.connection ? { connection: params.connection } : {}),
   });
   return redirectUrl.toString();
 }

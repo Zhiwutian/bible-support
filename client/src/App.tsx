@@ -4,6 +4,7 @@ import { EmptyState, Input, ModalShell } from '@/components/ui';
 import type {
   AuthFailureReason,
   AuthRedirectOutcome,
+  AuthSocialProvider,
 } from '@shared/auth-contracts';
 import {
   logout as logoutAuth,
@@ -49,6 +50,7 @@ export default function App() {
   const dispatch = useAppDispatch();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTextSizeModalOpen, setIsTextSizeModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [previewTextScale, setPreviewTextScale] = useState<
     'sm' | 'md' | 'lg' | 'xl'
   >('md');
@@ -208,7 +210,12 @@ export default function App() {
   }, [showToast]);
 
   const handleLogin = useCallback(() => {
-    redirectToLogin();
+    setIsLoginModalOpen(true);
+  }, []);
+
+  const startSocialLogin = useCallback((provider: AuthSocialProvider) => {
+    setIsLoginModalOpen(false);
+    redirectToLogin(provider);
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -235,6 +242,10 @@ export default function App() {
         cancelDisplaySettingsModal();
         return;
       }
+      if (isLoginModalOpen) {
+        setIsLoginModalOpen(false);
+        return;
+      }
       if (isMobileMenuOpen) {
         setIsMobileMenuOpen(false);
       }
@@ -243,7 +254,12 @@ export default function App() {
     return () => {
       window.removeEventListener('keydown', handleEscapeClose);
     };
-  }, [cancelDisplaySettingsModal, isMobileMenuOpen, isTextSizeModalOpen]);
+  }, [
+    cancelDisplaySettingsModal,
+    isLoginModalOpen,
+    isMobileMenuOpen,
+    isTextSizeModalOpen,
+  ]);
 
   return (
     <main
@@ -487,6 +503,39 @@ export default function App() {
               className="min-h-11 rounded-md bg-indigo-600 px-4 py-2 text-base font-medium text-white hover:bg-indigo-500"
               onClick={applyDisplaySettingsModal}>
               Apply
+            </button>
+          </div>
+        </ModalShell>
+      )}
+      {isLoginModalOpen && (
+        <ModalShell
+          title="Sign in"
+          titleId="login-modal-title"
+          onClose={() => setIsLoginModalOpen(false)}
+          panelClassName="max-w-md">
+          <p className="mt-2 text-sm text-slate-600">
+            Choose a provider to continue.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            <button
+              type="button"
+              className="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              onClick={() => startSocialLogin('google')}>
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              className="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+              onClick={() => startSocialLogin('facebook')}>
+              Continue with Facebook
+            </button>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              className="min-h-10 rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              onClick={() => setIsLoginModalOpen(false)}>
+              Cancel
             </button>
           </div>
         </ModalShell>
