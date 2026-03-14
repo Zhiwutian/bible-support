@@ -26,3 +26,5 @@ Current proposals:
 - `same-site-domain-auth-session-strategy.md`
 - `company-domain-multi-app-subdomain-strategy.md`
 - `ui-scale-nav-landing-profile-refresh.md`
+- `ui-shell-support-consistency-refresh.md`
+- `support-scripture-candidates-stress-guilt-refresh.md`

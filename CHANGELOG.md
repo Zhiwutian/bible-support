@@ -129,6 +129,23 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated emotion scripture fallback resolution to use DB-first + local JSON range fallback before seed text, reducing placeholder exposure when corpus rows are missing.
+- Updated seeded fallback verse copy to indicate temporary unavailability instead of instructional wording.
+- Updated emotion scripture viewer to track the active verse in URL query state (`scriptureId`) so translation switches preserve the currently displayed scripture.
+- Updated app-shell branding implementation by extracting shared `BrandLockup` and `MenuHeader` components to reduce JSX duplication and keep menu/header/modal brand treatment aligned.
+- Updated brand typography implementation to semantic CSS classes (`app-brand-title*`) so fixed brand sizing is not affected by global text-scale utility remaps.
+- Updated frontend styleguide guidance with Tailwind/MDN-aligned cascade rules and a formal large-update CSS/JSX review checklist.
+- Updated support category seed set from `joy`/`peace` to `stress`/`guilt` with 20 curated references per category across all 8 support groups.
+- Updated seed reconciliation behavior to prune deprecated emotion slugs and trim stale per-emotion scripture rows on rerun, keeping support data idempotent and drift-resistant.
+- Updated support emotion theming/mocks to match the canonical category set (`fear`, `anger`, `sadness`, `anxiety`, `loneliness`, `grief`, `stress`, `guilt`).
+- Updated app shell navigation to a single hamburger-triggered left overlay menu across desktop/mobile with backdrop blocking and menu-only auth controls.
+- Updated menu information architecture to grouped sections (`Navigation`, `Account`, `Display`) with in-menu account identity (avatar + name).
+- Updated shell/menu terminology from `Emotions` to `Support` for user-facing navigation labels.
+- Updated home support copy to `Scriptural Support` and first-person emotion cards (`I Am ...`) for clearer user framing.
+- Updated search mode chooser from button row to `Search Type` select input.
+- Updated About page content to match current app behavior and added FAQ with quick route links.
+- Updated login modal branding to use logo + `Scripture & Solace` title treatment.
+- Updated mobile `XL` text-scale behavior to render larger typography for readability.
 - Updated social login flow to modal-driven provider selection from the app shell.
 - Updated app-shell navigation for desktop with left-side patterns:
   - overlay drawer on `md`/`lg`

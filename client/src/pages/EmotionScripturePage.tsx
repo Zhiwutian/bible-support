@@ -1,5 +1,6 @@
-import { TouchEvent, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { TouchEvent, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
 import { useToast } from '@/components/app/toast-context';
 import {
   Badge,
@@ -18,6 +19,7 @@ import {
   toChapterReference,
 } from '@/features/emotions/scripture-links';
 import { useEmotionScriptures } from '@/features/emotions/useEmotionScriptures';
+import { saveScripture } from '@/features/search/scripture-search-api';
 
 /**
  * Render scripture viewer for one emotion with arrow and swipe navigation.
@@ -25,8 +27,18 @@ import { useEmotionScriptures } from '@/features/emotions/useEmotionScriptures';
 export function EmotionScripturePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const touchStartXRef = useRef<number | null>(null);
+  const [selectedTranslation, setSelectedTranslation] = useState<
+    'KJV' | 'ASV' | 'WEB'
+  >('KJV');
+  const selectedScriptureIdFromUrl = Number(
+    searchParams.get('scriptureId') ?? '',
+  );
+  const selectedScriptureId = Number.isInteger(selectedScriptureIdFromUrl)
+    ? selectedScriptureIdFromUrl
+    : undefined;
   const {
     emotion,
     scriptures,
@@ -35,7 +47,7 @@ export function EmotionScripturePage() {
     isLoading,
     goNext,
     goPrevious,
-  } = useEmotionScriptures(slug);
+  } = useEmotionScriptures(slug, selectedTranslation, selectedScriptureId);
   const theme = getEmotionTheme(emotion?.slug ?? slug);
   const [showContext, setShowContext] = useState(false);
   const [contextByScriptureId, setContextByScriptureId] = useState<
@@ -58,6 +70,58 @@ export function EmotionScripturePage() {
   const isCurrentContextLoading = currentScripture
     ? (isContextLoadingByScriptureId[currentScripture.scriptureId] ?? false)
     : false;
+
+  useEffect(() => {
+    if (!currentScripture) return;
+    const scriptureIdAsString = String(currentScripture.scriptureId);
+    if (searchParams.get('scriptureId') === scriptureIdAsString) return;
+    const next = new URLSearchParams(searchParams);
+    next.set('scriptureId', scriptureIdAsString);
+    setSearchParams(next, { replace: true });
+  }, [currentScripture, searchParams, setSearchParams]);
+
+  async function handleSaveCurrentScripture() {
+    if (!currentScripture) return;
+    if (
+      !currentScripture.book ||
+      !currentScripture.chapter ||
+      !currentScripture.verseStart ||
+      !currentScripture.verseEnd
+    ) {
+      showToast({
+        title: 'Could not save scripture',
+        description:
+          'This scripture reference could not be mapped to a saveable verse range.',
+        variant: 'error',
+      });
+      return;
+    }
+    try {
+      await saveScripture({
+        translation: currentScripture.translation,
+        book: currentScripture.book,
+        chapter: currentScripture.chapter,
+        verseStart: currentScripture.verseStart,
+        verseEnd: currentScripture.verseEnd,
+        reference: currentScripture.reference,
+        sourceMode: 'local',
+        queryText: `support:${emotion?.slug ?? slug ?? 'unknown'}`,
+      });
+      showToast({
+        title: 'Saved scripture',
+        description: `${currentScripture.reference} (${currentScripture.translation})`,
+        variant: 'success',
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not save scripture';
+      showToast({
+        title: 'Could not save scripture',
+        description: message,
+        variant: 'error',
+      });
+    }
+  }
 
   function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
     touchStartXRef.current = event.touches[0]?.clientX ?? null;
@@ -179,6 +243,23 @@ export function EmotionScripturePage() {
       />
 
       <div className="mb-4 flex items-center gap-2">
+        <label className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
+          Translation
+          <select
+            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium"
+            value={selectedTranslation}
+            onChange={(event) =>
+              setSelectedTranslation(
+                event.target.value as 'KJV' | 'ASV' | 'WEB',
+              )
+            }>
+            {SUPPORTED_SCRIPTURE_TRANSLATIONS.map((translationCode) => (
+              <option key={translationCode} value={translationCode}>
+                {translationCode}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button
           variant="ghost"
           className={theme.controlClassName}
@@ -193,6 +274,14 @@ export function EmotionScripturePage() {
             Copy
           </Button>
         )}
+        {currentScripture && (
+          <Button
+            variant="ghost"
+            className={theme.controlClassName}
+            onClick={() => void handleSaveCurrentScripture()}>
+            Save
+          </Button>
+        )}
       </div>
 
       {isLoading && (
@@ -204,7 +293,7 @@ export function EmotionScripturePage() {
           description={error}
           actions={
             <Button variant="ghost" onClick={() => navigate('/')}>
-              Return to emotions
+              Return to support
             </Button>
           }
         />
@@ -219,6 +308,12 @@ export function EmotionScripturePage() {
             className={`mb-4 text-sm font-semibold tracking-wide ${theme.referenceClassName}`}>
             {currentScripture.reference} ({currentScripture.translation})
           </p>
+          {currentScripture.isTranslationFallback ? (
+            <p className="mb-3 text-xs text-amber-700">
+              Selected translation not available for this reference. Showing{' '}
+              {currentScripture.translation} instead.
+            </p>
+          ) : null}
           <p className="text-xl leading-9 text-slate-800 md:text-2xl">
             {currentScripture.verseText}
           </p>

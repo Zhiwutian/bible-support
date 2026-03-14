@@ -58,8 +58,10 @@ When changing DB shape:
 - Route-level screens -> `client/src/pages/`
 - Domain logic + API calls -> `client/src/features/<domain>/`
 - Reusable primitives -> `client/src/components/ui/`
+- App-shell reusable presentation blocks (brand lockups, menu header rows) -> `client/src/components/app/`
 - Global UI state only -> `client/src/state/`
 - Cross-cutting utilities -> `client/src/lib/`
 - Backend domain services -> `server/services/`
 - App-shell entry routes and nav orchestration -> `client/src/App.tsx`
 - Authenticated profile UX -> `client/src/pages/ProfilePage.tsx` + `client/src/features/auth/auth-api.ts`
+- Overlay menu grouping/label consistency -> `client/src/App.tsx` (`Navigation`, `Account`, `Display`; prefer `Support` terminology)

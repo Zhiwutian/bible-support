@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { notInArray, sql } from 'drizzle-orm';
 import { env } from '@server/config/env.js';
 import { getDrizzleDb } from '@server/db/drizzle.js';
 import { emotions, scriptures } from '@server/db/schema.js';
@@ -253,6 +253,7 @@ async function seedDatabase(): Promise<void> {
       `);
     }
 
+    const seededSlugs = emotionSeedData.map((emotion) => emotion.slug);
     for (const emotion of emotionSeedData) {
       const [savedEmotion] = await tx
         .insert(emotions)
@@ -301,7 +302,17 @@ async function seedDatabase(): Promise<void> {
             },
           });
       }
+
+      // Remove stale scripture rows when seed list length shrinks for a category.
+      await tx.execute(sql`
+        delete from "scriptures"
+        where "emotionId" = ${savedEmotion.emotionId}
+          and "displayOrder" > ${emotion.scriptures.length}
+      `);
     }
+
+    // Remove deprecated categories (and cascading scriptures) not present in current seed.
+    await tx.delete(emotions).where(notInArray(emotions.slug, seededSlugs));
   });
 }
 
