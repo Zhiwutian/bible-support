@@ -3,6 +3,7 @@ export type OidcLoginState = {
   nonce: string;
   codeVerifier: string;
   connection?: string;
+  returnTo?: string;
 };
 
 export type UserSessionPayload = {
