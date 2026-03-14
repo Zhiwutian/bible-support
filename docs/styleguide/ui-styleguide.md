@@ -71,12 +71,15 @@ Any new component must remain legible in both normal and high-contrast modes.
 ## Navigation
 
 - Header remains sticky on mobile and desktop.
-- Mobile navigation uses hamburger + overlay, and blocks background interaction when open.
-- Desktop navigation uses a hybrid left-nav model:
-  - `md/lg`: overlay drawer opened from header `Menu` button
-  - `xl+`: pinned left sidebar with explicit collapse/expand toggle
+- Navigation uses a single hamburger-triggered left overlay menu on all viewports.
+- Overlay menu opens over app content with a transparent blocker that prevents background interaction.
+- Overlay menu should be structured with sections:
+  - `Navigation`
+  - `Account`
+  - `Display`
 - Menu actions should close the menu before navigation/action side effects.
-- Guest mode should display a clear but non-blocking sign-in CTA in shell chrome.
+- Auth controls (sign in/sign out) and account identity should appear in menu `Account` section, not in header chrome.
+- Header keeps logo + `Scripture & Solace` consistently in top-left for desktop and mobile.
 
 ## Forms and Inputs
 
@@ -104,6 +107,32 @@ Any new component must remain legible in both normal and high-contrast modes.
   - reusable primitives used across many components
 - Avoid one-off custom CSS files unless a pattern is reused.
 
+## Tailwind Alignment Notes
+
+This project follows Tailwind's utility-first guidance:
+
+- Keep most styling in markup-level utilities so changes stay local and predictable.
+- Use responsive variants (`sm:`, `md:`, `lg:`...) as mobile-first overrides (unprefixed = mobile baseline).
+- Use arbitrary values (`text-[3rem]`, `max-w-[1400px]`) for true one-offs only.
+- Promote repeated arbitrary values into shared tokens/utilities in `client/src/index.css`.
+
+References:
+
+- [Tailwind utility-first docs](https://tailwindcss.com/docs/utility-first)
+- [Tailwind responsive design docs](https://tailwindcss.com/docs/responsive-design)
+- [Tailwind reusing styles docs](https://tailwindcss.com/docs/reusing-styles)
+
+## Cascade and Specificity Guardrails
+
+- Avoid depending on utility names like `.text-base` as global override hooks when possible; this is prone to accidental collisions.
+- For "exception typography" (brand wordmarks, hero lockups), use dedicated utilities/classes and avoid common remapped utility names in the same element.
+- Treat `!important` as a constrained accessibility escape hatch only (for app-wide high-contrast enforcement). Do not introduce new `!important` rules for normal theming.
+- Prefer scoped semantic wrappers (`.app-high-contrast`, component root classes) over broad substring selectors.
+
+Reference:
+
+- [MDN specificity guidance](https://developer.mozilla.org/en-US/docs/Web/CSS/Specificity)
+
 ## Change Process
 
 When UI styles change:
@@ -111,3 +140,14 @@ When UI styles change:
 1. Update implementation.
 2. Update this styleguide with new standards/tokens.
 3. Update screenshots or behavior docs when relevant (`README.md`, `docs/verse-search-save.md`).
+
+### Large Frontend Update Review Checklist
+
+Run this checklist for significant UI/CSS/JSX changes (especially app-shell work):
+
+1. **Cascade safety**: confirm no global selectors unintentionally override local utility intent.
+2. **Breakpoint behavior**: validate mobile baseline + `sm/md/lg/xl` transitions against intended layout.
+3. **Text-scale compatibility**: validate `Small/Medium/Large/XL` across updated pages.
+4. **High-contrast compatibility**: validate legibility, borders, focus states, and overlays.
+5. **Keyboard/accessibility behavior**: verify Escape/overlay dismissal, focusability, and target sizes.
+6. **Class reuse cleanup**: extract repeated class clusters into reusable primitives/components when duplication grows.

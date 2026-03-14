@@ -594,3 +594,27 @@ To-do's from the plan have already been created. Do not create them again. Mark 
 138.  **User prompt (full):** "yes, let's begin"  
       **Included files in prompt:** None  
       **Assistant response summary:** Implemented the planned phases: text-scale/nav/branding updates, unauth landing + guest flow with `next` return-path, authenticated profile edit endpoint/UI (`PATCH /api/auth/me`, `/profile`), telemetry-ready event hooks, and updated docs/changelog.
+
+139.  **User prompt (full):** "everything is working so far... more ui updates... create a plan... then proposal first before implementation"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Created a new proposal (`docs/proposals/ui-shell-support-consistency-refresh.md`) and began implementation for a unified overlay menu shell, support terminology/copy updates, search-type select control, branded login modal, larger mobile XL text, and About-page FAQ refresh.
+
+140.  **User prompt (full):** "lets do it" (support category refresh) and follow-up confirmation to proceed  
+      **Included files in prompt:** `docs/proposals/support-scripture-candidates-stress-guilt-refresh.md` (as reference)  
+      **Assistant response summary:** Implemented support-category data refresh by replacing `joy`/`peace` with `stress`/`guilt`, expanding seed references to 20 per category across 8 support groups, updating idempotent seed behavior to prune deprecated categories and stale rows, aligning frontend theme/mock category mappings, and validating with full lint/typecheck/test/build passes.
+
+141.  **User prompt (full):** "it should show the correct verse or verses" and follow-up fallback-copy clarification  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Fixed emotion scripture hydration flow to resolve verse ranges from local translation JSON when DB lookup misses, preserving real scripture text whenever possible; then adjusted fallback copy semantics to indicate temporary availability issues.
+
+142.  **User prompt (full):** "Can we add a url param for the scripture view which tracks the current scripture being displayed?"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Added scripture viewer URL state (`scriptureId`) and synchronized navigation/translation behavior so the currently displayed verse remains stable when translation changes.
+
+143.  **User prompt (full):** menu/header logo-title sizing/layout follow-ups across desktop/mobile  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Iteratively refined shell branding layout and scale, then refactored duplicated brand JSX into shared `BrandLockup` and `MenuHeader` components with semantic brand typography classes to avoid text-scale utility override conflicts.
+
+144.  **User prompt (full):** "do an in depth review ... refer to official documentation ... update the styleguides"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Performed frontend CSS/JSX audit against Tailwind utility-first/responsive guidance and CSS specificity best practices, documented findings/risks, and updated styleguide docs with cascade guardrails plus a mandatory large-update frontend review checklist.

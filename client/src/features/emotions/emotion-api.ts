@@ -1,4 +1,5 @@
 import { fetchJson } from '@/lib';
+import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 
 export type EmotionTile = {
   emotionId: number;
@@ -12,8 +13,13 @@ export type ScriptureQuote = {
   emotionId: number;
   reference: string;
   verseText: string;
-  translation: string;
+  translation: ScriptureTranslationCode;
   displayOrder: number;
+  book?: string;
+  chapter?: number;
+  verseStart?: number;
+  verseEnd?: number;
+  isTranslationFallback?: boolean;
 };
 
 export type ScriptureContext = {
@@ -44,8 +50,14 @@ export async function readEmotions(): Promise<EmotionTile[]> {
 /** Return all scriptures for an emotion slug in fixed order. */
 export async function readEmotionScriptures(
   slug: string,
+  translation?: ScriptureTranslationCode,
 ): Promise<EmotionScripturePayload> {
-  return fetchJson<EmotionScripturePayload>(`/api/emotions/${slug}/scriptures`);
+  const searchParams = new URLSearchParams();
+  if (translation) searchParams.set('translation', translation);
+  const suffix = searchParams.size > 0 ? `?${searchParams}` : '';
+  return fetchJson<EmotionScripturePayload>(
+    `/api/emotions/${slug}/scriptures${suffix}`,
+  );
 }
 
 /** Return one random scripture for an emotion slug. */

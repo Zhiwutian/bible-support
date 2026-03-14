@@ -129,21 +129,19 @@ export function SearchPage() {
       />
 
       <Card className="mb-4 space-y-4 border p-4">
-        <div className="flex flex-wrap gap-2">
-          {(['guided', 'reference', 'keyword'] as const).map((option) => (
-            <Button
-              key={option}
-              variant={mode === option ? 'primary' : 'ghost'}
-              className="min-h-11"
-              onClick={() => setMode(option)}>
-              {option === 'guided'
-                ? 'Guided picker'
-                : option === 'reference'
-                  ? 'Reference input'
-                  : 'Keyword search'}
-            </Button>
-          ))}
-        </div>
+        <label className="flex min-w-[220px] max-w-sm flex-col gap-1 text-sm font-semibold">
+          Search Type
+          <select
+            className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2"
+            value={mode}
+            onChange={(event) =>
+              setMode(event.target.value as ScriptureSearchMode)
+            }>
+            <option value="guided">Guided picker</option>
+            <option value="reference">Reference input</option>
+            <option value="keyword">Keyword search</option>
+          </select>
+        </label>
 
         <form className="space-y-3" onSubmit={handleSearch}>
           <div className="flex flex-wrap gap-3">

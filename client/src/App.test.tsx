@@ -37,10 +37,12 @@ describe('App', () => {
     await continueAsGuest(user);
 
     expect(
-      await screen.findByRole('heading', { name: /how are you feeling/i }),
+      await screen.findByRole('heading', { name: /scriptural support/i }),
     ).toBeInTheDocument();
-    expect(await screen.findByText('Fear')).toBeInTheDocument();
-    expect(await screen.findByText('Anger')).toBeInTheDocument();
+    expect(await screen.findByText('I Am Afraid')).toBeInTheDocument();
+    expect(await screen.findByText('I Am Angry')).toBeInTheDocument();
+    expect(await screen.findByText('I Am Stressed')).toBeInTheDocument();
+    expect(await screen.findByText('I Am Feeling Guilty')).toBeInTheDocument();
   });
 
   it('navigates to emotion scripture viewer and back', async () => {
@@ -48,7 +50,7 @@ describe('App', () => {
     renderApp();
     await continueAsGuest(user);
 
-    await user.click(await screen.findByRole('link', { name: 'Fear' }));
+    await user.click(await screen.findByRole('link', { name: 'I Am Afraid' }));
     expect(
       await screen.findByRole('heading', { name: 'Scriptures for Fear' }),
     ).toBeInTheDocument();
@@ -56,7 +58,7 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(
-      await screen.findByRole('heading', { name: /how are you feeling/i }),
+      await screen.findByRole('heading', { name: /scriptural support/i }),
     ).toBeInTheDocument();
   });
 
@@ -66,7 +68,7 @@ describe('App', () => {
     renderApp();
     await continueAsGuest(user);
 
-    await user.click(await screen.findByRole('link', { name: 'Fear' }));
+    await user.click(await screen.findByRole('link', { name: 'I Am Afraid' }));
     expect(await screen.findByText('Isaiah 41:10 (NIV)')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '← Previous' }));
     expect(await screen.findByText('Psalm 23:4 (NIV)')).toBeInTheDocument();
@@ -118,7 +120,7 @@ describe('App', () => {
     renderApp();
     await continueAsGuest(user);
 
-    await user.click(await screen.findByRole('link', { name: 'Fear' }));
+    await user.click(await screen.findByRole('link', { name: 'I Am Afraid' }));
     await user.click(
       await screen.findByRole('button', { name: 'Learn context' }),
     );
@@ -130,5 +132,47 @@ describe('App', () => {
     expect(
       screen.queryByText(/Could not load context right now/i),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps the current scripture when translation changes', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const user = userEvent.setup();
+    renderApp();
+    await continueAsGuest(user);
+
+    await user.click(await screen.findByRole('link', { name: 'I Am Afraid' }));
+    expect(await screen.findByText('Psalm 23:4 (NIV)')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Next →' }));
+    expect(await screen.findByText('Isaiah 41:10 (NIV)')).toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: /translation/i }),
+      'ASV',
+    );
+    expect(await screen.findByText('Isaiah 41:10 (NIV)')).toBeInTheDocument();
+
+    randomSpy.mockRestore();
+  });
+
+  it('shows sign in action inside menu only and uses branded login modal', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await continueAsGuest(user);
+
+    expect(
+      screen.queryByRole('button', { name: 'Sign in' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Open menu' }));
+    expect(
+      screen.getByRole('button', { name: /display settings/i }),
+    ).toBeInTheDocument();
+    const scrollContainer = document.getElementById('overlay-main-menu-scroll');
+    expect(scrollContainer).not.toBeNull();
+    expect(scrollContainer?.className).toContain('overflow-y-auto');
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Scripture & Solace' }),
+    ).toBeInTheDocument();
   });
 });

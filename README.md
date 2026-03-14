@@ -193,7 +193,7 @@ Responses use an API envelope:
 - `pnpm run db:import` - resets/imports schema and seed data
 - `pnpm run db:generate` - generates Drizzle SQL migrations from schema
 - `pnpm run db:migrate` - applies Drizzle migrations
-- `pnpm run db:seed` - transactionally upserts starter data (safe to rerun; heals partial seed state)
+- `pnpm run db:seed` - transactionally reconciles starter data (safe to rerun; heals partial state and prunes deprecated support categories/rows)
 - `pnpm run db:sync:bible-sources` - downloads and normalizes local public-domain JSON copies (`KJV`, `ASV`, `WEB`) to `server/data/bible`
 - `pnpm run db:import:bible-json` - imports full-bible JSON into `scripture_verses` (defaults to public KJV source)
 - `pnpm run db:import:bible-translations` - syncs local sources and imports canonical `KJV`, `ASV`, `WEB` into `scripture_verses`

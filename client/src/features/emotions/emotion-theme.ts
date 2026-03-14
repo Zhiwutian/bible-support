@@ -14,8 +14,8 @@ export const emotionColorMap: Record<string, string> = {
   sadness: '#3b82f6',
   anxiety: '#f59e0b',
   loneliness: '#8b5cf6',
-  joy: '#eab308',
-  peace: '#10b981',
+  stress: '#f97316',
+  guilt: '#14b8a6',
   grief: '#64748b',
   default: '#64748b',
 };
@@ -84,27 +84,26 @@ const emotionThemeMap: Record<string, EmotionTheme> = {
       'border border-violet-400/45 bg-violet-500/10 text-violet-900 hover:bg-violet-500/10 hover:text-violet-900',
     referenceClassName: 'text-violet-900',
   },
-  joy: {
-    viewBackgroundClassName: 'bg-yellow-500/5',
+  stress: {
+    viewBackgroundClassName: 'bg-orange-500/10',
     cardClassName:
-      'border-yellow-300/40 bg-yellow-500/12 hover:bg-yellow-500/16',
-    scriptureContainerClassName: 'border-yellow-300/40 bg-yellow-500/5',
-    scriptureContextClassName: 'border-yellow-300/40 bg-yellow-500/5',
-    badgeClassName: 'bg-yellow-500/12 text-yellow-900',
+      'border-orange-400/45 bg-orange-500/20 hover:bg-orange-500/25',
+    scriptureContainerClassName: 'border-orange-400/45 bg-orange-500/10',
+    scriptureContextClassName: 'border-orange-400/45 bg-orange-500/10',
+    badgeClassName: 'bg-orange-500/12 text-orange-900',
     controlClassName:
-      'border border-yellow-300/40 bg-yellow-500/5 text-yellow-900 hover:bg-yellow-500/5 hover:text-yellow-900',
-    referenceClassName: 'text-yellow-900',
+      'border border-orange-400/45 bg-orange-500/10 text-orange-900 hover:bg-orange-500/10 hover:text-orange-900',
+    referenceClassName: 'text-orange-900',
   },
-  peace: {
-    viewBackgroundClassName: 'bg-emerald-500/10',
-    cardClassName:
-      'border-emerald-400/45 bg-emerald-500/20 hover:bg-emerald-500/25',
-    scriptureContainerClassName: 'border-emerald-400/45 bg-emerald-500/10',
-    scriptureContextClassName: 'border-emerald-400/45 bg-emerald-500/10',
-    badgeClassName: 'bg-emerald-500/12 text-emerald-900',
+  guilt: {
+    viewBackgroundClassName: 'bg-teal-500/10',
+    cardClassName: 'border-teal-400/45 bg-teal-500/20 hover:bg-teal-500/25',
+    scriptureContainerClassName: 'border-teal-400/45 bg-teal-500/10',
+    scriptureContextClassName: 'border-teal-400/45 bg-teal-500/10',
+    badgeClassName: 'bg-teal-500/12 text-teal-900',
     controlClassName:
-      'border border-emerald-400/45 bg-emerald-500/10 text-emerald-900 hover:bg-emerald-500/10 hover:text-emerald-900',
-    referenceClassName: 'text-emerald-900',
+      'border border-teal-400/45 bg-teal-500/10 text-teal-900 hover:bg-teal-500/10 hover:text-teal-900',
+    referenceClassName: 'text-teal-900',
   },
   grief: {
     viewBackgroundClassName: 'bg-slate-500/10',

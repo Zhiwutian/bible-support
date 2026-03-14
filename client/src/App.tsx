@@ -1,4 +1,6 @@
 import { NavLinkButton } from '@/components/app/NavLinkButton';
+import { BrandLockup } from '@/components/app/BrandLockup';
+import { MenuHeader } from '@/components/app/MenuHeader';
 import { useToast } from '@/components/app/toast-context';
 import { EmptyState, Input, ModalShell } from '@/components/ui';
 import { LandingPage } from '@/pages/LandingPage';
@@ -16,7 +18,14 @@ import {
   updateAuthProfile,
 } from '@/features/auth/auth-api';
 import { useAppDispatch, useAppState } from '@/state';
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 
 const EmotionsPage = lazy(async () => ({
@@ -55,9 +64,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isDesktopNavOpen, setIsDesktopNavOpen] = useState(false);
-  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
-    useState(false);
+  const menuScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [hasEnteredGuestMode, setHasEnteredGuestMode] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.sessionStorage.getItem('guest-mode') === 'true';
@@ -103,6 +110,10 @@ export default function App() {
         : state.textScale === 'md'
           ? 'Medium'
           : 'Small';
+  const accountDisplayName =
+    authSession?.displayName?.trim() ||
+    (authSession ? 'Signed in user' : 'Guest');
+  const accountInitial = accountDisplayName.charAt(0).toUpperCase();
   const currentRouteIntent = `${location.pathname}${location.search}${location.hash}`;
   const shouldShowLanding =
     !isAuthLoading && !authSession && !hasEnteredGuestMode;
@@ -255,7 +266,6 @@ export default function App() {
         guestMode: hasEnteredGuestMode,
       });
       setHasEnteredGuestMode(false);
-      setIsDesktopNavOpen(false);
       setIsMobileMenuOpen(false);
       setIsLoginModalOpen(false);
       redirectToLogin(provider, next);
@@ -324,10 +334,6 @@ export default function App() {
         setIsLoginModalOpen(false);
         return;
       }
-      if (isDesktopNavOpen) {
-        setIsDesktopNavOpen(false);
-        return;
-      }
       if (isMobileMenuOpen) {
         setIsMobileMenuOpen(false);
       }
@@ -338,168 +344,179 @@ export default function App() {
     };
   }, [
     cancelDisplaySettingsModal,
-    isDesktopNavOpen,
     isLoginModalOpen,
     isMobileMenuOpen,
     isTextSizeModalOpen,
   ]);
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = 'hidden';
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [isMobileMenuOpen]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    if (!menuScrollContainerRef.current) return;
+    menuScrollContainerRef.current.scrollTop = 0;
+  }, [isMobileMenuOpen]);
+
   return (
     <main
-      className={`mx-auto min-h-screen w-full max-w-4xl px-6 py-10 ${contrastClassName} ${textScaleClassName}`}>
+      className={`mx-auto min-h-screen w-full max-w-[1400px] px-6 py-10 ${contrastClassName} ${textScaleClassName}`}>
       {isMobileMenuOpen && (
-        <button
-          type="button"
-          aria-label="Close menu overlay"
-          className="fixed inset-0 z-30 bg-black/45 md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-      {isDesktopNavOpen && (
-        <div className="hidden md:block xl:hidden">
+        <>
           <button
             type="button"
-            aria-label="Close desktop navigation overlay"
-            className="fixed inset-0 z-30 bg-black/35"
-            onClick={() => setIsDesktopNavOpen(false)}
+            aria-label="Close navigation menu overlay"
+            className="fixed inset-0 z-[70] bg-black/35"
+            onClick={() => setIsMobileMenuOpen(false)}
           />
-          <aside className="fixed inset-y-0 left-0 z-40 w-72 border-r border-slate-200 bg-white p-4 shadow-lg">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">
-              Menu
-            </h2>
-            <div className="grid grid-cols-1 gap-2">
-              <NavLinkButton
-                to="/"
-                className="justify-start text-base font-semibold"
-                onClick={() => setIsDesktopNavOpen(false)}>
-                Emotions
-              </NavLinkButton>
-              <NavLinkButton
-                to="/search"
-                className="justify-start text-base font-semibold"
-                onClick={() => setIsDesktopNavOpen(false)}>
-                Search
-              </NavLinkButton>
-              <NavLinkButton
-                to="/saved"
-                className="justify-start text-base font-semibold"
-                onClick={() => setIsDesktopNavOpen(false)}>
-                Saved
-              </NavLinkButton>
-              <NavLinkButton
-                to="/about"
-                className="justify-start text-base font-semibold"
-                onClick={() => setIsDesktopNavOpen(false)}>
-                About
-              </NavLinkButton>
-              {authSession ? (
-                <NavLinkButton
-                  to="/profile"
-                  className="justify-start text-base font-semibold"
-                  onClick={() => setIsDesktopNavOpen(false)}>
-                  Profile
-                </NavLinkButton>
-              ) : null}
-              {authSession?.role === 'admin' ? (
-                <NavLinkButton
-                  to="/admin"
-                  className="justify-start text-base font-semibold"
-                  onClick={() => setIsDesktopNavOpen(false)}>
-                  Admin
-                </NavLinkButton>
-              ) : null}
+          <aside
+            id="overlay-main-menu"
+            className="fixed inset-y-0 left-0 z-[80] flex h-screen w-[22rem] max-w-[88vw] flex-col overflow-hidden border-r border-slate-200 bg-white p-4 shadow-lg">
+            <MenuHeader onClose={() => setIsMobileMenuOpen(false)} />
+            <div
+              ref={menuScrollContainerRef}
+              id="overlay-main-menu-scroll"
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(1rem,env(safe-area-inset-bottom))] pr-1">
+              <section className="mb-4">
+                <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Navigation
+                </h2>
+                <div className="grid grid-cols-1 gap-2">
+                  <NavLinkButton
+                    to="/"
+                    className="justify-start text-base font-semibold"
+                    onClick={() => setIsMobileMenuOpen(false)}>
+                    Support
+                  </NavLinkButton>
+                  <NavLinkButton
+                    to="/search"
+                    className="justify-start text-base font-semibold"
+                    onClick={() => setIsMobileMenuOpen(false)}>
+                    Search
+                  </NavLinkButton>
+                  <NavLinkButton
+                    to="/saved"
+                    className="justify-start text-base font-semibold"
+                    onClick={() => setIsMobileMenuOpen(false)}>
+                    Saved
+                  </NavLinkButton>
+                  <NavLinkButton
+                    to="/about"
+                    className="justify-start text-base font-semibold"
+                    onClick={() => setIsMobileMenuOpen(false)}>
+                    About
+                  </NavLinkButton>
+                  {authSession ? (
+                    <NavLinkButton
+                      to="/profile"
+                      className="justify-start text-base font-semibold"
+                      onClick={() => setIsMobileMenuOpen(false)}>
+                      Profile
+                    </NavLinkButton>
+                  ) : null}
+                  {authSession?.role === 'admin' ? (
+                    <NavLinkButton
+                      to="/admin"
+                      className="justify-start text-base font-semibold"
+                      onClick={() => setIsMobileMenuOpen(false)}>
+                      Admin
+                    </NavLinkButton>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className="mb-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Account
+                </h2>
+                <div className="mb-3 flex items-center gap-3">
+                  {authSession?.avatarUrl ? (
+                    <img
+                      src={authSession.avatarUrl}
+                      alt={`${accountDisplayName} avatar`}
+                      className="size-10 rounded-full border border-slate-200 object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-700">
+                      {accountInitial || 'G'}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {accountDisplayName}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      {authSession ? 'Signed in' : 'Guest mode'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-base font-semibold text-slate-800 hover:bg-slate-100"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (authSession) {
+                      void handleLogout();
+                      return;
+                    }
+                    handleLogin();
+                  }}
+                  disabled={isAuthLoading}>
+                  {isAuthLoading
+                    ? 'Checking login...'
+                    : authSession
+                      ? 'Sign out'
+                      : 'Sign in'}
+                </button>
+                {!authSession && hasEnteredGuestMode ? (
+                  <button
+                    type="button"
+                    className="mt-2 min-h-11 w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-left text-sm font-medium text-amber-800 hover:bg-amber-100"
+                    onClick={() =>
+                      startSocialLogin('google', currentRouteIntent)
+                    }>
+                    Sign in to sync saved scriptures
+                  </button>
+                ) : null}
+              </section>
+
+              <section>
+                <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Display
+                </h2>
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-base font-semibold text-slate-800"
+                  onClick={openDisplaySettingsModal}>
+                  <span>Display settings</span>
+                  <span className="text-base font-medium text-slate-600">
+                    {textSizeLabel}
+                    {state.highContrast ? ' + High contrast' : ''}
+                  </span>
+                </button>
+              </section>
             </div>
           </aside>
-        </div>
+        </>
       )}
-      <div className="xl:flex xl:gap-6">
-        {!isDesktopSidebarCollapsed ? (
-          <aside className="hidden xl:block xl:w-64 xl:shrink-0">
-            <div className="sticky top-6 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">
-                Menu
-              </h2>
-              <div className="grid grid-cols-1 gap-2">
-                <NavLinkButton
-                  to="/"
-                  className="justify-start text-base font-semibold">
-                  Emotions
-                </NavLinkButton>
-                <NavLinkButton
-                  to="/search"
-                  className="justify-start text-base font-semibold">
-                  Search
-                </NavLinkButton>
-                <NavLinkButton
-                  to="/saved"
-                  className="justify-start text-base font-semibold">
-                  Saved
-                </NavLinkButton>
-                <NavLinkButton
-                  to="/about"
-                  className="justify-start text-base font-semibold">
-                  About
-                </NavLinkButton>
-                {authSession ? (
-                  <NavLinkButton
-                    to="/profile"
-                    className="justify-start text-base font-semibold">
-                    Profile
-                  </NavLinkButton>
-                ) : null}
-                {authSession?.role === 'admin' ? (
-                  <NavLinkButton
-                    to="/admin"
-                    className="justify-start text-base font-semibold">
-                    Admin
-                  </NavLinkButton>
-                ) : null}
-              </div>
-            </div>
-          </aside>
-        ) : null}
-        <div className="min-w-0 flex-1">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 xl:grid-cols-12">
+        <div className="min-w-0 xl:col-span-10 xl:col-start-2">
           <header
             className={`sticky top-0 z-40 -mx-6 mb-6 border-b px-6 py-3 backdrop-blur ${navClassName}`}>
-            <nav className="flex items-center gap-2">
-              <div className="inline-flex items-center gap-2 pr-1">
-                <img
-                  src="/logo-glow-bible.svg"
-                  alt="Scripture and Solace logo"
-                  className="size-8 rounded-sm"
-                />
-                <span className="hidden text-sm font-semibold text-slate-800 sm:inline">
-                  Scripture &amp; Solace
-                </span>
-              </div>
+            <nav className="flex flex-col items-start gap-2">
+              <BrandLockup context="header" />
               <button
                 type="button"
-                className="hidden min-h-11 items-center gap-2 rounded-md px-3 text-base font-semibold text-slate-700 transition hover:bg-slate-100 md:inline-flex xl:hidden"
-                aria-label={
-                  isDesktopNavOpen ? 'Close desktop menu' : 'Open desktop menu'
-                }
-                onClick={() => setIsDesktopNavOpen((open) => !open)}>
-                Menu
-              </button>
-              <button
-                type="button"
-                className="hidden min-h-11 items-center gap-2 rounded-md px-3 text-base font-semibold text-slate-700 transition hover:bg-slate-100 xl:inline-flex"
-                aria-label={
-                  isDesktopSidebarCollapsed
-                    ? 'Open pinned sidebar menu'
-                    : 'Collapse pinned sidebar menu'
-                }
-                onClick={() =>
-                  setIsDesktopSidebarCollapsed((collapsed) => !collapsed)
-                }>
-                {isDesktopSidebarCollapsed ? 'Open menu' : 'Hide menu'}
-              </button>
-
-              <button
-                type="button"
-                className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-base font-semibold text-slate-700 transition hover:bg-slate-100 md:hidden"
+                className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-base font-semibold text-slate-700 transition hover:bg-slate-100"
                 aria-expanded={isMobileMenuOpen}
-                aria-controls="mobile-main-menu"
+                aria-controls="overlay-main-menu"
                 aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
                 onClick={() => setIsMobileMenuOpen((open) => !open)}>
                 {isMobileMenuOpen ? (
@@ -540,145 +557,7 @@ export default function App() {
                   </>
                 )}
               </button>
-
-              <div className="ml-auto hidden items-center gap-3 md:flex">
-                <button
-                  type="button"
-                  className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                  onClick={
-                    authSession ? () => void handleLogout() : handleLogin
-                  }
-                  disabled={isAuthLoading}>
-                  {isAuthLoading
-                    ? 'Checking login...'
-                    : authSession
-                      ? 'Log out'
-                      : 'Sign in'}
-                </button>
-                {!authSession && hasEnteredGuestMode ? (
-                  <button
-                    type="button"
-                    className="min-h-11 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100"
-                    onClick={() =>
-                      startSocialLogin('google', currentRouteIntent)
-                    }>
-                    Guest mode - Sign in
-                  </button>
-                ) : null}
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  Text size
-                  <select
-                    className="rounded-md border border-slate-300 bg-white px-2 py-2 text-sm"
-                    value={state.textScale}
-                    onChange={(event) =>
-                      dispatch({
-                        type: 'textScale/set',
-                        payload: event.target.value as
-                          | 'sm'
-                          | 'md'
-                          | 'lg'
-                          | 'xl',
-                      })
-                    }>
-                    <option value="sm">Small</option>
-                    <option value="md">Medium</option>
-                    <option value="lg">Large</option>
-                    <option value="xl">XL</option>
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <Input
-                    className="size-5"
-                    type="checkbox"
-                    checked={state.highContrast}
-                    onChange={(event) =>
-                      dispatch({
-                        type: 'highContrast/set',
-                        payload: event.target.checked,
-                      })
-                    }
-                  />
-                  High contrast
-                </label>
-              </div>
             </nav>
-
-            {isMobileMenuOpen && (
-              <div
-                id="mobile-main-menu"
-                className="mt-3 space-y-3 border-t border-slate-200 pt-3 md:hidden">
-                <div className="grid grid-cols-1 gap-2">
-                  <NavLinkButton
-                    to="/"
-                    className="justify-start text-base font-semibold"
-                    onClick={() => setIsMobileMenuOpen(false)}>
-                    Emotions
-                  </NavLinkButton>
-                  <NavLinkButton
-                    to="/search"
-                    className="justify-start text-base font-semibold"
-                    onClick={() => setIsMobileMenuOpen(false)}>
-                    Search
-                  </NavLinkButton>
-                  <NavLinkButton
-                    to="/saved"
-                    className="justify-start text-base font-semibold"
-                    onClick={() => setIsMobileMenuOpen(false)}>
-                    Saved
-                  </NavLinkButton>
-                  <NavLinkButton
-                    to="/about"
-                    className="justify-start text-base font-semibold"
-                    onClick={() => setIsMobileMenuOpen(false)}>
-                    About
-                  </NavLinkButton>
-                  {authSession ? (
-                    <NavLinkButton
-                      to="/profile"
-                      className="justify-start text-base font-semibold"
-                      onClick={() => setIsMobileMenuOpen(false)}>
-                      Profile
-                    </NavLinkButton>
-                  ) : null}
-                  {authSession?.role === 'admin' ? (
-                    <NavLinkButton
-                      to="/admin"
-                      className="justify-start text-base font-semibold"
-                      onClick={() => setIsMobileMenuOpen(false)}>
-                      Admin
-                    </NavLinkButton>
-                  ) : null}
-                </div>
-                <button
-                  type="button"
-                  className="flex min-h-11 w-full items-center justify-between rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-base font-semibold text-slate-800"
-                  onClick={openDisplaySettingsModal}>
-                  <span>Display settings</span>
-                  <span className="text-base font-medium text-slate-600">
-                    {textSizeLabel}
-                    {state.highContrast ? ' + High contrast' : ''}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-base font-semibold text-slate-800"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    if (authSession) {
-                      void handleLogout();
-                      return;
-                    }
-                    handleLogin();
-                  }}
-                  disabled={isAuthLoading}>
-                  {isAuthLoading
-                    ? 'Checking login...'
-                    : authSession
-                      ? 'Log out'
-                      : 'Sign in'}
-                </button>
-              </div>
-            )}
           </header>
           {isTextSizeModalOpen && (
             <ModalShell
@@ -743,12 +622,15 @@ export default function App() {
           )}
           {isLoginModalOpen && (
             <ModalShell
-              title="Sign in"
+              title="Scripture & Solace"
               titleId="login-modal-title"
               onClose={() => setIsLoginModalOpen(false)}
               panelClassName="max-w-md">
+              <div className="mt-2">
+                <BrandLockup context="modal" />
+              </div>
               <p className="mt-2 text-sm text-slate-600">
-                Choose a provider to continue.
+                Sign in to sync your saved scriptures and profile.
               </p>
               <div className="mt-4 grid grid-cols-1 gap-2">
                 <button
@@ -861,7 +743,7 @@ export default function App() {
                           <NavLinkButton
                             to="/"
                             className="bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 hover:text-white">
-                            Go to emotions
+                            Go to support
                           </NavLinkButton>
                         }
                       />

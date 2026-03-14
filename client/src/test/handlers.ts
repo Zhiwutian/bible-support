@@ -22,8 +22,8 @@ const emotions: Emotion[] = [
   { emotionId: 3, slug: 'sadness', name: 'Sadness', description: null },
   { emotionId: 4, slug: 'anxiety', name: 'Anxiety', description: null },
   { emotionId: 5, slug: 'loneliness', name: 'Loneliness', description: null },
-  { emotionId: 6, slug: 'joy', name: 'Joy', description: null },
-  { emotionId: 7, slug: 'peace', name: 'Peace', description: null },
+  { emotionId: 6, slug: 'stress', name: 'Stress', description: null },
+  { emotionId: 7, slug: 'guilt', name: 'Guilt', description: null },
   { emotionId: 8, slug: 'grief', name: 'Grief', description: null },
 ];
 

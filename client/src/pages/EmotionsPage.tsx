@@ -75,11 +75,25 @@ export function EmotionsPage() {
     }
   }
 
+  function toFirstPersonEmotionName(slug: string, fallback: string): string {
+    const map: Record<string, string> = {
+      anger: 'I Am Angry',
+      anxiety: 'I Am Anxious',
+      fear: 'I Am Afraid',
+      grief: 'I Am Grieving',
+      guilt: 'I Am Feeling Guilty',
+      loneliness: 'I Am Feeling Lonely',
+      sadness: 'I Am Sad',
+      stress: 'I Am Stressed',
+    };
+    return map[slug] ?? `I Am ${fallback}`;
+  }
+
   return (
     <>
       <SectionHeader
-        title="How Are You Feeling Today?"
-        description="Choose an emotion to read scripture passages tailored to that feeling."
+        title="Scriptural Support"
+        description="Choose How You Are Feeling for Scriptural Support."
       />
 
       {isLoading && (
@@ -105,7 +119,7 @@ export function EmotionsPage() {
                 style={getEmotionTileStyle(emotion.slug)}
                 className={`h-full border p-4 transition ${getEmotionTheme(emotion.slug).cardClassName}`}>
                 <h2 className="text-lg font-semibold text-slate-800">
-                  {emotion.name}
+                  {toFirstPersonEmotionName(emotion.slug, emotion.name)}
                 </h2>
                 {emotion.description && (
                   <p className="mt-2 text-sm leading-relaxed text-slate-700">

@@ -4,6 +4,7 @@ import {
   readEmotionScriptures,
   ScriptureQuote,
 } from './emotion-api';
+import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 
 type HookState = {
   emotion: EmotionTile | null;
@@ -16,7 +17,11 @@ type HookState = {
 /**
  * Load emotion scriptures and manage current quote navigation state.
  */
-export function useEmotionScriptures(slug: string | undefined): HookState & {
+export function useEmotionScriptures(
+  slug: string | undefined,
+  translation?: ScriptureTranslationCode,
+  selectedScriptureId?: number,
+): HookState & {
   goNext: () => void;
   goPrevious: () => void;
 } {
@@ -41,12 +46,25 @@ export function useEmotionScriptures(slug: string | undefined): HookState & {
       setIsLoading(true);
       setError('');
       try {
-        const orderedPayload = await readEmotionScriptures(emotionSlug);
+        const orderedPayload = await readEmotionScriptures(
+          emotionSlug,
+          translation,
+        );
 
         if (isCancelled) return;
         setEmotion(orderedPayload.emotion);
         setScriptures(orderedPayload.scriptures);
         const totalScriptures = orderedPayload.scriptures.length;
+        const requestedIndex =
+          selectedScriptureId !== undefined
+            ? orderedPayload.scriptures.findIndex(
+                (scripture) => scripture.scriptureId === selectedScriptureId,
+              )
+            : -1;
+        if (requestedIndex >= 0) {
+          setCurrentIndex(requestedIndex);
+          return;
+        }
         const randomIndex =
           totalScriptures > 0 ? Math.floor(Math.random() * totalScriptures) : 0;
         setCurrentIndex(randomIndex);
@@ -64,7 +82,7 @@ export function useEmotionScriptures(slug: string | undefined): HookState & {
     return () => {
       isCancelled = true;
     };
-  }, [slug]);
+  }, [selectedScriptureId, slug, translation]);
 
   const totalScriptures = scriptures.length;
   function goNext() {
