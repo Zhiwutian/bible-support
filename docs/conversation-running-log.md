@@ -586,3 +586,11 @@ To-do's from the plan have already been created. Do not create them again. Mark 
 136.  **User prompt (full):** "I want you to update the title tag appropriately, and I would like you to either generate or find a cool logo we can use for the app..."  
       **Included files in prompt:** None  
       **Assistant response summary:** Updated browser title, added new glowing Bible logo assets, wired branding into the app header/favicon, and re-ran validation checks.
+
+137.  **User prompt (full):** "Ok, Now I would like to do a couple UI updates... text size remap... left desktop pop-out nav... rename to scripture and solace... put a plan together..."  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Produced a phased implementation proposal covering text-scale rebasing, hybrid desktop navigation, branding rename, unauth landing + guest flow, login return-path, profile editing, telemetry hooks, and final verification.
+
+138.  **User prompt (full):** "yes, let's begin"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Implemented the planned phases: text-scale/nav/branding updates, unauth landing + guest flow with `next` return-path, authenticated profile edit endpoint/UI (`PATCH /api/auth/me`, `/profile`), telemetry-ready event hooks, and updated docs/changelog.

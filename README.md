@@ -148,11 +148,12 @@ Responses use an API envelope:
 - `GET /api/hello` - basic connectivity check
 - `GET /api/health` - API + database health report
 - `GET /api/ready` - readiness check (returns `503` if DB is unavailable/not configured)
-- `GET /api/auth/login` - starts OIDC login flow (redirect)
+- `GET /api/auth/login` - starts OIDC login flow (redirect, supports optional `next=/path` return intent)
 - `GET /api/auth/callback` - OIDC callback endpoint (JSON errors for API clients, redirect with auth status for browser flow)
 - `POST /api/auth/logout` - clears app session cookie
 - `GET /api/auth/logout` - browser logout endpoint (clears session cookie and redirects to configured frontend logout URI)
 - `GET /api/auth/me` - returns auth session/profile state (`isAuthenticated`, `userId`, `role`, `displayName`, `avatarUrl`, `enabledSocialProviders`)
+- `PATCH /api/auth/me` - updates authenticated profile metadata (`displayName`, `avatarUrl`)
 - `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness (admin bearer token required)
 - `GET /api/admin/users` - paginated user list for admin sessions
 - `PATCH /api/admin/users/:userId/role` - admin role update with required reason + last-admin safeguards

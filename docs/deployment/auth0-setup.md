@@ -56,7 +56,7 @@ Notes:
 ## 5) Verify Auth Endpoints
 
 - `GET /api/auth/me` -> returns auth state envelope (including `enabledSocialProviders` for login modal options)
-- `GET /api/auth/login` -> redirects to Auth0
+- `GET /api/auth/login` -> redirects to Auth0 (optional `next=/path` restores post-login route)
 - `GET /api/auth/callback`:
   - API clients receive endpoint errors in JSON envelope
   - browser flows redirect to frontend with query markers:
@@ -64,6 +64,7 @@ Notes:
     - `?auth=error&reason=<code>&message=<text>`
 - `POST /api/auth/logout` -> clears session cookie (API clients)
 - `GET /api/auth/logout` -> clears session cookie and redirects to `AUTH_LOGOUT_REDIRECT_URI` (browser navigation)
+- `PATCH /api/auth/me` -> updates authenticated profile metadata (`displayName`, `avatarUrl`)
 
 Current social-provider login status:
 

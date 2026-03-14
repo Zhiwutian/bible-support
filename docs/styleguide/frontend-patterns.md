@@ -20,6 +20,9 @@
 - Use `fetchJson`/`fetchNoContent` from `client/src/lib/api-client.ts`.
 - Keep endpoint call logic in feature API files (`*-api.ts`).
 - Keep request/response typing aligned with `shared/*-contracts.ts`.
+- Auth flows:
+  - use `redirectToLogin(provider, next?)` for social login and return-path intent
+  - use `updateAuthProfile(...)` for authenticated profile metadata updates
 
 ## Styling Pattern
 
@@ -34,6 +37,24 @@
 - Use modal primitives (`ModalShell`) for dense mobile options.
 - Preserve Escape/outside-click modal behavior consistency.
 - Validate high-contrast and text-scale behavior for changed views.
+- Keep landing and auth-entry actions operable with keyboard and large text scales.
+
+## Routing and Entry Pattern
+
+- App shell decides entry state:
+  - authenticated users: full route set
+  - unauthenticated users: landing first, then guest mode or login
+- Guest mode is explicit UI state and should not be conflated with authenticated session state.
+- Preserve route intent through login via `next` path and restore after successful callback.
+
+## Telemetry Hook Pattern
+
+- Use `trackEvent(...)` from `client/src/lib/telemetry.ts` for analytics-ready hooks.
+- Keep hooks provider-neutral and side-effect-light (no hard dependency on external analytics SDK).
+- Current high-value hook points:
+  - landing guest continue
+  - login provider click
+  - profile save success/failure
 
 ## Adding New Frontend Feature (Checklist)
 
