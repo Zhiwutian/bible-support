@@ -25,7 +25,7 @@ export type AppAction =
 
 export const initialState: AppState = {
   todoFilter: 'all',
-  textScale: 'md',
+  textScale: 'sm',
   highContrast: false,
 };
 

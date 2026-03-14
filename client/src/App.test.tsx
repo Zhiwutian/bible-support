@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/app/ToastProvider';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import App from './App';
 import { AppStateProvider } from '@/state';
@@ -20,9 +20,21 @@ function renderApp(initialEntries: string[] = ['/']) {
   );
 }
 
+async function continueAsGuest(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    await screen.findByRole('button', { name: /continue as guest/i }),
+  );
+}
+
 describe('App', () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+  });
+
   it('renders emotion tiles on home route', async () => {
+    const user = userEvent.setup();
     renderApp();
+    await continueAsGuest(user);
 
     expect(
       await screen.findByRole('heading', { name: /how are you feeling/i }),
@@ -34,6 +46,7 @@ describe('App', () => {
   it('navigates to emotion scripture viewer and back', async () => {
     const user = userEvent.setup();
     renderApp();
+    await continueAsGuest(user);
 
     await user.click(await screen.findByRole('link', { name: 'Fear' }));
     expect(
@@ -51,6 +64,7 @@ describe('App', () => {
     const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.9);
     const user = userEvent.setup();
     renderApp();
+    await continueAsGuest(user);
 
     await user.click(await screen.findByRole('link', { name: 'Fear' }));
     expect(await screen.findByText('Isaiah 41:10 (NIV)')).toBeInTheDocument();
@@ -60,7 +74,9 @@ describe('App', () => {
   });
 
   it('renders about page route', async () => {
+    const user = userEvent.setup();
     renderApp(['/about']);
+    await continueAsGuest(user);
 
     expect(
       await screen.findByRole('heading', { name: 'About This Website' }),
@@ -100,6 +116,7 @@ describe('App', () => {
     );
     const user = userEvent.setup();
     renderApp();
+    await continueAsGuest(user);
 
     await user.click(await screen.findByRole('link', { name: 'Fear' }));
     await user.click(
