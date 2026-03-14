@@ -18,6 +18,7 @@ export type AuthRedirectQuery = {
   auth: AuthRedirectOutcome;
   reason?: AuthFailureReason;
   message?: string;
+  next?: string;
 };
 
 export type AuthMeResponse = {
@@ -27,4 +28,16 @@ export type AuthMeResponse = {
   displayName: string | null;
   avatarUrl: string | null;
   enabledSocialProviders: AuthSocialProvider[];
+};
+
+export type UpdateAuthProfileRequest = {
+  displayName: string | null;
+  avatarUrl: string | null;
+};
+
+export type UpdateAuthProfileResponse = {
+  userId: string;
+  role: 'user' | 'admin';
+  displayName: string | null;
+  avatarUrl: string | null;
 };
