@@ -75,6 +75,7 @@ AUTH_PROVIDER=auth0
 AUTH_ISSUER=https://<tenant>.auth0.com/
 AUTH_CLIENT_ID=<client-id>
 AUTH_CLIENT_SECRET=<client-secret>
+AUTH_SOCIAL_FACEBOOK_ENABLED=false
 AUTH_REDIRECT_URI=https://<api-host>/api/auth/callback
 AUTH_LOGIN_REDIRECT_URI=https://<frontend-host>/
 AUTH_LOGOUT_REDIRECT_URI=https://<frontend-host>/

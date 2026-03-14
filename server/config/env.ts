@@ -44,6 +44,7 @@ const envSchema = z.object({
   AUTH_ISSUER: z.string().default(''),
   AUTH_CLIENT_ID: z.string().default(''),
   AUTH_CLIENT_SECRET: z.string().default(''),
+  AUTH_SOCIAL_FACEBOOK_ENABLED: parseBooleanEnv(false),
   AUTH_REDIRECT_URI: z.string().default(''),
   AUTH_LOGIN_REDIRECT_URI: z.string().default(''),
   AUTH_LOGOUT_REDIRECT_URI: z.string().default(''),

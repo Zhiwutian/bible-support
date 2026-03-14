@@ -55,7 +55,7 @@ Notes:
 
 ## 5) Verify Auth Endpoints
 
-- `GET /api/auth/me` -> returns auth state envelope
+- `GET /api/auth/me` -> returns auth state envelope (including `enabledSocialProviders` for login modal options)
 - `GET /api/auth/login` -> redirects to Auth0
 - `GET /api/auth/callback`:
   - API clients receive endpoint errors in JSON envelope
@@ -64,6 +64,13 @@ Notes:
     - `?auth=error&reason=<code>&message=<text>`
 - `POST /api/auth/logout` -> clears session cookie (API clients)
 - `GET /api/auth/logout` -> clears session cookie and redirects to `AUTH_LOGOUT_REDIRECT_URI` (browser navigation)
+
+Current social-provider login status:
+
+- Google sign-in is enabled in the app login modal.
+- Facebook sign-in is intentionally deferred until a Meta developer app is configured.
+- `AUTH_SOCIAL_FACEBOOK_ENABLED` controls whether Facebook is shown/enabled in app login flow.
+- To re-enable Facebook later, add Auth0 Facebook connection + Meta app credentials, set `AUTH_SOCIAL_FACEBOOK_ENABLED=true`, and redeploy API.
 
 ## 6) Minimal PII Policy
 

@@ -152,7 +152,7 @@ Responses use an API envelope:
 - `GET /api/auth/callback` - OIDC callback endpoint (JSON errors for API clients, redirect with auth status for browser flow)
 - `POST /api/auth/logout` - clears app session cookie
 - `GET /api/auth/logout` - browser logout endpoint (clears session cookie and redirects to configured frontend logout URI)
-- `GET /api/auth/me` - returns auth session/profile state (`isAuthenticated`, `userId`, `role`, `displayName`, `avatarUrl`)
+- `GET /api/auth/me` - returns auth session/profile state (`isAuthenticated`, `userId`, `role`, `displayName`, `avatarUrl`, `enabledSocialProviders`)
 - `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness (admin bearer token required)
 - `GET /api/admin/users` - paginated user list for admin sessions
 - `PATCH /api/admin/users/:userId/role` - admin role update with required reason + last-admin safeguards
@@ -270,7 +270,7 @@ Main deployment hub: `docs/deployment/README.md`.
 Long-form project documentation is in `/docs`:
 
 - `docs/README.md` - documentation index and maintenance guidance
-- `docs/styleguide.md` - current UI design standards, tokens, and styling rules
+- `docs/styleguide/` - UI standards plus frontend/backend/database code pattern guides
 - `docs/architecture.md` - system architecture and request/data flow
 - `docs/project-structure.md` - folder-by-folder ownership and purpose
 - `docs/development-workflow.md` - local workflow, CI, and deployment process

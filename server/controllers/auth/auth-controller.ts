@@ -48,7 +48,12 @@ function mapLoginProviderToConnection(
     throw new ClientError(400, 'selected sign-in provider is not supported');
   }
   if (provider === 'google') return 'google-oauth2';
-  if (provider === 'facebook') return 'facebook';
+  if (provider === 'facebook') {
+    if (!env.AUTH_SOCIAL_FACEBOOK_ENABLED) {
+      throw new ClientError(400, 'facebook sign-in is not enabled');
+    }
+    return 'facebook';
+  }
   return undefined;
 }
 
@@ -353,6 +358,9 @@ export async function getAuthMe(req: Request, res: Response): Promise<void> {
     role: profile?.role ?? null,
     displayName: profile?.displayName ?? null,
     avatarUrl: profile?.avatarUrl ?? null,
+    enabledSocialProviders: env.AUTH_SOCIAL_FACEBOOK_ENABLED
+      ? ['google', 'facebook']
+      : ['google'],
   };
   sendSuccess(res, payload);
 }

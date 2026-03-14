@@ -92,3 +92,12 @@ Example server paths in this template:
 - `pnpm run start` runs the server in production mode.
 - Deploy can run as a single Node web service (for example Render) with external Postgres (for example Neon).
 - Legacy workflow also supports EC2-based deployment via GitHub Actions.
+
+## Related Pattern Docs
+
+For implementation-level conventions, see:
+
+- `docs/styleguide/code-patterns.md`
+- `docs/styleguide/frontend-patterns.md`
+- `docs/styleguide/backend-patterns.md`
+- `docs/styleguide/database-patterns.md`

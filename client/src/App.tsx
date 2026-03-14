@@ -65,6 +65,9 @@ export default function App() {
     avatarUrl: string | null;
   } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [enabledSocialProviders, setEnabledSocialProviders] = useState<
+    AuthSocialProvider[]
+  >(['google']);
   const textScaleClassName =
     state.textScale === 'xl'
       ? 'app-text-scale-xl'
@@ -116,6 +119,7 @@ export default function App() {
     readAuthMe()
       .then((payload) => {
         if (!isCancelled) {
+          setEnabledSocialProviders(payload.enabledSocialProviders);
           setAuthSession(
             payload.isAuthenticated && payload.userId && payload.role
               ? {
@@ -153,6 +157,7 @@ export default function App() {
     if (authOutcome === 'success') {
       readAuthMe()
         .then((payload) => {
+          setEnabledSocialProviders(payload.enabledSocialProviders);
           setAuthSession(
             payload.isAuthenticated && payload.userId && payload.role
               ? {
@@ -275,6 +280,16 @@ export default function App() {
       <header
         className={`sticky top-0 z-40 -mx-6 mb-6 border-b px-6 py-3 backdrop-blur ${navClassName}`}>
         <nav className="flex items-center gap-2">
+          <div className="inline-flex items-center gap-2 pr-1">
+            <img
+              src="/logo-glow-bible.svg"
+              alt="Bible Support logo"
+              className="size-8 rounded-sm"
+            />
+            <span className="hidden text-sm font-semibold text-slate-800 sm:inline">
+              Bible Support
+            </span>
+          </div>
           <div className="hidden items-center gap-2 md:flex">
             <NavLinkButton to="/">Emotions</NavLinkButton>
             <NavLinkButton to="/search">Search</NavLinkButton>
@@ -523,12 +538,19 @@ export default function App() {
               onClick={() => startSocialLogin('google')}>
               Continue with Google
             </button>
-            <button
-              type="button"
-              className="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
-              onClick={() => startSocialLogin('facebook')}>
-              Continue with Facebook
-            </button>
+            {enabledSocialProviders.includes('facebook') ? (
+              <button
+                type="button"
+                className="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+                onClick={() => startSocialLogin('facebook')}>
+                Continue with Facebook
+              </button>
+            ) : (
+              <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Facebook sign-in is temporarily disabled and can be re-enabled
+                later when a Meta developer app is configured.
+              </p>
+            )}
           </div>
           <div className="mt-4 flex justify-end">
             <button

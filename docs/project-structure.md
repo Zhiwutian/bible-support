@@ -101,3 +101,12 @@
 - API changes: add route + service in `server`.
 - DB changes: update `database/schema.sql` and corresponding server queries.
 - Cross-cutting behavior changes: update docs in this folder in the same PR.
+
+## Pattern References
+
+For deeper architecture and coding patterns, see:
+
+- `docs/styleguide/code-patterns.md`
+- `docs/styleguide/frontend-patterns.md`
+- `docs/styleguide/backend-patterns.md`
+- `docs/styleguide/database-patterns.md`
