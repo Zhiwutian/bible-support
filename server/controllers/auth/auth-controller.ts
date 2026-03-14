@@ -5,6 +5,8 @@ import type {
   AuthMeResponse,
   AuthRedirectOutcome,
   AuthSocialProvider,
+  UpdateAuthProfileRequest,
+  UpdateAuthProfileResponse,
 } from '@shared/auth-contracts.js';
 import { env } from '@server/config/env.js';
 import { ClientError } from '@server/lib/client-error.js';
@@ -12,6 +14,7 @@ import {
   clearUserSessionCookie,
   clearLoginStateCookie,
   readLoginStateCookie,
+  requireSessionUserId,
   readUserSessionCookie,
   sendError,
   sendSuccess,
@@ -23,6 +26,7 @@ import {
   exchangeCodeForProviderIdentity,
   isAuthEnabled,
   readUserProfileById,
+  updateUserProfileById,
   upsertUserFromProviderIdentity,
 } from '@server/services/auth-service.js';
 import { writeAuthAuditEvent } from '@server/services/auth-audit-service.js';
@@ -38,7 +42,22 @@ const callbackQuerySchema = z.object({
 });
 const loginQuerySchema = z.object({
   provider: z.enum(['google', 'facebook']).optional(),
+  next: z.string().optional(),
 });
+const profileUpdateBodySchema = z.object({
+  displayName: z.string().max(120).nullable(),
+  avatarUrl: z.string().max(2048).nullable(),
+});
+
+function normalizeReturnTo(nextValue: string | undefined): string | undefined {
+  if (!nextValue) return undefined;
+  const trimmed = nextValue.trim();
+  if (!trimmed) return undefined;
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) {
+    throw new ClientError(400, 'invalid return path');
+  }
+  return trimmed.slice(0, 512);
+}
 
 function mapLoginProviderToConnection(
   provider: AuthSocialProvider | undefined,
@@ -62,6 +81,7 @@ function buildAuthResultRedirectUrl(
   outcome: AuthRedirectOutcome,
   reason?: AuthFailureReason,
   message?: string,
+  next?: string,
 ): string {
   const baseUrl =
     env.AUTH_LOGIN_REDIRECT_URI || env.CORS_ORIGIN.split(',')[0]?.trim();
@@ -69,6 +89,7 @@ function buildAuthResultRedirectUrl(
   url.searchParams.set('auth', outcome);
   if (reason) url.searchParams.set('reason', reason);
   if (message) url.searchParams.set('message', message);
+  if (next) url.searchParams.set('next', next);
   return url.toString();
 }
 
@@ -106,6 +127,35 @@ function readRequestUserAgent(req: Request): string | null {
   return value ? value.slice(0, 512) : null;
 }
 
+function normalizeNullableText(value: string | null): string | null {
+  if (value === null) return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function normalizeAvatarInput(value: string | null): string | null {
+  const normalized = normalizeNullableText(value);
+  if (!normalized) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    throw new ClientError(400, 'avatarUrl must be a valid URL');
+  }
+  const protocol = parsed.protocol.toLowerCase();
+  if (env.NODE_ENV === 'production' && protocol !== 'https:') {
+    throw new ClientError(400, 'avatarUrl must use https');
+  }
+  if (
+    env.NODE_ENV !== 'production' &&
+    protocol !== 'https:' &&
+    protocol !== 'http:'
+  ) {
+    throw new ClientError(400, 'avatarUrl must use http or https');
+  }
+  return parsed.toString();
+}
+
 /** Handle GET /api/auth/login by redirecting to provider. */
 export async function getAuthLogin(req: Request, res: Response): Promise<void> {
   if (!isAuthEnabled()) {
@@ -122,6 +172,7 @@ export async function getAuthLogin(req: Request, res: Response): Promise<void> {
   try {
     const loginQuery = loginQuerySchema.parse(req.query);
     const connection = mapLoginProviderToConnection(loginQuery.provider);
+    const returnTo = normalizeReturnTo(loginQuery.next);
     await writeAuthAuditEvent({
       provider: env.AUTH_PROVIDER,
       eventType: 'login_start',
@@ -137,9 +188,10 @@ export async function getAuthLogin(req: Request, res: Response): Promise<void> {
       nonce,
       codeVerifier,
       connection,
+      returnTo,
     });
 
-    setLoginStateCookie(res, { state, nonce, codeVerifier });
+    setLoginStateCookie(res, { state, nonce, codeVerifier, returnTo });
     res.redirect(302, redirectUrl);
   } catch (error) {
     if (error instanceof ZodError) {
@@ -244,7 +296,15 @@ export async function getAuthCallback(
       ip: readRequestIp(req),
       userAgent: readRequestUserAgent(req),
     });
-    res.redirect(302, buildAuthResultRedirectUrl('success'));
+    res.redirect(
+      302,
+      buildAuthResultRedirectUrl(
+        'success',
+        undefined,
+        undefined,
+        loginState.returnTo,
+      ),
+    );
   } catch (err) {
     clearLoginStateCookie(res);
     if (err instanceof ZodError) {
@@ -363,4 +423,36 @@ export async function getAuthMe(req: Request, res: Response): Promise<void> {
       : ['google'],
   };
   sendSuccess(res, payload);
+}
+
+/** Handle PATCH /api/auth/me for editable profile metadata. */
+export async function patchAuthMe(req: Request, res: Response): Promise<void> {
+  const userId = requireSessionUserId(req);
+  try {
+    const parsed = profileUpdateBodySchema.parse(
+      req.body,
+    ) as UpdateAuthProfileRequest;
+    const updated = await updateUserProfileById({
+      userId,
+      displayName: normalizeNullableText(parsed.displayName),
+      avatarUrl: normalizeAvatarInput(parsed.avatarUrl),
+    });
+    const payload: UpdateAuthProfileResponse = {
+      userId: updated.userId,
+      role: updated.role,
+      displayName: updated.displayName,
+      avatarUrl: updated.avatarUrl,
+    };
+    sendSuccess(res, payload);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      sendError(res, 400, {
+        code: 'validation_error',
+        message: 'invalid profile update payload',
+        details: error.flatten(),
+      });
+      return;
+    }
+    throw error;
+  }
 }

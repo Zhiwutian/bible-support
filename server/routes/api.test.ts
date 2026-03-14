@@ -95,6 +95,19 @@ describe('api routes', () => {
     });
   });
 
+  it('returns 401 from PATCH /api/auth/me without session', async () => {
+    const res = await request(app)
+      .patch('/api/auth/me')
+      .send({ displayName: 'Guest', avatarUrl: null })
+      .expect(401);
+    expect(res.body.error).toEqual(
+      expect.objectContaining({
+        code: 'client_error',
+        message: expect.stringContaining('authentication required'),
+      }),
+    );
+  });
+
   it('returns 503 from /api/auth/login when auth is disabled', async () => {
     const res = await request(app).get('/api/auth/login').expect(503);
     expect(res.body.error).toEqual(

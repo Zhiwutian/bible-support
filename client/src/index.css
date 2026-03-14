@@ -8,10 +8,10 @@
   -moz-osx-font-smoothing: grayscale;
   text-size-adjust: 100%;
 
-  --app-text-scale-sm: 0.925rem;
-  --app-text-scale-md: 1rem;
-  --app-text-scale-lg: 1.125rem;
-  --app-text-scale-xl: 1.25rem;
+  --app-text-scale-sm: 1.125rem;
+  --app-text-scale-md: 1.25rem;
+  --app-text-scale-lg: 1.375rem;
+  --app-text-scale-xl: 1.5rem;
 }
 
 body {
@@ -50,150 +50,150 @@ button:disabled,
 
 /* Remap Tailwind text utilities inside each scale wrapper. */
 .app-text-scale-sm .text-xs {
-  font-size: 0.6875rem;
-  line-height: 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
 }
 
 .app-text-scale-sm .text-sm {
-  font-size: 0.8rem;
-  line-height: 1.2rem;
+  font-size: 0.95rem;
+  line-height: 1.375rem;
 }
 
 .app-text-scale-sm .text-base {
-  font-size: 0.925rem;
-  line-height: 1.4rem;
+  font-size: 1.1rem;
+  line-height: 1.65rem;
 }
 
 .app-text-scale-sm .text-lg {
-  font-size: 1.05rem;
-  line-height: 1.6rem;
+  font-size: 1.225rem;
+  line-height: 1.825rem;
 }
 
 .app-text-scale-sm .text-xl {
-  font-size: 1.15rem;
-  line-height: 1.7rem;
-}
-
-.app-text-scale-sm .text-2xl {
   font-size: 1.35rem;
   line-height: 1.95rem;
 }
 
-.app-text-scale-sm .text-3xl {
-  font-size: 1.65rem;
+.app-text-scale-sm .text-2xl {
+  font-size: 1.6rem;
   line-height: 2.1rem;
+}
+
+.app-text-scale-sm .text-3xl {
+  font-size: 1.95rem;
+  line-height: 2.4rem;
 }
 
 .app-text-scale-sm input,
 .app-text-scale-sm select,
 .app-text-scale-sm button,
 .app-text-scale-sm textarea {
-  font-size: 0.85rem;
+  font-size: 1rem;
 }
 
 .app-text-scale-md .text-xs {
-  font-size: 0.75rem;
-  line-height: 1rem;
-}
-
-.app-text-scale-md .text-sm {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-
-.app-text-scale-md .text-base {
-  font-size: 1rem;
-  line-height: 1.5rem;
-}
-
-.app-text-scale-md .text-lg {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-}
-
-.app-text-scale-md .text-xl {
-  font-size: 1.25rem;
-  line-height: 1.75rem;
-}
-
-.app-text-scale-md .text-2xl {
-  font-size: 1.5rem;
-  line-height: 2rem;
-}
-
-.app-text-scale-md .text-3xl {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-}
-
-.app-text-scale-lg .text-xs {
-  font-size: 0.8125rem;
-  line-height: 1.125rem;
-}
-
-.app-text-scale-lg .text-sm {
-  font-size: 0.95rem;
-  line-height: 1.375rem;
-}
-
-.app-text-scale-lg .text-base {
-  font-size: 1.1rem;
-  line-height: 1.65rem;
-}
-
-.app-text-scale-lg .text-lg {
-  font-size: 1.225rem;
-  line-height: 1.825rem;
-}
-
-.app-text-scale-lg .text-xl {
-  font-size: 1.35rem;
-  line-height: 1.95rem;
-}
-
-.app-text-scale-lg .text-2xl {
-  font-size: 1.6rem;
-  line-height: 2.1rem;
-}
-
-.app-text-scale-lg .text-3xl {
-  font-size: 1.95rem;
-  line-height: 2.4rem;
-}
-
-.app-text-scale-xl .text-xs {
   font-size: 0.9rem;
   line-height: 1.3rem;
 }
 
-.app-text-scale-xl .text-sm {
+.app-text-scale-md .text-sm {
   font-size: 1.05rem;
   line-height: 1.55rem;
 }
 
-.app-text-scale-xl .text-base {
+.app-text-scale-md .text-base {
   font-size: 1.2rem;
   line-height: 1.8rem;
 }
 
-.app-text-scale-xl .text-lg {
+.app-text-scale-md .text-lg {
   font-size: 1.4rem;
   line-height: 2.05rem;
 }
 
-.app-text-scale-xl .text-xl {
+.app-text-scale-md .text-xl {
   font-size: 1.6rem;
   line-height: 2.2rem;
 }
 
-.app-text-scale-xl .text-2xl {
+.app-text-scale-md .text-2xl {
   font-size: 1.9rem;
   line-height: 2.45rem;
 }
 
-.app-text-scale-xl .text-3xl {
+.app-text-scale-md .text-3xl {
   font-size: 2.25rem;
   line-height: 2.7rem;
+}
+
+.app-text-scale-lg .text-xs {
+  font-size: 0.98rem;
+  line-height: 1.4rem;
+}
+
+.app-text-scale-lg .text-sm {
+  font-size: 1.15rem;
+  line-height: 1.65rem;
+}
+
+.app-text-scale-lg .text-base {
+  font-size: 1.3rem;
+  line-height: 1.95rem;
+}
+
+.app-text-scale-lg .text-lg {
+  font-size: 1.5rem;
+  line-height: 2.15rem;
+}
+
+.app-text-scale-lg .text-xl {
+  font-size: 1.75rem;
+  line-height: 2.3rem;
+}
+
+.app-text-scale-lg .text-2xl {
+  font-size: 2.05rem;
+  line-height: 2.55rem;
+}
+
+.app-text-scale-lg .text-3xl {
+  font-size: 2.4rem;
+  line-height: 2.85rem;
+}
+
+.app-text-scale-xl .text-xs {
+  font-size: 1.05rem;
+  line-height: 1.5rem;
+}
+
+.app-text-scale-xl .text-sm {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.app-text-scale-xl .text-base {
+  font-size: 1.45rem;
+  line-height: 2.05rem;
+}
+
+.app-text-scale-xl .text-lg {
+  font-size: 1.7rem;
+  line-height: 2.3rem;
+}
+
+.app-text-scale-xl .text-xl {
+  font-size: 1.95rem;
+  line-height: 2.5rem;
+}
+
+.app-text-scale-xl .text-2xl {
+  font-size: 2.3rem;
+  line-height: 2.9rem;
+}
+
+.app-text-scale-xl .text-3xl {
+  font-size: 2.7rem;
+  line-height: 3.15rem;
 }
 
 .ui-modal-backdrop {

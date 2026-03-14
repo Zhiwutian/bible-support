@@ -72,13 +72,21 @@ Any new component must remain legible in both normal and high-contrast modes.
 
 - Header remains sticky on mobile and desktop.
 - Mobile navigation uses hamburger + overlay, and blocks background interaction when open.
+- Desktop navigation uses a hybrid left-nav model:
+  - `md/lg`: overlay drawer opened from header `Menu` button
+  - `xl+`: pinned left sidebar with explicit collapse/expand toggle
 - Menu actions should close the menu before navigation/action side effects.
+- Guest mode should display a clear but non-blocking sign-in CTA in shell chrome.
 
 ## Forms and Inputs
 
 - Use clear labels and predictable control order.
 - On mobile, prefer larger tap targets and readable labels.
 - Keep select/options language simple and explicit.
+- For profile metadata forms:
+  - keep field-level validation visible near each input
+  - include live avatar preview when avatar URL is editable
+  - allow users to clear optional profile fields
 
 ## Icons and Buttons
 

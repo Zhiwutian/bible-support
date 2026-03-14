@@ -21,6 +21,11 @@
 - Auth controller/service responsibilities:
   - controller for flow handling and response semantics
   - service for OIDC exchange and account linkage
+- Auth endpoint expectations:
+  - `GET /api/auth/login` accepts optional `next` for safe return-path routing
+  - `GET /api/auth/callback` keeps browser redirect semantics while preserving endpoint-level JSON errors for API clients
+  - `PATCH /api/auth/me` is authenticated-session only and handles profile metadata updates (`displayName`, `avatarUrl`)
+- Keep return-path normalization strict (root-relative, non-protocol, bounded length).
 
 ## Rate-Limit Pattern
 

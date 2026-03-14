@@ -6,6 +6,7 @@ import {
   getAuthLogin,
   getAuthLogout,
   getAuthMe,
+  patchAuthMe,
   postAuthLogout,
 } from '@server/controllers/auth/auth-controller.js';
 import {
@@ -49,6 +50,7 @@ apiRouter.get('/auth/callback', getAuthCallback);
 apiRouter.get('/auth/logout', getAuthLogout);
 apiRouter.post('/auth/logout', postAuthLogout);
 apiRouter.get('/auth/me', getAuthMe);
+apiRouter.patch('/auth/me', patchAuthMe);
 apiRouter.get(
   '/admin/scripture-sources',
   authMiddleware,

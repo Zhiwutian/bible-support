@@ -89,6 +89,11 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Added transactional, advisory-lock protected seed behavior with upsert semantics in `server/scripts/seed.ts`.
 - Added scripture-context API support for stable `scriptureId` lookup, with legacy `reference` compatibility.
 - Added conversation running log at `docs/conversation-running-log.md`.
+- Added unauthenticated landing experience with explicit entry options:
+  - `Continue with Google`
+  - `Continue as Guest`
+- Added authenticated profile editing surface (`/profile`) with live avatar preview and field-level validation.
+- Added lightweight client telemetry event hook utility at `client/src/lib/telemetry.ts`.
 - Established backend layering with concrete examples:
   - `server/app.ts` for app composition
   - `server/routes/api.ts` for route modules
@@ -125,6 +130,13 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 ### Changed
 
 - Updated social login flow to modal-driven provider selection from the app shell.
+- Updated app-shell navigation for desktop with left-side patterns:
+  - overlay drawer on `md`/`lg`
+  - pinned collapsible sidebar on `xl+`
+- Updated global text scaling baseline so prior larger sizing maps to the new `Small` floor, with `Medium`/`Large`/`XL` scaled upward.
+- Updated shell branding/title usage to `Scripture & Solace`.
+- Updated auth login flow to preserve an optional route intent (`next`) through callback redirect markers.
+- Updated auth API surface with `PATCH /api/auth/me` for editable profile metadata.
 - Updated auth provider behavior to env-gated Facebook enablement via `AUTH_SOCIAL_FACEBOOK_ENABLED` (default `false`) while keeping Google enabled.
 - Updated `/api/auth/me` to include `enabledSocialProviders` for client-side provider rendering.
 - Updated styleguide references from single-file path (`docs/styleguide.md`) to directory-based docs under `docs/styleguide/`.

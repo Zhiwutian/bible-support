@@ -13,6 +13,9 @@ This guide documents current architecture and coding patterns used across the pr
   - client: `@/`
   - server: `@server/`
   - shared: `@shared/`
+- When auth/session payloads change, update both:
+  - shared contracts (`shared/auth-contracts.ts`)
+  - client bootstrap handling (`client/src/App.tsx`)
 
 ## Layering Rules
 
@@ -58,3 +61,5 @@ When changing DB shape:
 - Global UI state only -> `client/src/state/`
 - Cross-cutting utilities -> `client/src/lib/`
 - Backend domain services -> `server/services/`
+- App-shell entry routes and nav orchestration -> `client/src/App.tsx`
+- Authenticated profile UX -> `client/src/pages/ProfilePage.tsx` + `client/src/features/auth/auth-api.ts`

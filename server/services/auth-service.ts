@@ -222,3 +222,35 @@ export async function readUserProfileById(
     avatarUrl: row.avatarUrl,
   };
 }
+
+/** Update local editable profile metadata and return updated profile. */
+export async function updateUserProfileById(input: {
+  userId: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}): Promise<AuthUserProfile> {
+  const db = requireDb();
+  const [updated] = await db
+    .update(users)
+    .set({
+      displayName: input.displayName,
+      avatarUrl: input.avatarUrl,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(users.userId, input.userId))
+    .returning({
+      userId: users.userId,
+      role: users.role,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    });
+  if (!updated) {
+    throw new ClientError(404, 'user profile not found');
+  }
+  return {
+    userId: updated.userId,
+    role: updated.role === 'admin' ? 'admin' : 'user',
+    displayName: updated.displayName,
+    avatarUrl: updated.avatarUrl,
+  };
+}
