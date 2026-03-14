@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   SUPPORTED_SCRIPTURE_TRANSLATIONS,
-  type SavedScriptureItem,
   type ScriptureTranslationCode,
 } from '@shared/scripture-search-contracts';
+import type {
+  SavedScriptureGroup,
+  SavedScriptureItem,
+} from '@shared/saved-scripture-contracts';
 import { useToast } from '@/components/app/toast-context';
 import {
   Button,
@@ -16,9 +19,9 @@ import {
 } from '@/components/ui';
 import {
   deleteSavedScripture,
-  readSavedScriptures,
-  searchScriptures,
+  readSavedScriptureGroups,
   updateSavedScriptureTranslation,
+  updateSavedScriptureNote,
 } from '@/features/search/scripture-search-api';
 
 /** Render saved verses for one selected Bible book. */
@@ -33,10 +36,7 @@ export function SavedBookScripturesPage() {
       return bookParam;
     }
   }, [bookParam]);
-  const [savedItems, setSavedItems] = useState<SavedScriptureItem[]>([]);
-  const [verseTextBySavedId, setVerseTextBySavedId] = useState<
-    Record<number, string>
-  >({});
+  const [savedGroups, setSavedGroups] = useState<SavedScriptureGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState<SavedScriptureItem | null>(
@@ -50,6 +50,15 @@ export function SavedBookScripturesPage() {
     useState<SavedScriptureItem | null>(null);
   const [pendingTranslation, setPendingTranslation] =
     useState<ScriptureTranslationCode>('KJV');
+  const [updatingNoteId, setUpdatingNoteId] = useState<number | null>(null);
+  const [noteDraftBySavedId, setNoteDraftBySavedId] = useState<
+    Record<number, string>
+  >({});
+
+  const refreshSavedGroups = useCallback(async () => {
+    const response = await readSavedScriptureGroups();
+    setSavedGroups(response.groups);
+  }, []);
 
   useEffect(() => {
     function handleEscapeClose(event: KeyboardEvent) {
@@ -70,10 +79,9 @@ export function SavedBookScripturesPage() {
 
   useEffect(() => {
     let isCancelled = false;
-    readSavedScriptures()
-      .then((rows) => {
+    refreshSavedGroups()
+      .then(() => {
         if (!isCancelled) {
-          setSavedItems(rows);
           setError('');
         }
       })
@@ -88,62 +96,40 @@ export function SavedBookScripturesPage() {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [refreshSavedGroups]);
 
-  const bookItems = useMemo(
+  const bookGroups = useMemo(
     () =>
-      savedItems
-        .filter((item) => item.book === decodedBook)
-        .sort((a, b) => {
-          if (a.chapter !== b.chapter) return a.chapter - b.chapter;
-          if (a.verseStart !== b.verseStart) return a.verseStart - b.verseStart;
-          return a.verseEnd - b.verseEnd;
-        }),
-    [decodedBook, savedItems],
+      savedGroups
+        .map((group) => ({
+          ...group,
+          items: group.items
+            .filter((item) => item.book === decodedBook)
+            .sort((a, b) => {
+              if (a.chapter !== b.chapter) return a.chapter - b.chapter;
+              if (a.verseStart !== b.verseStart)
+                return a.verseStart - b.verseStart;
+              return a.verseEnd - b.verseEnd;
+            }),
+        }))
+        .filter((group) => group.items.length > 0),
+    [decodedBook, savedGroups],
   );
 
   useEffect(() => {
-    let isCancelled = false;
-
-    async function loadVerseText() {
-      const entries = await Promise.all(
-        bookItems.map(async (item) => {
-          try {
-            const result = await searchScriptures({
-              mode: 'reference',
-              translation: item.translation,
-              q: item.reference,
-              limit: 30,
-            });
-            const verseText = result.verses
-              .map((verse) => verse.verseText)
-              .join(' ')
-              .trim();
-            return [item.savedId, verseText || item.reference] as const;
-          } catch {
-            return [item.savedId, item.reference] as const;
-          }
-        }),
-      );
-
-      if (!isCancelled) {
-        setVerseTextBySavedId(Object.fromEntries(entries));
-      }
-    }
-
-    loadVerseText();
-    return () => {
-      isCancelled = true;
-    };
-  }, [bookItems]);
+    const nextDrafts = Object.fromEntries(
+      bookGroups
+        .flatMap((group) => group.items)
+        .map((item) => [item.savedId, item.note ?? '']),
+    );
+    setNoteDraftBySavedId(nextDrafts);
+  }, [bookGroups]);
 
   async function handleDelete(savedId: number) {
     setIsDeleting(true);
     try {
       await deleteSavedScripture(savedId);
-      setSavedItems((current) =>
-        current.filter((item) => item.savedId !== savedId),
-      );
+      await refreshSavedGroups();
       setPendingDelete(null);
       showToast({
         title: 'Removed from collection',
@@ -171,9 +157,7 @@ export function SavedBookScripturesPage() {
         item.savedId,
         translation,
       );
-      setSavedItems((current) =>
-        current.map((row) => (row.savedId === updated.savedId ? updated : row)),
-      );
+      await refreshSavedGroups();
       showToast({
         title: 'Updated translation',
         description: `${updated.reference} now set to ${updated.translation}`,
@@ -199,6 +183,34 @@ export function SavedBookScripturesPage() {
     if (!translationModalItem) return;
     await handleTranslationChange(translationModalItem, pendingTranslation);
     setTranslationModalItem(null);
+  }
+
+  async function handleSaveNote(item: SavedScriptureItem) {
+    setUpdatingNoteId(item.savedId);
+    try {
+      const draft = noteDraftBySavedId[item.savedId] ?? '';
+      const updated = await updateSavedScriptureNote(
+        item.savedId,
+        draft || null,
+      );
+      await refreshSavedGroups();
+      setNoteDraftBySavedId((current) => ({
+        ...current,
+        [item.savedId]: updated.note ?? '',
+      }));
+      showToast({
+        title: 'Note saved',
+        variant: 'success',
+      });
+    } catch (err) {
+      showToast({
+        title: 'Could not save note',
+        description: err instanceof Error ? err.message : 'Unexpected error',
+        variant: 'error',
+      });
+    } finally {
+      setUpdatingNoteId(null);
+    }
   }
 
   return (
@@ -232,44 +244,77 @@ export function SavedBookScripturesPage() {
         />
       )}
 
-      {!isLoading && !error && bookItems.length === 0 && (
+      {!isLoading && !error && bookGroups.length === 0 && (
         <EmptyState
           title="No saved verses in this book"
           description="Go back to Saved and choose a different book, or add more verses from Search."
         />
       )}
 
-      {!isLoading && !error && bookItems.length > 0 && (
+      {!isLoading && !error && bookGroups.length > 0 && (
         <div className="space-y-3">
-          {bookItems.map((item) => (
-            <Card key={item.savedId} className="space-y-2 border p-4">
-              <p className="font-semibold text-slate-800">
-                {item.reference} ({item.translation})
+          {bookGroups.map((group) => (
+            <Card key={group.groupId} className="space-y-3 border p-4">
+              <p className="text-sm font-semibold text-slate-700">
+                {group.items.length > 1 ? 'Saved together' : 'Saved verse'} |{' '}
+                {new Date(group.createdAt).toLocaleString()}
               </p>
-              <div className="flex items-center gap-2 text-sm text-slate-700">
-                <span>Translation</span>
-                <button
-                  type="button"
-                  className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-                  disabled={updatingTranslationId === item.savedId}
-                  onClick={() => openTranslationModal(item)}>
-                  {item.translation}
-                </button>
-              </div>
-              <p className="leading-8 text-slate-800">
-                {verseTextBySavedId[item.savedId] ?? 'Loading verse text...'}
-              </p>
-              <p className="text-sm text-slate-700">
-                Source: {item.sourceMode} | Saved:{' '}
-                {new Date(item.createdAt).toLocaleString()}
-              </p>
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  className="min-h-11"
-                  onClick={() => setPendingDelete(item)}>
-                  Remove
-                </Button>
+              <pre className="whitespace-pre-wrap text-base leading-8 text-slate-800">
+                {group.displayText}
+              </pre>
+              <div className="space-y-3">
+                {group.items.map((item) => (
+                  <Card key={item.savedId} className="space-y-2 border p-3">
+                    <p className="font-semibold text-slate-800">
+                      {item.reference} ({item.translation})
+                    </p>
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <span>Translation</span>
+                      <button
+                        type="button"
+                        className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                        disabled={updatingTranslationId === item.savedId}
+                        onClick={() => openTranslationModal(item)}>
+                        {item.translation}
+                      </button>
+                    </div>
+                    <label className="flex flex-col gap-1 text-sm text-slate-700">
+                      Note
+                      <textarea
+                        className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                        value={noteDraftBySavedId[item.savedId] ?? ''}
+                        onChange={(event) =>
+                          setNoteDraftBySavedId((current) => ({
+                            ...current,
+                            [item.savedId]: event.target.value,
+                          }))
+                        }
+                        placeholder="Add a personal note for this saved scripture..."
+                      />
+                    </label>
+                    <p className="text-sm text-slate-700">
+                      Source: {item.sourceMode} | Saved:{' '}
+                      {new Date(item.createdAt).toLocaleString()}
+                    </p>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        className="min-h-11"
+                        disabled={updatingNoteId === item.savedId}
+                        onClick={() => void handleSaveNote(item)}>
+                        {updatingNoteId === item.savedId
+                          ? 'Saving note...'
+                          : 'Save note'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="min-h-11"
+                        onClick={() => setPendingDelete(item)}>
+                        Remove
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
               </div>
             </Card>
           ))}

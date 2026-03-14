@@ -1,12 +1,17 @@
 import type {
+  ReaderChapterResponse,
   ScriptureSearchMode,
   ScriptureSearchResponse,
   ScriptureTranslationCode,
   ScriptureVerseResult,
 } from '@shared/scripture-search-contracts';
 import type {
+  CreateSavedScriptureBatchRequest,
+  CreateSavedScriptureBatchResponse,
   CreateSavedScriptureRequest,
+  SavedScriptureGroupedResponse,
   SavedScriptureItem,
+  UpdateSavedScriptureNoteRequest,
   UpdateSavedScriptureTranslationRequest,
 } from '@shared/saved-scripture-contracts';
 import { fetchJson, fetchNoContent } from '@/lib';
@@ -47,6 +52,13 @@ export async function readSavedScriptures(): Promise<SavedScriptureItem[]> {
   return fetchJson<SavedScriptureItem[]>('/api/saved-scriptures');
 }
 
+/** Return grouped saved scripture payload with backend display formatting. */
+export async function readSavedScriptureGroups(): Promise<SavedScriptureGroupedResponse> {
+  return fetchJson<SavedScriptureGroupedResponse>(
+    '/api/saved-scriptures/grouped',
+  );
+}
+
 /** Save one verse or verse range for this browser/device. */
 export async function saveScripture(
   input: CreateSavedScriptureRequest,
@@ -56,6 +68,20 @@ export async function saveScripture(
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
   });
+}
+
+/** Save multiple verses concurrently into a shared save group. */
+export async function saveScriptureBatch(
+  input: CreateSavedScriptureBatchRequest,
+): Promise<CreateSavedScriptureBatchResponse> {
+  return fetchJson<CreateSavedScriptureBatchResponse>(
+    '/api/saved-scriptures/batch',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 /** Remove a previously saved scripture item. */
@@ -76,6 +102,38 @@ export async function updateSavedScriptureTranslation(
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
+
+/** Update note text for one previously saved scripture item. */
+export async function updateSavedScriptureNote(
+  savedId: number,
+  note: string | null,
+): Promise<SavedScriptureItem> {
+  const payload: UpdateSavedScriptureNoteRequest = { note };
+  return fetchJson<SavedScriptureItem>(
+    `/api/saved-scriptures/${savedId}/note`,
+    {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+/** Read one Bible chapter payload with backend-formatted display text. */
+export async function readReaderChapter(input: {
+  book: string;
+  chapter: number;
+  translation: ScriptureTranslationCode;
+}): Promise<ReaderChapterResponse> {
+  const searchParams = new URLSearchParams({
+    book: input.book,
+    chapter: String(input.chapter),
+    translation: input.translation,
+  });
+  return fetchJson<ReaderChapterResponse>(
+    `/api/reader/chapter?${searchParams}`,
+  );
 }
 
 /** Convert verse rows into a contiguous reference span payload for save. */

@@ -10,6 +10,14 @@ import { getApiErrorMessage } from './api-error';
 function withDefaultHeaders(init?: RequestInit): RequestInit {
   const headers = new Headers(init?.headers);
   headers.set('x-device-id', getDeviceId());
+  const body = init?.body;
+  const hasBody = body !== undefined && body !== null;
+  const normalizedBody = typeof body === 'string' ? body.trimStart() : '';
+  const isLikelyJsonString =
+    normalizedBody.startsWith('{') || normalizedBody.startsWith('[');
+  if (hasBody && isLikelyJsonString && !headers.has('content-type')) {
+    headers.set('content-type', 'application/json');
+  }
   return {
     credentials: 'include',
     ...init,

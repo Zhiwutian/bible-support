@@ -16,12 +16,17 @@ This document describes the implemented search/save expansion for fast scripture
 
 ## Saved Collection Scope
 
-- Anonymous, device-scoped saves only (no sign-in required).
-- Client sends stable `x-device-id` header for anonymous save scope.
+- Anonymous device-scoped saves are supported.
+- Authenticated user-scoped saves are also supported.
+- Client sends stable `x-device-id` header for anonymous save scope and migration bridge behavior.
 - When authenticated via cookie session, saved-scripture routes can resolve user scope without requiring `x-device-id`.
 - Backend stores reference/query metadata, not full user-auth profile data.
-- Saved-item uniqueness is enforced by: `deviceId + translation + book + chapter + verseStart + verseEnd`.
-- Saved UI now shows grouped books first (`/saved`), with a detail route per book (`/saved/:book`) listing saved verses for that book.
+- Saved-item uniqueness is ownership-aware:
+  - authenticated: `ownerUserId + translation + book + chapter + verseStart + verseEnd`
+  - anonymous: `deviceId + translation + book + chapter + verseStart + verseEnd` (when `ownerUserId is null`)
+- Batch save actions assign `saveGroupId` so related rows render together while remaining individually addressable.
+- Each saved item supports one optional plain-text note (`note`) with server validation and DB length check.
+- Saved UI shows grouped books first (`/saved`) with detail route per book (`/saved/:book`) and grouped display rows.
 
 ## Backend Endpoints
 
@@ -33,9 +38,13 @@ This document describes the implemented search/save expansion for fast scripture
     - `book`, `chapter`, `verseStart`, `verseEnd` (for guided)
     - `limit`
 - `GET /api/saved-scriptures`
+- `GET /api/saved-scriptures/grouped`
 - `POST /api/saved-scriptures`
+- `POST /api/saved-scriptures/batch`
 - `PATCH /api/saved-scriptures/:savedId`
+- `PATCH /api/saved-scriptures/:savedId/note`
 - `DELETE /api/saved-scriptures/:savedId`
+- `GET /api/reader/chapter`
 - `GET /api/admin/scripture-sources`
   - Operational diagnostics for scripture source readiness (DB counts + local JSON file status); requires admin bearer token.
 
@@ -47,14 +56,16 @@ All endpoints use the existing API envelope contract, except delete routes that 
   - Structured verse corpus for fast lookup.
   - Indexed by reference coordinates and full-text search index.
 - `saved_scripture_items`
-  - Device-scoped saved reference/range metadata.
-  - Unique constraint prevents duplicate saves for same device + range.
+  - Ownership-aware saved reference/range metadata for authenticated and anonymous flows.
+  - Stores grouped save context (`saveGroupId`) and one optional note (`note`).
+  - Includes ownership-aware uniqueness and grouped-read indexes.
 
 See:
 
 - `server/db/schema.ts`
 - `database/schema.sql`
 - `database/migrations/0005_brisk_search_and_saved_scriptures.sql`
+- `database/migrations/0011_solid_reader_multisave_notes.sql`
 
 ## Hybrid Source Strategy
 
@@ -99,6 +110,24 @@ Expected input shape:
 - Simplified labels and predictable placement for key actions.
 - Text-size options now include: `Small`, `Medium`, `Large`, and `XL`.
 - Mobile uses a shared display-settings modal with live preview and `Cancel` rollback for both text size and high contrast.
+
+## Reader Route Behavior
+
+- Frontend route: `/reader?book=<Book>&chapter=<N>&translation=<Code>`.
+- Backend canonicalizes book/translation and validates chapter bounds.
+- Payload includes:
+  - structured `verses[]`
+  - chapter-level `displayText`
+  - `hasPrevious` / `hasNext` and chapter navigation references.
+- Reader UI supports previous/next chapter actions and keeps URL state synchronized.
+
+## Rollout Observability
+
+- Backend emits lightweight structured logs for:
+  - grouped batch-save attempts (including batch size),
+  - reader chapter latency/success/failure,
+  - note update failures.
+- Logging intentionally avoids note-body content and other sensitive values.
 
 ## Rollout and Validation
 
