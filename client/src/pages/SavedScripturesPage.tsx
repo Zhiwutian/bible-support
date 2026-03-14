@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
-import type { SavedScriptureItem } from '@shared/scripture-search-contracts';
+import type { SavedScriptureGroup } from '@shared/saved-scripture-contracts';
 import { Button, Card, EmptyState, SectionHeader } from '@/components/ui';
-import { readSavedScriptures } from '@/features/search/scripture-search-api';
+import { readSavedScriptureGroups } from '@/features/search/scripture-search-api';
 
 type SavedBookSummary = {
   book: string;
@@ -16,16 +16,16 @@ const bookOrderMap = new Map<string, number>(
 
 /** Render anonymous device-local saved scripture collection. */
 export function SavedScripturesPage() {
-  const [savedItems, setSavedItems] = useState<SavedScriptureItem[]>([]);
+  const [groups, setGroups] = useState<SavedScriptureGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     let isCancelled = false;
-    readSavedScriptures()
-      .then((rows) => {
+    readSavedScriptureGroups()
+      .then((response) => {
         if (!isCancelled) {
-          setSavedItems(rows);
+          setGroups(response.groups);
           setError('');
         }
       })
@@ -44,8 +44,10 @@ export function SavedScripturesPage() {
 
   const groupedBooks = useMemo<SavedBookSummary[]>(() => {
     const grouped = new Map<string, number>();
-    for (const item of savedItems) {
-      grouped.set(item.book, (grouped.get(item.book) ?? 0) + 1);
+    for (const group of groups) {
+      for (const item of group.items) {
+        grouped.set(item.book, (grouped.get(item.book) ?? 0) + 1);
+      }
     }
 
     return [...grouped.entries()]
@@ -59,7 +61,7 @@ export function SavedScripturesPage() {
         if (orderB !== undefined) return 1;
         return a.book.localeCompare(b.book);
       });
-  }, [savedItems]);
+  }, [groups]);
 
   return (
     <>
@@ -84,7 +86,7 @@ export function SavedScripturesPage() {
         />
       )}
 
-      {!isLoading && !error && savedItems.length === 0 && (
+      {!isLoading && !error && groups.length === 0 && (
         <EmptyState
           title="No saved books yet"
           description="Go to Search, find a verse, and save it to your collection."

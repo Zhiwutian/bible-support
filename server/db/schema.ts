@@ -241,6 +241,8 @@ export const savedScriptureItems = pgTable(
       onDelete: 'cascade',
     }),
     label: text('label'),
+    saveGroupId: uuid('saveGroupId'),
+    note: text('note'),
     translation: text('translation').notNull(),
     book: text('book').notNull(),
     chapter: integer('chapter').notNull(),
@@ -266,6 +268,15 @@ export const savedScriptureItems = pgTable(
     savedScriptureItemsOwnerCreatedSortIdx: index(
       'saved_scripture_items_owner_created_sort_idx',
     ).on(table.ownerUserId, table.createdAt, table.savedId),
+    savedScriptureItemsSaveGroupIdx: index(
+      'saved_scripture_items_save_group_idx',
+    ).on(table.saveGroupId),
+    savedScriptureItemsOwnerGroupCreatedIdx: index(
+      'saved_scripture_items_owner_group_created_idx',
+    ).on(table.ownerUserId, table.saveGroupId, table.createdAt, table.savedId),
+    savedScriptureItemsDeviceGroupCreatedIdx: index(
+      'saved_scripture_items_device_group_created_idx',
+    ).on(table.deviceId, table.saveGroupId, table.createdAt, table.savedId),
     savedScriptureItemsUnique: uniqueIndex(
       'saved_scripture_items_device_reference_unique',
     )
@@ -309,6 +320,10 @@ export const savedScriptureItems = pgTable(
     savedScriptureItemsOwnerOrDeviceCheck: check(
       'saved_scripture_items_owner_or_device_check',
       sql`${table.ownerUserId} is not null or ${table.deviceId} is not null`,
+    ),
+    savedScriptureItemsNoteLengthCheck: check(
+      'saved_scripture_items_note_length_check',
+      sql`${table.note} is null or char_length(${table.note}) <= 4000`,
     ),
   }),
 );

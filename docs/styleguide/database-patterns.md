@@ -19,6 +19,8 @@ All schema changes should maintain parity across these three layers.
 - Add checks for domain invariants (positive numeric values, enum-like text constraints).
 - Add indexes for query patterns and operational access paths.
 - Use unique indexes/partial indexes where ownership scopes differ (for example device vs user).
+- For grouped list UIs, add composite indexes that match ordering access patterns (for example owner/device + group id + created timestamp).
+- Add explicit length checks for user-editable text columns (for example saved-item notes).
 
 ## DB Change Workflow
 
@@ -34,3 +36,4 @@ All schema changes should maintain parity across these three layers.
 - Hosted bootstrap: `db:migrate` then `db:seed`.
 - Avoid destructive reset/import commands against hosted environments.
 - Keep environment-driven SSL configuration (`DB_SSL`, `DB_SSL_REJECT_UNAUTHORIZED`).
+- Keep authenticated ownership columns nullable where appropriate for mixed guest/auth compatibility migrations (for example nullable `deviceId` with owner-aware uniqueness).

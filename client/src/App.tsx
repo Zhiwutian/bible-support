@@ -43,6 +43,9 @@ const AboutPage = lazy(async () => ({
 const SearchPage = lazy(async () => ({
   default: (await import('@/pages/SearchPage')).SearchPage,
 }));
+const BibleReaderPage = lazy(async () => ({
+  default: (await import('@/pages/BibleReaderPage')).BibleReaderPage,
+}));
 const SavedScripturesPage = lazy(async () => ({
   default: (await import('@/pages/SavedScripturesPage')).SavedScripturesPage,
 }));
@@ -408,6 +411,12 @@ export default function App() {
                     Saved
                   </NavLinkButton>
                   <NavLinkButton
+                    to="/reader"
+                    className="justify-start text-base font-semibold"
+                    onClick={() => setIsMobileMenuOpen(false)}>
+                    Reader
+                  </NavLinkButton>
+                  <NavLinkButton
                     to="/about"
                     className="justify-start text-base font-semibold"
                     onClick={() => setIsMobileMenuOpen(false)}>
@@ -689,6 +698,7 @@ export default function App() {
                 <>
                   <Route path="/" element={<EmotionsPage />} />
                   <Route path="/search" element={<SearchPage />} />
+                  <Route path="/reader" element={<BibleReaderPage />} />
                   <Route path="/saved" element={<SavedScripturesPage />} />
                   <Route
                     path="/saved/:book"

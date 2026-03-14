@@ -123,12 +123,14 @@ Included in the current MVP baseline:
 - Mobile swipe navigation and desktop button navigation.
 - Context summary panel and dedicated full-context route with back navigation.
 - Full chapter external link integration.
+- Bible chapter reader route with book/chapter/translation URL-state navigation.
+- Verse search with guided/reference/keyword modes and translation support.
+- Saved scriptures with grouped batch save and per-item notes.
 - Database-backed emotion/scripture/context data with seeded default content.
 - Standardized API envelope responses and core server hardening (security middleware, rate limiting, error handling).
 
 Out of scope for this MVP baseline:
 
-- Personalized saved state/history across sessions.
 - Remote context providers as required runtime dependencies.
 
 ## Accessibility Controls
@@ -166,8 +168,12 @@ Responses use an API envelope:
 - `GET /api/scriptures/search` - search verses by guided picker, reference, or keyword mode
 - `GET /api/saved-scriptures` - list saved verses for current auth scope (authenticated session or anonymous device)
 - `POST /api/saved-scriptures` - save a verse/range for current auth scope
+- `GET /api/saved-scriptures/grouped` - list grouped saved verses with backend-formatted `displayText`
+- `POST /api/saved-scriptures/batch` - save multiple verse selections in one grouped action
 - `PATCH /api/saved-scriptures/:savedId` - update saved verse translation for current auth scope
+- `PATCH /api/saved-scriptures/:savedId/note` - update/clear one note for a saved verse item
 - `DELETE /api/saved-scriptures/:savedId` - remove one saved verse for current auth scope
+- `GET /api/reader/chapter` - return one canonicalized chapter payload with prev/next metadata
 - `GET /api/todos` - legacy todo demo endpoint (still available)
 - `POST /api/todos` - create todo with `{ "task": "..." }`
 - `PATCH /api/todos/:todoId` - update completion with `{ "isCompleted": true|false }`

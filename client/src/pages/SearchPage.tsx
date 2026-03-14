@@ -18,6 +18,7 @@ import {
 } from '@/components/ui';
 import {
   readSavedScriptures,
+  saveScriptureBatch,
   saveScripture,
   searchScriptures,
   toSavePayload,
@@ -39,6 +40,8 @@ export function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [savedItems, setSavedItems] = useState<SavedScriptureItem[]>([]);
+  const [selectedVerseKeys, setSelectedVerseKeys] = useState<string[]>([]);
+  const [isBatchSaving, setIsBatchSaving] = useState(false);
 
   const savedKeySet = useMemo(
     () =>
@@ -53,6 +56,15 @@ export function SearchPage() {
 
   function getVerseKey(verse: ScriptureVerseResult): string {
     return `${verse.translation}:${verse.book}:${verse.chapter}:${verse.verse}:${verse.verse}`;
+  }
+
+  function toggleSelectedVerse(verse: ScriptureVerseResult) {
+    const key = getVerseKey(verse);
+    setSelectedVerseKeys((current) =>
+      current.includes(key)
+        ? current.filter((value) => value !== key)
+        : [...current, key],
+    );
   }
 
   useEffect(() => {
@@ -80,6 +92,7 @@ export function SearchPage() {
       });
       setSource(payload.source);
       setResults(payload.verses);
+      setSelectedVerseKeys([]);
       if (payload.verses.length === 0) {
         showToast({
           title: 'No verses found',
@@ -118,6 +131,35 @@ export function SearchPage() {
         description: message,
         variant: 'error',
       });
+    }
+  }
+
+  async function handleBatchSaveSelected() {
+    const selected = results.filter((verse) =>
+      selectedVerseKeys.includes(getVerseKey(verse)),
+    );
+    if (selected.length === 0) return;
+    setIsBatchSaving(true);
+    try {
+      const response = await saveScriptureBatch({
+        items: selected.map((verse) => toSavePayload(verse, source, queryText)),
+      });
+      setSavedItems((current) => [...response.items, ...current]);
+      setSelectedVerseKeys([]);
+      showToast({
+        title: 'Saved selected verses',
+        description: `${response.items.length} verse(s) saved together.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Batch save failed';
+      showToast({
+        title: 'Could not save selected verses',
+        description: message,
+        variant: 'error',
+      });
+    } finally {
+      setIsBatchSaving(false);
     }
   }
 
@@ -258,9 +300,22 @@ export function SearchPage() {
                 ? `${results.length} result${results.length === 1 ? '' : 's'}`
                 : 'No results yet'}
             </p>
-            <Badge>
-              {source === 'local' ? 'Local source' : 'API fallback'}
-            </Badge>
+            <div className="flex items-center gap-2">
+              {selectedVerseKeys.length > 0 && (
+                <Button
+                  variant="ghost"
+                  className="min-h-11"
+                  onClick={() => void handleBatchSaveSelected()}
+                  disabled={isBatchSaving}>
+                  {isBatchSaving
+                    ? 'Saving selected...'
+                    : `Save selected (${selectedVerseKeys.length})`}
+                </Button>
+              )}
+              <Badge>
+                {source === 'local' ? 'Local source' : 'API fallback'}
+              </Badge>
+            </div>
           </div>
 
           {results.map((verse) => (
@@ -271,7 +326,16 @@ export function SearchPage() {
                 {verse.reference} ({verse.translation})
               </p>
               <p className="leading-8 text-slate-800">{verse.verseText}</p>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between gap-3">
+                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={selectedVerseKeys.includes(getVerseKey(verse))}
+                    onChange={() => toggleSelectedVerse(verse)}
+                    disabled={savedKeySet.has(getVerseKey(verse))}
+                  />
+                  Select for grouped save
+                </label>
                 <Button
                   variant="ghost"
                   className="min-h-11"

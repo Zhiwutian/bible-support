@@ -25,10 +25,14 @@ import {
 } from '@server/controllers/health/health-controller.js';
 import { readHello } from '@server/controllers/system/hello-controller.js';
 import { getScriptureSourcesDiagnostics } from '@server/controllers/scripture/scripture-diagnostics-controller.js';
+import { getReaderChapter } from '@server/controllers/scripture/reader-controller.js';
 import {
   deleteSavedScripture,
+  getSavedScriptureGroups,
   getSavedScriptures,
   patchSavedScripture,
+  patchSavedScriptureNote,
+  postSavedScriptureBatch,
   postSavedScripture,
 } from '@server/controllers/scripture/saved-scripture-controller.js';
 import { getScriptureSearch } from '@server/controllers/scripture/scripture-search-controller.js';
@@ -68,9 +72,13 @@ apiRouter.get('/emotions/:slug/scriptures', getEmotionScriptures);
 apiRouter.get('/emotions/:slug/scriptures/random', getRandomEmotionScripture);
 apiRouter.get('/scripture-context', getScriptureContext);
 apiRouter.get('/scriptures/search', getScriptureSearch);
+apiRouter.get('/reader/chapter', getReaderChapter);
 apiRouter.get('/saved-scriptures', getSavedScriptures);
+apiRouter.get('/saved-scriptures/grouped', getSavedScriptureGroups);
 apiRouter.post('/saved-scriptures', postSavedScripture);
+apiRouter.post('/saved-scriptures/batch', postSavedScriptureBatch);
 apiRouter.patch('/saved-scriptures/:savedId', patchSavedScripture);
+apiRouter.patch('/saved-scriptures/:savedId/note', patchSavedScriptureNote);
 apiRouter.delete('/saved-scriptures/:savedId', deleteSavedScripture);
 apiRouter.get('/todos', getTodos);
 apiRouter.post('/todos', postTodo);

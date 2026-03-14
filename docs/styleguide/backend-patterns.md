@@ -12,6 +12,7 @@
 - Throw `ClientError` for expected HTTP errors.
 - Let error middleware normalize unknown/internal errors.
 - Keep shared response shapes in `shared/*-contracts.ts`.
+- For scripture surfaces, prefer returning both structured coordinates and backend-generated `displayText` so clients can render quickly while retaining precise data.
 
 ## Auth Patterns
 
@@ -37,6 +38,15 @@
   - device header
   - IP fallback
 
+## Reader + Saved Observability Pattern
+
+- Time high-latency read endpoints in controllers (for example, chapter-reader responses).
+- Emit lightweight structured logs for:
+  - batch save size + ownership scope context,
+  - reader success/failure + `durationMs`,
+  - note patch failures.
+- Never log sensitive request bodies (for example, full note text, auth tokens).
+
 ## Adding New API Endpoint (Checklist)
 
 1. Define contract in `shared/`.
@@ -44,4 +54,5 @@
 3. Add controller handler.
 4. Wire in `server/routes/api.ts` with correct middleware.
 5. Add route tests (`supertest`) and error-path assertions.
-6. Update docs/changelog.
+6. Add basic observability events on critical mutation/read paths.
+7. Update docs/changelog.

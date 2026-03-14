@@ -23,6 +23,11 @@
 - Auth flows:
   - use `redirectToLogin(provider, next?)` for social login and return-path intent
   - use `updateAuthProfile(...)` for authenticated profile metadata updates
+- Saved/reader flows:
+  - use grouped saved endpoints for saved-page views (`readSavedScriptureGroups`)
+  - use batch mutation for multi-select save flows (`saveScriptureBatch`)
+  - use note patch mutation for one-note-per-item editing (`updateSavedScriptureNote`)
+  - use reader chapter API with URL-synced query state (`readReaderChapter`)
 
 ## Styling Pattern
 
@@ -51,6 +56,7 @@
 - Guest mode is explicit UI state and should not be conflated with authenticated session state.
 - Preserve route intent through login via `next` path and restore after successful callback.
 - Keep user-facing terminology consistent in shell navigation and support route copy (`Support` / `Scriptural Support`).
+- For shareable scripture workflows, route state should live in query params (for example `scriptureId`, `book`, `chapter`, `translation`) instead of hidden local state only.
 
 ## Telemetry Hook Pattern
 
@@ -84,3 +90,4 @@ For large frontend updates, include a dedicated review pass before merge:
 4. Wire route in `client/src/App.tsx`.
 5. Reuse `components/ui` primitives where possible.
 6. Add/adjust tests in `client/src/*.test.tsx` and mock handlers.
+7. For URL-driven flows, add route round-trip tests (initial URL -> rendered state -> interaction -> updated URL/state).

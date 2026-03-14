@@ -20,4 +20,30 @@ export type ScriptureSearchResponse = {
   total: number;
   verses: ScriptureVerseResult[];
 };
+
+export type ReaderChapterVerse = {
+  translation: ScriptureTranslationCode;
+  book: string;
+  chapter: number;
+  verse: number;
+  reference: string;
+  verseText: string;
+};
+
+export type ReaderChapterReference = {
+  book: string;
+  chapter: number;
+};
+
+export type ReaderChapterResponse = {
+  translation: ScriptureTranslationCode;
+  book: string;
+  chapter: number;
+  verses: ReaderChapterVerse[];
+  displayText: string;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  previousChapter: ReaderChapterReference | null;
+  nextChapter: ReaderChapterReference | null;
+};
 export type { SavedScriptureItem } from './saved-scripture-contracts';

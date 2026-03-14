@@ -109,6 +109,8 @@ create table "saved_scripture_items" (
   "deviceId" text,
   "ownerUserId" uuid references "users"("userId") on delete cascade,
   "label" text,
+  "saveGroupId" uuid,
+  "note" text,
   "translation" text not null,
   "book" text not null,
   "chapter" integer not null check ("chapter" > 0),
@@ -119,7 +121,8 @@ create table "saved_scripture_items" (
   "queryText" text,
   "createdAt" timestamptz not null default now(),
   check ("verseEnd" >= "verseStart"),
-  check ("ownerUserId" is not null or "deviceId" is not null)
+  check ("ownerUserId" is not null or "deviceId" is not null),
+  check ("note" is null or char_length("note") <= 4000)
 );
 
 create index "saved_scripture_items_device_idx"
@@ -130,6 +133,12 @@ create index "saved_scripture_items_device_created_sort_idx"
   on "saved_scripture_items" ("deviceId", "createdAt", "savedId");
 create index "saved_scripture_items_owner_created_sort_idx"
   on "saved_scripture_items" ("ownerUserId", "createdAt", "savedId");
+create index "saved_scripture_items_save_group_idx"
+  on "saved_scripture_items" ("saveGroupId");
+create index "saved_scripture_items_owner_group_created_idx"
+  on "saved_scripture_items" ("ownerUserId", "saveGroupId", "createdAt", "savedId");
+create index "saved_scripture_items_device_group_created_idx"
+  on "saved_scripture_items" ("deviceId", "saveGroupId", "createdAt", "savedId");
 create unique index "saved_scripture_items_device_reference_unique"
   on "saved_scripture_items" ("deviceId", "translation", "book", "chapter", "verseStart", "verseEnd")
   where "ownerUserId" is null;

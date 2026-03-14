@@ -8,6 +8,16 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added scripture reader + grouped-save rollout proposal:
+  - `docs/proposals/scripture-reader-multisave-notes-rollout.md`
+- Added backend reader and saved-scripture observability events:
+  - batch-save success/failure logging (scope + batch size context)
+  - reader chapter latency/success/failure logging
+  - saved-note patch failure logging
+- Added Phase 5 regression coverage:
+  - reader next-chapter route behavior in `client/src/App.test.tsx`
+  - grouped batch-save + note-edit flow coverage in `client/src/App.test.tsx`
+  - note patch missing-row (`404`) and empty batch validation (`400`) in `server/routes/scripture-saved-api.test.ts`
 - Added dedicated styleguide documentation directory `docs/styleguide/` with deeper implementation guides:
   - `docs/styleguide/ui-styleguide.md`
   - `docs/styleguide/code-patterns.md`
@@ -129,6 +139,9 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated README API reference and MVP section for reader/grouped-save/note capabilities.
+- Updated `docs/verse-search-save.md` to document grouped saves (`saveGroupId`), note constraints, reader route behavior, and observability guidance.
+- Updated styleguide patterns (`frontend`, `backend`, `database`) with URL-state, observability, grouped-index, and note-constraint guidance for future extensions.
 - Updated emotion scripture fallback resolution to use DB-first + local JSON range fallback before seed text, reducing placeholder exposure when corpus rows are missing.
 - Updated seeded fallback verse copy to indicate temporary unavailability instead of instructional wording.
 - Updated emotion scripture viewer to track the active verse in URL query state (`scriptureId`) so translation switches preserve the currently displayed scripture.

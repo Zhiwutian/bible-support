@@ -85,6 +85,33 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders bible reader route with chapter content', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(/John 3:16 For God so loved the world/i),
+    ).toBeInTheDocument();
+  });
+
+  it('moves reader chapter forward with next button', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByText(/John 3:16 For God so loved the world/i),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /next chapter/i }));
+    expect(
+      await screen.findByText(/John 4:16 For God so loved the world/i),
+    ).toBeInTheDocument();
+  });
+
   it('does not show stale context errors after changing scripture', async () => {
     let contextRequestCount = 0;
     server.use(
@@ -174,5 +201,38 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Scripture & Solace' }),
     ).toBeInTheDocument();
+  });
+
+  it('supports batch save flow and note save on saved verse', async () => {
+    const user = userEvent.setup();
+    renderApp(['/search']);
+    await continueAsGuest(user);
+
+    await user.click(screen.getByRole('button', { name: /search verses/i }));
+    const selectBoxes = await screen.findAllByRole('checkbox', {
+      name: /select for grouped save/i,
+    });
+    const enabledCheckbox = selectBoxes.find(
+      (checkbox) => !checkbox.hasAttribute('disabled'),
+    );
+    expect(enabledCheckbox).toBeDefined();
+    await user.click(enabledCheckbox!);
+    await user.click(
+      screen.getByRole('button', { name: /save selected \(1\)/i }),
+    );
+    expect(
+      await screen.findByText(/saved selected verses/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Open menu' }));
+    await user.click(await screen.findByRole('link', { name: 'Saved' }));
+    await user.click(await screen.findByRole('link', { name: /john/i }));
+    const noteInputs = await screen.findAllByPlaceholderText(
+      /add a personal note for this saved scripture/i,
+    );
+    await user.clear(noteInputs[0]);
+    await user.type(noteInputs[0], 'Phase 5 note test');
+    await user.click(screen.getAllByRole('button', { name: /save note/i })[0]);
+    expect(await screen.findByText(/note saved/i)).toBeInTheDocument();
   });
 });
