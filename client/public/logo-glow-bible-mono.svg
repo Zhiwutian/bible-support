@@ -1,0 +1,47 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="512"
+  height="512"
+  viewBox="0 0 512 512"
+  fill="none">
+  <defs>
+    <radialGradient id="monoGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 256) rotate(90) scale(210)">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.72" stop-color="#E2E8F0" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#E2E8F0" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="monoOuterGlow" x="42" y="62" width="428" height="388" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="0 0 0 0 0.95
+                0 0 0 0 0.97
+                0 0 0 0 1.0
+                0 0 0 0.4 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+
+  <circle cx="256" cy="256" r="214" fill="url(#monoGlow)"/>
+
+  <g filter="url(#monoOuterGlow)">
+    <path
+      d="M256 154C224 132 177 126 134 140C120 144 110 158 110 173V323C110 342 127 355 145 350C182 340 222 344 256 366"
+      stroke="#F8FAFC"
+      stroke-width="18"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+    <path
+      d="M256 154C288 132 335 126 378 140C392 144 402 158 402 173V323C402 342 385 355 367 350C330 340 290 344 256 366"
+      stroke="#F8FAFC"
+      stroke-width="18"
+      stroke-linecap="round"
+      stroke-linejoin="round"/>
+    <path d="M256 160V366" stroke="#E2E8F0" stroke-width="12" stroke-linecap="round"/>
+    <path d="M160 208C188 199 218 198 244 204" stroke="#CBD5E1" stroke-width="8" stroke-linecap="round"/>
+    <path d="M160 244C188 235 218 234 244 240" stroke="#CBD5E1" stroke-width="8" stroke-linecap="round"/>
+    <path d="M268 204C294 198 324 199 352 208" stroke="#CBD5E1" stroke-width="8" stroke-linecap="round"/>
+    <path d="M268 240C294 234 324 235 352 244" stroke="#CBD5E1" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

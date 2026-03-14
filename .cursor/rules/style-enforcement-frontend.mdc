@@ -10,7 +10,7 @@ Apply this rule before generating or editing frontend UI code.
 
 ## Pre-Generation Steps
 
-1. Read `docs/styleguide.md`.
+1. Read `docs/styleguide/ui-styleguide.md`.
 2. Reuse existing UI primitives before creating new component styles.
 3. Keep accessibility behavior consistent (text scale, high contrast, mobile modal/menu interactions).
 
@@ -19,4 +19,4 @@ Apply this rule before generating or editing frontend UI code.
 - Prefer Tailwind utilities in component files.
 - Use global CSS only for shared tokens/primitives in `client/src/index.css`.
 - Keep interactions readable and predictable; avoid hidden/complex controls.
-- For UI behavior changes, update `docs/styleguide.md` in the same PR.
+- For UI behavior changes, update relevant docs in `docs/styleguide/` in the same PR.

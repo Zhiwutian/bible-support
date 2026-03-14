@@ -43,7 +43,7 @@ For each rule:
 - Keep one concern per file.
 - State what to do and what to avoid.
 - Include explicit pre-generation steps when needed.
-- Reference source-of-truth docs (for example `docs/styleguide.md`).
+- Reference source-of-truth docs (for example `docs/styleguide/ui-styleguide.md`).
 - Keep rules concise and practical.
 
 ## Recommended Rule Types

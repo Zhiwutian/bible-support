@@ -91,6 +91,7 @@ describe('api routes', () => {
       role: null,
       displayName: null,
       avatarUrl: null,
+      enabledSocialProviders: ['google'],
     });
   });
 

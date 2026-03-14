@@ -17,9 +17,9 @@ This folder contains maintainable project documentation for application structur
 - `configuration.md`
   - Split frontend/backend env-file model
   - Local file setup and Render/Vercel env mapping
-- `styleguide.md`
-  - Current UI design standards and accessibility-first styling rules
-  - Global tokens/primitives and component styling conventions
+- `styleguide/`
+  - UI styleguide and cross-stack code pattern guides
+  - Frontend/backend/database pattern references and extension checklists
 - `rules-registry.md`
   - Index of active Cursor rules under `.cursor/rules/`
   - Purpose, scope, and maintenance process for rule files

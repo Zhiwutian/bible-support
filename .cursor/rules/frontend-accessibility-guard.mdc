@@ -1,6 +1,6 @@
 ---
 description: Frontend accessibility and UI consistency guard
-globs: "{client/src/**/*.{ts,tsx,css},docs/styleguide.md}"
+globs: "{client/src/**/*.{ts,tsx,css},docs/styleguide/**/*.md}"
 alwaysApply: false
 ---
 
@@ -19,7 +19,7 @@ Apply this rule when changing UI components, styles, or interaction behavior.
 
 - Prefer Tailwind utilities for component styling.
 - Use global CSS only for shared primitives/tokens.
-- Keep style updates aligned with `docs/styleguide.md`.
+- Keep style updates aligned with docs in `docs/styleguide/`.
 
 ## Pre-Commit
 

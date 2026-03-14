@@ -570,3 +570,19 @@ Implement the plan as specified, it is attached for your reference. Do NOT edit 
 To-do's from the plan have already been created. Do not create them again. Mark them as in*progress as you work, starting with the first one. Don't stop until you have completed all the to-dos."  
  **Included files in prompt:** attached plan selection `auth_system_expansion*(final)\_ba23b89f.plan.md`  
  **Assistant response summary:** Implemented full auth expansion pass: schema/migration updates for roles/profile/audit logs, user-wins metadata + avatar validation, auth audit writes, admin session middleware and paginated admin APIs with role-change safeguards, minimal admin UI route, identity-aware rate limiting, role-propagation tests, and documentation/runbook updates.
+
+133.  **User prompt (full):** "I am getting this error when trying to sign in... sign in incomplete... Could not confirm session state..."  
+      **Included files in prompt:** inline request/response and callback log payload  
+      **Assistant response summary:** Diagnosed third-party cookie blocking under cross-site domains, guided migration to same-site custom domain setup (`scripture.*` + `api.scripture.*`), and validated sign-in success post-cutover.
+
+134.  **User prompt (full):** "so before that, I would like to update the log in process so that when log in is clicked, a model opens asking the user to log in with google or facebook... how can I setup the admin user for testing that?"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Implemented provider-selection login modal, wired provider-specific login query support on backend, documented admin bootstrap/testing steps, then adjusted to Google-only and added env-gated Facebook toggle (`AUTH_SOCIAL_FACEBOOK_ENABLED`).
+
+135.  **User prompt (full):** "we will come back to these... I would like you to create a styleguide folder, and then do a deep scan of the project, and create documentation on how the project is structured, code patterns, etc."  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Migrated to directory-based styleguide docs, added deep-scan code pattern documentation across frontend/backend/database, updated project/rule references, and completed full validation checks for commit readiness.
+
+136.  **User prompt (full):** "I want you to update the title tag appropriately, and I would like you to either generate or find a cool logo we can use for the app..."  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Updated browser title, added new glowing Bible logo assets, wired branding into the app header/favicon, and re-ran validation checks.

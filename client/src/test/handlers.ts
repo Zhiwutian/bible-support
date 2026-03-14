@@ -80,6 +80,7 @@ export const handlers = [
         role: null,
         displayName: null,
         avatarUrl: null,
+        enabledSocialProviders: ['google'],
       },
     });
   }),

@@ -32,6 +32,7 @@ pnpm run setup:env:force
 - `TOKEN_SECRET`
 - `CORS_ORIGIN`
 - Optional auth values (`AUTH_*`, `SESSION_*`)
+  - `AUTH_SOCIAL_FACEBOOK_ENABLED` controls whether Facebook appears as a login option (default `false`)
 
 3. Edit frontend values in `client/.env.local`:
 

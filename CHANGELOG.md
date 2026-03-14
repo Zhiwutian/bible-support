@@ -8,6 +8,12 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added dedicated styleguide documentation directory `docs/styleguide/` with deeper implementation guides:
+  - `docs/styleguide/ui-styleguide.md`
+  - `docs/styleguide/code-patterns.md`
+  - `docs/styleguide/frontend-patterns.md`
+  - `docs/styleguide/backend-patterns.md`
+  - `docs/styleguide/database-patterns.md`
 - Added auth/admin expansion foundation:
   - `users` role/profile columns (`role`, `displayName`, `avatarUrl`) with constraints
   - `auth_audit_events` table with event/outcome checks and operability indexes
@@ -31,7 +37,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
   - `scripts/validate-env-files.mjs` for required key checks and auth-gated validation.
 - Added configuration/style documentation:
   - `docs/configuration.md`
-  - `docs/styleguide.md`
+  - `docs/styleguide/ui-styleguide.md`
 - Added Auth0 troubleshooting guidance for issuer discovery and application-authentication mode in:
   - `docs/deployment/auth0-setup.md`
   - `docs/deployment/README.md`
@@ -118,6 +124,12 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Updated social login flow to modal-driven provider selection from the app shell.
+- Updated auth provider behavior to env-gated Facebook enablement via `AUTH_SOCIAL_FACEBOOK_ENABLED` (default `false`) while keeping Google enabled.
+- Updated `/api/auth/me` to include `enabledSocialProviders` for client-side provider rendering.
+- Updated styleguide references from single-file path (`docs/styleguide.md`) to directory-based docs under `docs/styleguide/`.
+- Updated client document title and favicon to Bible Support branding, including new glowing Bible logo asset.
+- Updated social login selector to support env-gated Facebook enablement via `AUTH_SOCIAL_FACEBOOK_ENABLED` (default `false`); Google remains enabled by default.
 - Updated auth callback/account linkage to support `user_wins` profile metadata population (set provider `displayName`/`avatarUrl` only when local fields are null).
 - Updated `/api/auth/me` payload contract to include role and optional profile metadata.
 - Updated rate-limit identity keying to prefer authenticated user id with stable session/device/ip fallback and stricter admin-write throttling.

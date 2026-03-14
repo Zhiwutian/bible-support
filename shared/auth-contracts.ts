@@ -26,4 +26,5 @@ export type AuthMeResponse = {
   role: 'user' | 'admin' | null;
   displayName: string | null;
   avatarUrl: string | null;
+  enabledSocialProviders: AuthSocialProvider[];
 };
