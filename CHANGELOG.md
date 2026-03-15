@@ -166,6 +166,9 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Changed database schema parity for domain checks:
   - `saved_scripture_items.sourceMode` constrained to `local|remote`
   - `reader_state.bookmarkTranslation` constrained to `KJV|ASV|WEB|null`
+- Changed Reader mobile UX polish:
+  - Reader Options modal now supports internal scrolling with sticky top/bottom action regions on small screens.
+  - Reader route cards now render full-width (edge-to-edge) on mobile while preserving inset card styling on `sm+`.
 - Changed scripture services to reuse shared canonical normalization helpers instead of maintaining duplicated local maps/parsers.
 - Changed architecture/project-structure docs to reflect current route surface (`/search`, `/saved`, `/reader`, `/tutorial`, `/profile`, `/admin`) and active API endpoint groupings.
 - Changed backend styleguide to document centralized reader-state preference schema usage.

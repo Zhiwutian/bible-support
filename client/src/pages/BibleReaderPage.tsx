@@ -536,8 +536,8 @@ export function BibleReaderPage() {
           title="Reader Options"
           titleId="reader-options-modal-title"
           onClose={() => setIsOptionsModalOpen(false)}
-          panelClassName="max-w-xl">
-          <div className="mt-3 flex items-center justify-between gap-2">
+          panelClassName="max-h-[85vh] max-w-xl overflow-y-auto">
+          <div className="sticky top-0 z-10 -mx-1 -mt-1 mb-3 flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-1 pb-2 pt-1">
             <p className="text-base font-semibold text-slate-900">
               Reader settings
             </p>
@@ -837,7 +837,7 @@ export function BibleReaderPage() {
               </Button>
             </div>
           )}
-          <div className="mt-4 flex justify-end">
+          <div className="sticky bottom-0 z-10 -mx-1 mt-4 flex justify-end border-t border-slate-200 bg-white px-1 pb-1 pt-2">
             <Button
               variant="ghost"
               className="min-h-11"
@@ -852,7 +852,7 @@ export function BibleReaderPage() {
         titleId="reader-settings-help-title"
         onClose={() => setReaderSettingsHelp(null)}
       />
-      <Card className="mb-4 border p-4">
+      <Card className="-mx-6 mb-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex min-w-[220px] flex-[2] flex-col gap-1 text-sm font-semibold">
             Book
@@ -927,7 +927,7 @@ export function BibleReaderPage() {
         />
       )}
       {!isLoading && !error && payload && (
-        <Card className="space-y-4 border p-4">
+        <Card className="-mx-6 space-y-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
           <p className="text-lg font-semibold text-slate-900">
             {chapterLabel} ({payload.translation})
           </p>

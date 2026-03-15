@@ -47,6 +47,8 @@
 
 - Keep controls labeled and keyboard reachable.
 - Use modal primitives (`ModalShell`) for dense mobile options.
+- For long mobile setting modals (for example Reader Options), enforce `max-h` + `overflow-y-auto` on panel content so all controls remain reachable.
+- For mobile-reader heavy routes, prefer full-bleed content containers when readability benefits from wider line usage; restore rounded/inset card treatment at `sm+`.
 - Preserve Escape/outside-click modal behavior consistency.
 - Validate high-contrast and text-scale behavior for changed views.
 - Keep landing and auth-entry actions operable with keyboard and large text scales.
