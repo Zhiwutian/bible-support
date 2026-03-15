@@ -852,7 +852,7 @@ export function BibleReaderPage() {
         titleId="reader-settings-help-title"
         onClose={() => setReaderSettingsHelp(null)}
       />
-      <Card className="mb-4 border p-4">
+      <Card className="-mx-6 mb-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex min-w-[220px] flex-[2] flex-col gap-1 text-sm font-semibold">
             Book
@@ -927,7 +927,7 @@ export function BibleReaderPage() {
         />
       )}
       {!isLoading && !error && payload && (
-        <Card className="space-y-4 border p-4">
+        <Card className="-mx-6 space-y-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
           <p className="text-lg font-semibold text-slate-900">
             {chapterLabel} ({payload.translation})
           </p>
