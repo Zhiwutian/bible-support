@@ -7,14 +7,6 @@ drop schema "public" cascade;
 create schema "public";
 create extension if not exists "pgcrypto";
 
-create table "todos" (
-  "todoId" serial primary key,
-  "task" text not null,
-  "isCompleted" boolean not null default false,
-  "createdAt" timestamptz not null default now(),
-  "updatedAt" timestamptz not null default now()
-);
-
 create table "emotions" (
   "emotionId" serial primary key,
   "slug" text not null unique check ("slug" = lower("slug")),
@@ -122,6 +114,7 @@ create table "saved_scripture_items" (
   "createdAt" timestamptz not null default now(),
   check ("verseEnd" >= "verseStart"),
   check ("ownerUserId" is not null or "deviceId" is not null),
+  check ("sourceMode" in ('local', 'remote')),
   check ("note" is null or char_length("note") <= 4000)
 );
 
@@ -145,3 +138,24 @@ create unique index "saved_scripture_items_device_reference_unique"
 create unique index "saved_scripture_items_owner_reference_unique"
   on "saved_scripture_items" ("ownerUserId", "translation", "book", "chapter", "verseStart", "verseEnd")
   where "ownerUserId" is not null;
+
+create table "reader_state" (
+  "userId" uuid primary key references "users"("userId") on delete cascade,
+  "preferences" jsonb,
+  "bookmarkBook" text,
+  "bookmarkChapter" integer,
+  "bookmarkVerse" integer,
+  "bookmarkTranslation" text,
+  "bookmarkScrollOffset" integer,
+  "createdAt" timestamptz not null default now(),
+  "updatedAt" timestamptz not null default now(),
+  check ("bookmarkChapter" is null or "bookmarkChapter" > 0),
+  check ("bookmarkVerse" is null or "bookmarkVerse" > 0),
+  check ("bookmarkTranslation" is null or "bookmarkTranslation" in ('KJV', 'ASV', 'WEB')),
+  check ("bookmarkScrollOffset" is null or "bookmarkScrollOffset" >= 0),
+  check (
+    ("bookmarkBook" is null and "bookmarkChapter" is null and "bookmarkVerse" is null and "bookmarkTranslation" is null and "bookmarkScrollOffset" is null)
+    or
+    ("bookmarkBook" is not null and "bookmarkChapter" is not null and "bookmarkVerse" is not null and "bookmarkTranslation" is not null and "bookmarkScrollOffset" is not null)
+  )
+);

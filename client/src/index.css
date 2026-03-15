@@ -260,6 +260,179 @@ button:disabled,
   @apply w-full max-w-md rounded-md border border-slate-200 bg-white p-4 shadow-lg;
 }
 
+/* Reader-specific theme and typography tokens for long-form comfort. */
+.reader-root {
+  --reader-bg: #f6f0df;
+  --reader-border: #d6ccb3;
+  --reader-text: #2f2922;
+  --reader-font-family: 'Georgia', 'Times New Roman', serif;
+  --reader-font-size: 1.1rem;
+  --reader-line-height: 1.55;
+  --reader-paragraph-gap: 0.85rem;
+  --reader-content-max-width: 68ch;
+}
+
+.reader-theme-light {
+  --reader-bg: #f8f8f7;
+  --reader-border: #d1d5db;
+  --reader-text: #1f2937;
+}
+
+.reader-theme-sepia {
+  --reader-bg: #f6f0df;
+  --reader-border: #d6ccb3;
+  --reader-text: #2f2922;
+}
+
+.reader-theme-dark {
+  --reader-bg: #111827;
+  --reader-border: #374151;
+  --reader-text: #e5e7eb;
+}
+
+.reader-font-serif {
+  --reader-font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.reader-font-sans {
+  --reader-font-family:
+    'Source Sans 3', 'Inter', 'Segoe UI', 'Helvetica Neue', arial, sans-serif;
+}
+
+.reader-size-xs {
+  --reader-font-size: 1.1rem;
+}
+
+.reader-size-sm {
+  --reader-font-size: 1.25rem;
+}
+
+.reader-size-md {
+  --reader-font-size: 1.4rem;
+}
+
+.reader-size-lg {
+  --reader-font-size: 1.6rem;
+}
+
+.reader-size-xl {
+  --reader-font-size: 2.05rem;
+}
+
+.reader-line-normal {
+  --reader-line-height: 1.45;
+}
+
+.reader-line-relaxed {
+  --reader-line-height: 1.55;
+}
+
+.reader-line-loose {
+  --reader-line-height: 1.7;
+}
+
+.reader-paragraph-tight {
+  --reader-paragraph-gap: 0.6rem;
+}
+
+.reader-paragraph-normal {
+  --reader-paragraph-gap: 0.85rem;
+}
+
+.reader-paragraph-loose {
+  --reader-paragraph-gap: 1.1rem;
+}
+
+.reader-width-narrow {
+  --reader-content-max-width: 58ch;
+}
+
+.reader-width-balanced {
+  --reader-content-max-width: 68ch;
+}
+
+.reader-width-wide {
+  --reader-content-max-width: 76ch;
+}
+
+.reader-content {
+  background-color: var(--reader-bg);
+  border-color: var(--reader-border);
+}
+
+.reader-chapter-text {
+  color: var(--reader-text);
+  font-family: var(--reader-font-family);
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
+  margin-inline: auto;
+  max-width: var(--reader-content-max-width);
+  text-align: left;
+}
+
+.reader-verse-paragraph {
+  margin: 0;
+  margin-top: var(--reader-paragraph-gap);
+}
+
+.reader-verse-paragraph:first-child {
+  margin-top: 0;
+}
+
+/* Extra low-vision comfort tuning when XL text is selected. */
+.reader-size-xl .reader-chapter-text {
+  line-height: calc(var(--reader-line-height) + 0.12);
+}
+
+.reader-size-xl .reader-verse-paragraph {
+  margin-top: calc(var(--reader-paragraph-gap) + 0.25rem);
+}
+
+.reader-reduced-motion *,
+.reader-reduced-motion *::before,
+.reader-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+.reader-break-reminder {
+  background-color: color-mix(in srgb, var(--reader-bg) 70%, #fff 30%);
+  border-color: var(--reader-border);
+  color: var(--reader-text);
+}
+
+.reader-break-dismiss-button {
+  color: var(--reader-text) !important;
+  border: 1px solid var(--reader-border);
+  background-color: color-mix(in srgb, var(--reader-bg) 88%, #fff 12%);
+}
+
+.reader-break-dismiss-button:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--reader-bg) 78%,
+    #fff 22%
+  ) !important;
+}
+
+/* Preserve Reader theme colors (including sepia) under global modes. */
+.app-high-contrast .reader-content,
+.app-high-contrast .reader-break-reminder,
+.app-dark-mode .reader-content,
+.app-dark-mode .reader-break-reminder {
+  background-color: var(--reader-bg) !important;
+  border-color: var(--reader-border) !important;
+}
+
+.app-high-contrast .reader-chapter-text,
+.app-high-contrast .reader-break-reminder,
+.app-dark-mode .reader-chapter-text,
+.app-dark-mode .reader-break-reminder {
+  color: var(--reader-text) !important;
+}
+
 /*
  * High-contrast mode overrides common Tailwind slate/sky tokens used across
  * pages and shared components. Scope stays local to the app shell.
@@ -286,4 +459,68 @@ button:disabled,
 
 .app-high-contrast [class*='hover:text-slate-']:hover {
   color: #000 !important;
+}
+
+/*
+ * Dark mode adjusts non-reader shell/UI surfaces while reader theme variables
+ * continue to control chapter content color.
+ */
+.app-dark-mode [class*='text-slate-'] {
+  color: #e5e7eb !important;
+}
+
+.app-dark-mode [class*='bg-slate-'],
+.app-dark-mode [class*='bg-sky-'],
+.app-dark-mode .bg-white {
+  background-color: #0f172a !important;
+}
+
+.app-dark-mode [class*='border-slate-'],
+.app-dark-mode [class*='border-sky-'] {
+  border-color: #334155 !important;
+}
+
+.app-dark-mode [class*='hover:bg-slate-']:hover,
+.app-dark-mode [class*='hover:bg-sky-']:hover {
+  background-color: #1e293b !important;
+}
+
+.app-dark-mode .ui-modal-panel {
+  background-color: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+.app-dark-mode .ui-modal-panel [class*='text-slate-'] {
+  color: #e5e7eb !important;
+}
+
+.app-dark-mode .ui-modal-panel [class*='border-slate-'] {
+  border-color: #475569 !important;
+}
+
+.app-dark-mode .ui-modal-panel input,
+.app-dark-mode .ui-modal-panel select,
+.app-dark-mode .ui-modal-panel textarea {
+  background-color: #0f172a !important;
+  color: #e5e7eb !important;
+  border-color: #475569 !important;
+}
+
+/* Keep reader verse containers from inheriting dark shell utility overrides. */
+.app-dark-mode .reader-root .reader-verse-paragraph {
+  background-color: transparent !important;
+  color: var(--reader-text) !important;
+}
+
+.app-dark-mode .reader-root .reader-verse-paragraph:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--reader-bg) 82%,
+    #fff 18%
+  ) !important;
+}
+
+.app-dark-mode .reader-root .reader-content [class*='text-slate-'] {
+  color: var(--reader-text) !important;
 }

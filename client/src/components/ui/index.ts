@@ -6,3 +6,5 @@ export { EmptyState } from './EmptyState';
 export { Input } from './Input';
 export { ModalShell } from './ModalShell';
 export { SectionHeader } from './SectionHeader';
+export { SettingHelpButton } from './SettingHelpButton';
+export { SettingHelpModal, type SettingHelpContent } from './SettingHelpModal';

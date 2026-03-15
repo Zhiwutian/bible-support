@@ -47,18 +47,6 @@ describe('api routes', () => {
     expect(res.body.data.database).toBe('not_configured');
   });
 
-  it('returns 503 from /api/todos when database is unavailable', async () => {
-    getDrizzleDbMock.mockReturnValue(null);
-
-    const res = await request(app).get('/api/todos').expect(503);
-    expect(res.body.error).toEqual(
-      expect.objectContaining({
-        code: 'client_error',
-        message: expect.stringContaining('database is not configured'),
-      }),
-    );
-  });
-
   it('returns 503 from /api/emotions when database is unavailable', async () => {
     getDrizzleDbMock.mockReturnValue(null);
 

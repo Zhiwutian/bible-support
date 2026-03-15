@@ -99,6 +99,8 @@ CI enforcement note:
 - Primary lightweight path is Render + Neon (see `docs/deployment-render-neon.md`).
 - Optional better-UX free-tier path is split hosting (see `docs/deployment-vercel-render.md`).
 - Existing EC2 workflow remains branch-driven through pushes to `pub`.
+- Reader comfort rollout can be staged with frontend flag:
+  - `VITE_READER_COMFORT_ENABLED=true|false`
 - Root deploy script for EC2 path:
 
 ```sh
@@ -125,6 +127,24 @@ Optional corpus diagnostics check:
 curl -H "Authorization: Bearer <admin-token>" \
   https://your-service-url/api/admin/scripture-sources
 ```
+
+### Reader Comfort Rollout Checklist
+
+1. Deploy with `VITE_READER_COMFORT_ENABLED=false` (dark launch).
+2. Validate telemetry event integrity locally/in-preview:
+   - `reader_preference_changed`
+   - `reader_preferences_reset`
+   - `reader_break_tip_dismissed`
+3. Confirm telemetry payloads are privacy-safe (no verse text or note content).
+4. Enable `VITE_READER_COMFORT_ENABLED=true` in a controlled release window.
+5. Run post-enable smoke checks:
+   - Reader chapter load and chapter navigation
+   - Settings persistence + reset
+   - Return-to-support flow still works
+6. Rollback path:
+   - set `VITE_READER_COMFORT_ENABLED=false`
+   - redeploy frontend
+   - verify Reader route continues functioning with default experience
 
 ## Recommended Branching
 

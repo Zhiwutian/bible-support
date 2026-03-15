@@ -87,6 +87,17 @@ function resolveScope(req: Request): SavedScriptureOwnerScope {
   };
 }
 
+/** Resolve owner scope and migrate guest device saves when user session exists. */
+async function resolveScopeWithMigration(
+  req: Request,
+): Promise<SavedScriptureOwnerScope> {
+  const scope = resolveScope(req);
+  if (scope.ownerUserId && scope.deviceId) {
+    await migrateDeviceSavedScripturesToUser(scope.deviceId, scope.ownerUserId);
+  }
+  return scope;
+}
+
 /** Handle `GET /api/saved-scriptures`. */
 export async function getSavedScriptures(
   req: Request,
@@ -94,13 +105,7 @@ export async function getSavedScriptures(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const payload = await readSavedScriptures(scope);
     sendSuccess(res, payload);
   } catch (err) {
@@ -115,13 +120,7 @@ export async function getSavedScriptureGroups(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const payload = await readSavedScriptureGroups(scope);
     sendSuccess(res, payload);
   } catch (err) {
@@ -136,13 +135,7 @@ export async function postSavedScripture(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const body = savedScriptureBodySchema.parse(
       req.body,
     ) as CreateSavedScriptureRequest;
@@ -163,13 +156,7 @@ export async function postSavedScriptureBatch(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const body = savedScriptureBatchBodySchema.parse(
       req.body,
     ) as CreateSavedScriptureBatchRequest;
@@ -203,13 +190,7 @@ export async function deleteSavedScripture(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const params = savedIdParamsSchema.parse(req.params);
     await removeSavedScripture(params.savedId, scope);
     res.sendStatus(204);
@@ -225,13 +206,7 @@ export async function patchSavedScripture(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const params = savedIdParamsSchema.parse(req.params);
     const body = updateSavedScriptureBodySchema.parse(
       req.body,
@@ -254,13 +229,7 @@ export async function patchSavedScriptureNote(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const scope = resolveScope(req);
-    if (scope.ownerUserId && scope.deviceId) {
-      await migrateDeviceSavedScripturesToUser(
-        scope.deviceId,
-        scope.ownerUserId,
-      );
-    }
+    const scope = await resolveScopeWithMigration(req);
     const params = savedIdParamsSchema.parse(req.params);
     const body = updateSavedScriptureNoteBodySchema.parse(
       req.body,

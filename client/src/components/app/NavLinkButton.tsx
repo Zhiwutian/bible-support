@@ -19,7 +19,7 @@ export function NavLinkButton({ to, children, className, onClick }: Props) {
       onClick={onClick}
       className={({ isActive }) =>
         cn(
-          'inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition',
+          'inline-flex items-center rounded-md px-4 py-2 text-sm font-medium transition capitalize',
           'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
           isActive ? 'bg-slate-200 text-slate-900' : undefined,
           className,

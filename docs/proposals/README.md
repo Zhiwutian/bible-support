@@ -29,3 +29,5 @@ Current proposals:
 - `ui-shell-support-consistency-refresh.md`
 - `support-scripture-candidates-stress-guilt-refresh.md`
 - `scripture-reader-multisave-notes-rollout.md`
+- `reader-comfort-customization-research.md`
+- `reader-styles-bookmarks-account-sync.md`

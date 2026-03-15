@@ -131,7 +131,7 @@ Use comments to improve maintainability for both humans and AI tools, not to res
 ## Frontend State and Forms Guidance
 
 - Use `react-hook-form` + `zod` for form validation and submit handling.
-- Keep feature form schemas close to feature code (for example, `client/src/features/todos/`).
+- Keep feature form schemas close to feature code within their feature directories.
 - Use local `useState` for component-owned state that is not shared.
 - Use Context + reducer for lean global UI state used across multiple components.
 - Keep API-backed data request-driven in feature components/services unless a dedicated server-state library is introduced.

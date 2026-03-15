@@ -56,6 +56,7 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText(/\(NIV\)/)).toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
     await user.click(screen.getByRole('button', { name: 'Back' }));
     expect(
       await screen.findByRole('heading', { name: /scriptural support/i }),
@@ -85,6 +86,17 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders tutorial page route', async () => {
+    const user = userEvent.setup();
+    renderApp(['/tutorial']);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Tutorial' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/quick start/i)).toBeInTheDocument();
+  });
+
   it('renders bible reader route with chapter content', async () => {
     const user = userEvent.setup();
     renderApp(['/reader?book=John&chapter=3&translation=KJV']);
@@ -94,7 +106,9 @@ describe('App', () => {
       await screen.findByRole('heading', { name: 'Bible Reader' }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(/John 3:16 For God so loved the world/i),
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
     ).toBeInTheDocument();
   });
 
@@ -104,12 +118,148 @@ describe('App', () => {
     await continueAsGuest(user);
 
     expect(
-      await screen.findByText(/John 3:16 For God so loved the world/i),
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /next chapter/i }));
     expect(
-      await screen.findByText(/John 4:16 For God so loved the world/i),
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
     ).toBeInTheDocument();
+  });
+
+  it('supports reader styles and jump to last place bookmark flow', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    const verseButton = await screen.findByRole('button', {
+      name: /for god so loved the world/i,
+    });
+    await user.click(verseButton);
+    expect(
+      await screen.findByText(/saved your place at john 3:16/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /next chapter/i }));
+    expect(
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /jump to last place/i }),
+    );
+    expect(
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Reading style' }),
+      'standard',
+    );
+    expect(
+      screen.queryByRole('button', {
+        name: /john 3:16 for god so loved the world/i,
+      }),
+    ).not.toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Reading style' }),
+      'clean',
+    );
+    expect(
+      screen.queryByText(/john 3:16 for god so loved the world/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('persists reader comfort settings and supports reset', async () => {
+    const user = userEvent.setup();
+    const firstRender = renderApp([
+      '/reader?book=John&chapter=3&translation=KJV',
+    ]);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Theme' }),
+      'dark',
+    );
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Font size' }),
+      'lg',
+    );
+    expect(
+      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
+    ).toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText(/Eye comfort tip/i)).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
+    );
+    firstRender.unmount();
+
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
+    expect(screen.getByRole('combobox', { name: 'Font size' })).toHaveValue(
+      'lg',
+    );
+    expect(
+      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
+    ).not.toBeChecked();
+
+    await user.click(
+      screen.getByRole('button', { name: /reset reader settings/i }),
+    );
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue(
+      'sepia',
+    );
+    expect(screen.getByRole('combobox', { name: 'Font size' })).toHaveValue(
+      'md',
+    );
+    expect(
+      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
+    ).toBeChecked();
+  });
+
+  it('opens reader route from emotion scripture full chapter action', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    const user = userEvent.setup();
+    renderApp();
+    await continueAsGuest(user);
+
+    await user.click(await screen.findByRole('link', { name: 'I Am Afraid' }));
+    await user.click(
+      await screen.findByRole('button', { name: /read full chapter/i }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /back to support verse/i }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Scriptures for Fear' }),
+    ).toBeInTheDocument();
+
+    randomSpy.mockRestore();
   });
 
   it('does not show stale context errors after changing scripture', async () => {
@@ -207,6 +357,9 @@ describe('App', () => {
     const user = userEvent.setup();
     renderApp(['/search']);
     await continueAsGuest(user);
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Search' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /search verses/i }));
     const selectBoxes = await screen.findAllByRole('checkbox', {

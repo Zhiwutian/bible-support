@@ -21,6 +21,7 @@ All schema changes should maintain parity across these three layers.
 - Use unique indexes/partial indexes where ownership scopes differ (for example device vs user).
 - For grouped list UIs, add composite indexes that match ordering access patterns (for example owner/device + group id + created timestamp).
 - Add explicit length checks for user-editable text columns (for example saved-item notes).
+- For retrofitted constraints on existing hosted tables, prefer `NOT VALID` constraints first, then validate once legacy data is confirmed clean.
 
 ## DB Change Workflow
 

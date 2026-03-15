@@ -1,6 +1,8 @@
 import { TouchEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { BIBLE_BOOKS } from '@shared/bible-books';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
+import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 import { useToast } from '@/components/app/toast-context';
 import {
   Badge,
@@ -8,16 +10,15 @@ import {
   Card,
   EmptyState,
   SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import { getEmotionTheme } from '@/features/emotions/emotion-theme';
 import {
   readScriptureContext,
   ScriptureContext,
 } from '@/features/emotions/emotion-api';
-import {
-  toBibleGatewayChapterUrl,
-  toChapterReference,
-} from '@/features/emotions/scripture-links';
+import { toChapterReference } from '@/features/emotions/scripture-links';
 import { useEmotionScriptures } from '@/features/emotions/useEmotionScriptures';
 import { saveScripture } from '@/features/search/scripture-search-api';
 
@@ -30,6 +31,7 @@ export function EmotionScripturePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const touchStartXRef = useRef<number | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const [selectedTranslation, setSelectedTranslation] = useState<
     'KJV' | 'ASV' | 'WEB'
   >('KJV');
@@ -50,6 +52,11 @@ export function EmotionScripturePage() {
   } = useEmotionScriptures(slug, selectedTranslation, selectedScriptureId);
   const theme = getEmotionTheme(emotion?.slug ?? slug);
   const [showContext, setShowContext] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   const [contextByScriptureId, setContextByScriptureId] = useState<
     Record<number, ScriptureContext>
   >({});
@@ -79,6 +86,28 @@ export function EmotionScripturePage() {
     next.set('scriptureId', scriptureIdAsString);
     setSearchParams(next, { replace: true });
   }, [currentScripture, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!isActionsOpen) return;
+
+    function handleDocumentMouseDown(event: MouseEvent) {
+      if (!actionsMenuRef.current) return;
+      if (actionsMenuRef.current.contains(event.target as Node)) return;
+      setIsActionsOpen(false);
+    }
+
+    function handleDocumentKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setIsActionsOpen(false);
+    }
+
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    document.addEventListener('keydown', handleDocumentKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentMouseDown);
+      document.removeEventListener('keydown', handleDocumentKeyDown);
+    };
+  }, [isActionsOpen]);
 
   async function handleSaveCurrentScripture() {
     if (!currentScripture) return;
@@ -160,12 +189,48 @@ export function EmotionScripturePage() {
 
   function handleOpenFullChapter() {
     if (!currentScripture) return;
-    const chapterReference = toChapterReference(currentScripture.reference);
-    const url = toBibleGatewayChapterUrl(
-      chapterReference,
-      currentScripture.translation,
-    );
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const parsedReference = toChapterReference(currentScripture.reference);
+    const parsedMatch = parsedReference.match(/^(.*)\s+(\d+)$/);
+    const fallbackBook = parsedMatch?.[1]?.trim();
+    const fallbackChapter = Number(parsedMatch?.[2] ?? '');
+    const rawBook = currentScripture.book ?? fallbackBook;
+    const canonicalBook =
+      BIBLE_BOOKS.find(
+        (candidate) =>
+          candidate.toLowerCase() === (rawBook ?? '').toLowerCase(),
+      ) ?? (rawBook?.toLowerCase() === 'psalm' ? 'Psalms' : rawBook);
+    const book = canonicalBook;
+    const chapter = currentScripture.chapter ?? fallbackChapter;
+    if (!book || !Number.isInteger(chapter) || chapter < 1) {
+      showToast({
+        title: 'Could not open reader',
+        description:
+          'This scripture does not include chapter details for reader navigation.',
+        variant: 'error',
+      });
+      return;
+    }
+    const normalizedTranslation = SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
+      currentScripture.translation as ScriptureTranslationCode,
+    )
+      ? (currentScripture.translation as ScriptureTranslationCode)
+      : selectedTranslation;
+    const nextSearchParams = new URLSearchParams({
+      book,
+      chapter: String(chapter),
+      translation: normalizedTranslation,
+    });
+    if (emotion?.slug ?? slug) {
+      nextSearchParams.set('fromEmotion', emotion?.slug ?? slug ?? '');
+    }
+    if (currentScripture.scriptureId) {
+      nextSearchParams.set(
+        'fromScriptureId',
+        String(currentScripture.scriptureId),
+      );
+    }
+    nextSearchParams.set('fromTranslation', selectedTranslation);
+    navigate(`/reader?${nextSearchParams.toString()}`);
   }
 
   async function handleToggleContext() {
@@ -228,6 +293,21 @@ export function EmotionScripturePage() {
     navigate(`/emotions/${emotion?.slug ?? slug}/context?${searchParams}`);
   }
 
+  function handleBackAction() {
+    setIsActionsOpen(false);
+    navigate(-1);
+  }
+
+  function handleCopyAction() {
+    setIsActionsOpen(false);
+    handleCopyCurrent();
+  }
+
+  function handleSaveAction() {
+    setIsActionsOpen(false);
+    void handleSaveCurrentScripture();
+  }
+
   return (
     <div className={`rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
@@ -245,7 +325,18 @@ export function EmotionScripturePage() {
       <div className="mb-4 flex items-center gap-2">
         <label className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
           Translation
+          <SettingHelpButton
+            settingLabel="Support translation"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Translation',
+                description:
+                  'Changes which translation is used for Support scriptures and related reader links.',
+              })
+            }
+          />
           <select
+            aria-label="Translation"
             className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium"
             value={selectedTranslation}
             onChange={(event) =>
@@ -260,28 +351,52 @@ export function EmotionScripturePage() {
             ))}
           </select>
         </label>
-        <Button
-          variant="ghost"
-          className={theme.controlClassName}
-          onClick={() => navigate(-1)}>
-          Back
-        </Button>
-        {currentScripture && (
+        <div ref={actionsMenuRef} className="relative">
           <Button
             variant="ghost"
             className={theme.controlClassName}
-            onClick={handleCopyCurrent}>
-            Copy
+            aria-haspopup="true"
+            aria-expanded={isActionsOpen}
+            onClick={() => setIsActionsOpen((current) => !current)}>
+            Actions
           </Button>
-        )}
-        {currentScripture && (
-          <Button
-            variant="ghost"
-            className={theme.controlClassName}
-            onClick={() => void handleSaveCurrentScripture()}>
-            Save
-          </Button>
-        )}
+          <SettingHelpButton
+            settingLabel="Support actions"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Actions',
+                description:
+                  'Quick menu for Back, Copy, and Save on the currently displayed support verse.',
+              })
+            }
+          />
+          {isActionsOpen && (
+            <Card className="absolute left-0 top-full z-20 mt-2 min-w-36 border border-slate-200 bg-white p-2 shadow-md">
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={handleBackAction}>
+                  Back
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={handleCopyAction}
+                  disabled={!currentScripture}>
+                  Copy
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start"
+                  onClick={handleSaveAction}
+                  disabled={!currentScripture}>
+                  Save
+                </Button>
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
       {isLoading && (
@@ -320,12 +435,24 @@ export function EmotionScripturePage() {
 
           <div className="mt-20 space-y-10">
             <div className="grid grid-cols-1 gap-2">
-              <Button
-                variant="ghost"
-                className={`w-full justify-center ${theme.controlClassName}`}
-                onClick={handleOpenFullChapter}>
-                Read full chapter
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  className={`min-h-11 flex-1 justify-center ${theme.controlClassName}`}
+                  onClick={handleOpenFullChapter}>
+                  Read full chapter
+                </Button>
+                <SettingHelpButton
+                  settingLabel="Read full chapter"
+                  onClick={() =>
+                    setSettingsHelp({
+                      title: 'Read full chapter',
+                      description:
+                        'Opens Bible Reader for the same book/chapter and translation as this support verse.',
+                    })
+                  }
+                />
+              </div>
               <Button
                 variant="ghost"
                 className={`w-full justify-center ${theme.controlClassName}`}
@@ -395,6 +522,11 @@ export function EmotionScripturePage() {
           </div>
         </Card>
       )}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="emotion-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </div>
   );
 }

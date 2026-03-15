@@ -1,8 +1,12 @@
 import type {
+  ReaderBookmark,
   ReaderChapterResponse,
+  ReaderPreferencesPayload,
+  ReaderStateResponse,
   ScriptureSearchMode,
   ScriptureSearchResponse,
   ScriptureTranslationCode,
+  UpdateReaderStateRequest,
   ScriptureVerseResult,
 } from '@shared/scripture-search-contracts';
 import type {
@@ -134,6 +138,43 @@ export async function readReaderChapter(input: {
   return fetchJson<ReaderChapterResponse>(
     `/api/reader/chapter?${searchParams}`,
   );
+}
+
+/** Read account-synced reader preferences/bookmark for authenticated user. */
+export async function readReaderState(): Promise<ReaderStateResponse> {
+  return fetchJson<ReaderStateResponse>('/api/reader/state');
+}
+
+/** Patch account-synced reader state for authenticated user. */
+export async function updateReaderState(
+  input: UpdateReaderStateRequest,
+): Promise<ReaderStateResponse> {
+  return fetchJson<ReaderStateResponse>('/api/reader/state', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+/** Clear account-synced reader state for authenticated user. */
+export async function clearReaderState(): Promise<void> {
+  await fetchNoContent('/api/reader/state', {
+    method: 'DELETE',
+  });
+}
+
+/** Build normalized payload for updating only reader preferences. */
+export function toReaderStatePreferencesPayload(
+  preferences: ReaderPreferencesPayload,
+): UpdateReaderStateRequest {
+  return { preferences };
+}
+
+/** Build normalized payload for updating only reader bookmark. */
+export function toReaderStateBookmarkPayload(
+  bookmark: ReaderBookmark | null,
+): UpdateReaderStateRequest {
+  return { bookmark };
 }
 
 /** Convert verse rows into a contiguous reference span payload for save. */

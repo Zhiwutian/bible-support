@@ -2,17 +2,18 @@ import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BIBLE_BOOKS } from '@shared/bible-books.js';
 import {
-  SUPPORTED_SCRIPTURE_TRANSLATIONS,
   ScriptureSearchMode,
   ScriptureSearchResponse,
-  type ScriptureTranslationCode,
   type ScriptureVerseResult,
 } from '@shared/scripture-search-contracts.js';
 import { scriptureVerses } from '@server/db/schema.js';
 import { requireDb } from './require-db.js';
 import { logger } from '@server/lib/logger.js';
+import {
+  canonicalizeBibleBookName,
+  normalizeScriptureTranslationCode,
+} from '@server/lib/scripture-normalization.js';
 
 type SearchParams = {
   mode: ScriptureSearchMode;
@@ -35,11 +36,6 @@ type ParsedReference = {
   verseEnd?: number;
 };
 
-const canonicalBookMap = new Map(
-  BIBLE_BOOKS.map((book) => [book.toLowerCase(), book]),
-);
-canonicalBookMap.set('psalm', 'Psalms');
-canonicalBookMap.set('song of songs', 'Song of Solomon');
 const localVerseMapCache = new Map<string, Record<string, string>>();
 
 type LocalVerseRow = {
@@ -50,25 +46,12 @@ type LocalVerseRow = {
   verseText: string;
 };
 
-/** Ensure translation values match supported canonical codes. */
-function normalizeTranslationCode(value: string): ScriptureTranslationCode {
-  const normalized = value.trim().toUpperCase();
-  if (
-    SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
-      normalized as ScriptureTranslationCode,
-    )
-  ) {
-    return normalized as ScriptureTranslationCode;
-  }
-  return 'KJV';
-}
-
 /** Convert DB verse row into API response shape. */
 function mapVerseRow(
   row: typeof scriptureVerses.$inferSelect,
 ): ScriptureVerseResult {
   return {
-    translation: normalizeTranslationCode(row.translation),
+    translation: normalizeScriptureTranslationCode(row.translation),
     book: row.book,
     chapter: row.chapter,
     verse: row.verse,
@@ -84,7 +67,7 @@ function parseReferenceQuery(input: string): ParsedReference | null {
   if (!match) return null;
 
   const [, bookPart, chapterPart, verseStartPart, verseEndPart] = match;
-  const canonicalBook = canonicalBookMap.get(bookPart.trim().toLowerCase());
+  const canonicalBook = canonicalizeBibleBookName(bookPart);
   if (!canonicalBook) return null;
 
   const chapter = Number(chapterPart);
@@ -118,7 +101,7 @@ function parseReferenceKey(reference: string): ParsedReference | null {
   const chapter = Number(chapterPart);
   const verse = Number(versePart);
   if (!chapter || !verse) return null;
-  const canonicalBook = canonicalBookMap.get(bookPart.trim().toLowerCase());
+  const canonicalBook = canonicalizeBibleBookName(bookPart);
   if (!canonicalBook) return null;
   return {
     book: canonicalBook,
@@ -199,7 +182,7 @@ async function searchFromLocalJson(
   });
 
   return rows.slice(0, params.limit).map((row) => ({
-    translation: normalizeTranslationCode(translation),
+    translation: normalizeScriptureTranslationCode(translation),
     book: row.book,
     chapter: row.chapter,
     verse: row.verse,
@@ -236,7 +219,7 @@ async function readRemoteBibleVerses(
     )
     .map((verse) => ({
       // Keep a stable canonical translation code for save payload compatibility.
-      translation: normalizeTranslationCode(translation),
+      translation: normalizeScriptureTranslationCode(translation),
       book: verse.book_name ?? '',
       chapter: verse.chapter ?? 0,
       verse: verse.verse ?? 0,
@@ -250,7 +233,7 @@ export async function searchScriptureVerses(
   params: SearchParams,
 ): Promise<ScriptureSearchResponse> {
   const limit = Math.min(Math.max(params.limit, 1), 100);
-  const translation = params.translation.trim().toUpperCase();
+  const translation = normalizeScriptureTranslationCode(params.translation);
   const baseFilters = [eq(scriptureVerses.translation, translation)];
 
   let localRows: (typeof scriptureVerses.$inferSelect)[] = [];

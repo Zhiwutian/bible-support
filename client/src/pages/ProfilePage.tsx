@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui';
+import {
+  Button,
+  Input,
+  SettingHelpButton,
+  SettingHelpModal,
+} from '@/components/ui';
 import { trackEvent } from '@/lib/telemetry';
 
 type Props = {
@@ -40,6 +45,10 @@ export function ProfilePage({
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
 
   const displayNameError =
     displayName.length > 120
@@ -111,8 +120,18 @@ export function ProfilePage({
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">
+          <span className="mb-1 flex items-center gap-2 text-sm font-medium text-slate-700">
             Display name
+            <SettingHelpButton
+              settingLabel="Display name"
+              onClick={() =>
+                setSettingsHelp({
+                  title: 'Display name',
+                  description:
+                    'The name shown in your account area and app menus. This does not change your external provider account.',
+                })
+              }
+            />
           </span>
           <Input
             value={displayName}
@@ -125,8 +144,18 @@ export function ProfilePage({
         </label>
 
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-slate-700">
+          <span className="mb-1 flex items-center gap-2 text-sm font-medium text-slate-700">
             Avatar URL
+            <SettingHelpButton
+              settingLabel="Avatar URL"
+              onClick={() =>
+                setSettingsHelp({
+                  title: 'Avatar URL',
+                  description:
+                    'A public image URL used for your profile avatar preview and menu identity.',
+                })
+              }
+            />
           </span>
           <Input
             value={avatarUrl}
@@ -147,13 +176,19 @@ export function ProfilePage({
           <p className="text-sm text-green-700">{saveSuccess}</p>
         ) : null}
 
-        <button
+        <Button
           type="submit"
+          variant="primary"
           disabled={!canSubmit}
-          className="min-h-11 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">
+          className="min-h-11 disabled:opacity-60">
           {isSaving ? 'Saving...' : 'Save profile'}
-        </button>
+        </Button>
       </form>
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="profile-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </section>
   );
 }

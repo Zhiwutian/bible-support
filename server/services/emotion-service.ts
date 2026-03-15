@@ -3,16 +3,19 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { emotions, scriptures, scriptureVerses } from '@server/db/schema.js';
-import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts.js';
-import { BIBLE_BOOKS } from '@shared/bible-books.js';
+import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts.js';
 import { ClientError } from '@server/lib/client-error.js';
 import { logger } from '@server/lib/logger.js';
+import {
+  canonicalizeBibleBookName,
+  normalizeScriptureTranslationCode,
+} from '@server/lib/scripture-normalization.js';
 import { requireDb } from './require-db.js';
 
 export type EmotionRecord = typeof emotions.$inferSelect;
 
 export type ScriptureRecord = typeof scriptures.$inferSelect;
-type SupportedTranslation = (typeof SUPPORTED_SCRIPTURE_TRANSLATIONS)[number];
+type SupportedTranslation = ScriptureTranslationCode;
 type ResolvedScriptureRecord = ScriptureRecord & {
   book: string;
   chapter: number;
@@ -23,11 +26,6 @@ type ResolvedScriptureRecord = ScriptureRecord & {
 
 const translationFallbackOrder: SupportedTranslation[] = ['KJV', 'ASV', 'WEB'];
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const canonicalBookMap = new Map(
-  BIBLE_BOOKS.map((book) => [book.toLowerCase(), book]),
-);
-canonicalBookMap.set('psalm', 'Psalms');
-canonicalBookMap.set('song of songs', 'Song of Solomon');
 const localVerseMapCache = new Map<string, Record<string, string>>();
 
 type ParsedScriptureReference = {
@@ -60,27 +58,11 @@ function parseScriptureReference(
     return null;
   }
   return {
-    book: canonicalBookMap.get(book.trim().toLowerCase()) ?? book.trim(),
+    book: canonicalizeBibleBookName(book) ?? book.trim(),
     chapter,
     verseStart,
     verseEnd,
   };
-}
-
-/** Normalize request translation to supported canonical code. */
-function normalizeTranslation(
-  translation: string | undefined,
-): SupportedTranslation {
-  const normalized = translation?.trim().toUpperCase();
-  if (
-    normalized &&
-    SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
-      normalized as SupportedTranslation,
-    )
-  ) {
-    return normalized as SupportedTranslation;
-  }
-  return 'KJV';
 }
 
 /** Load normalized local verse map from bundled translation JSON. */
@@ -229,7 +211,7 @@ export async function readEmotionScripturesBySlug(
   translation?: string,
 ): Promise<{ emotion: EmotionRecord; scriptures: ResolvedScriptureRecord[] }> {
   const db = requireDb();
-  const selectedTranslation = normalizeTranslation(translation);
+  const selectedTranslation = normalizeScriptureTranslationCode(translation);
   const [emotion] = await db
     .select()
     .from(emotions)
@@ -297,7 +279,7 @@ export async function readRandomEmotionScriptureBySlug(
     throw new ClientError(404, 'no scriptures found for emotion');
   }
 
-  const selectedTranslation = normalizeTranslation(translation);
+  const selectedTranslation = normalizeScriptureTranslationCode(translation);
   const resolved = await resolveScriptureVerseText({
     translation: selectedTranslation,
     reference: scripture.reference,

@@ -45,6 +45,9 @@ This document describes the implemented search/save expansion for fast scripture
 - `PATCH /api/saved-scriptures/:savedId/note`
 - `DELETE /api/saved-scriptures/:savedId`
 - `GET /api/reader/chapter`
+- `GET /api/reader/state`
+- `PATCH /api/reader/state`
+- `DELETE /api/reader/state`
 - `GET /api/admin/scripture-sources`
   - Operational diagnostics for scripture source readiness (DB counts + local JSON file status); requires admin bearer token.
 
@@ -66,6 +69,7 @@ See:
 - `database/schema.sql`
 - `database/migrations/0005_brisk_search_and_saved_scriptures.sql`
 - `database/migrations/0011_solid_reader_multisave_notes.sql`
+- `database/migrations/0012_reader_state_account_sync.sql`
 
 ## Hybrid Source Strategy
 
@@ -120,6 +124,12 @@ Expected input shape:
   - chapter-level `displayText`
   - `hasPrevious` / `hasNext` and chapter navigation references.
 - Reader UI supports previous/next chapter actions and keeps URL state synchronized.
+- Reader supports three reading styles:
+  - `verse`: reference + verse text
+  - `standard`: superscript verse number formatting
+  - `clean`: paragraph-style reading without verse indicators
+- Reader supports click-to-save bookmark and `Jump to last place` resume behavior.
+- Authenticated sessions can sync reader preferences/bookmark to account state (`account_wins`); guests remain local-storage based.
 
 ## Rollout Observability
 

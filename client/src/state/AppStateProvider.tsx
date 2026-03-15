@@ -18,6 +18,7 @@ export function AppStateProvider({ children }: Props) {
     if (typeof window === 'undefined') return initialState;
     const persistedTextScale = window.localStorage.getItem('text-scale');
     const persistedHighContrast = window.localStorage.getItem('high-contrast');
+    const persistedDarkMode = window.localStorage.getItem('dark-mode');
     return {
       ...initialState,
       textScale:
@@ -31,6 +32,7 @@ export function AppStateProvider({ children }: Props) {
             ? 'xl'
             : initialState.textScale,
       highContrast: persistedHighContrast === 'true',
+      darkMode: persistedDarkMode === 'true',
     };
   }, []);
   const [state, dispatch] = useReducer(appStateReducer, hydratedInitialState);
@@ -38,7 +40,8 @@ export function AppStateProvider({ children }: Props) {
   useEffect(() => {
     window.localStorage.setItem('text-scale', state.textScale);
     window.localStorage.setItem('high-contrast', String(state.highContrast));
-  }, [state.textScale, state.highContrast]);
+    window.localStorage.setItem('dark-mode', String(state.darkMode));
+  }, [state.textScale, state.highContrast, state.darkMode]);
 
   return (
     <AppStateContext.Provider value={state}>
