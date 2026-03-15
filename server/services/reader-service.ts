@@ -1,37 +1,12 @@
 import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
-import { BIBLE_BOOKS } from '@shared/bible-books.js';
-import type {
-  ReaderChapterResponse,
-  ScriptureTranslationCode,
-} from '@shared/scripture-search-contracts.js';
-import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts.js';
+import type { ReaderChapterResponse } from '@shared/scripture-search-contracts.js';
 import { scriptureVerses } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
+import {
+  canonicalizeBibleBookName,
+  normalizeScriptureTranslationCode,
+} from '@server/lib/scripture-normalization.js';
 import { requireDb } from './require-db.js';
-
-const canonicalBookMap = new Map(
-  BIBLE_BOOKS.map((book) => [book.toLowerCase(), book]),
-);
-canonicalBookMap.set('psalm', 'Psalms');
-canonicalBookMap.set('song of songs', 'Song of Solomon');
-
-/** Normalize an incoming translation string to supported canonical code. */
-function normalizeTranslation(value: string): ScriptureTranslationCode {
-  const normalized = value.trim().toUpperCase();
-  if (
-    SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
-      normalized as ScriptureTranslationCode,
-    )
-  ) {
-    return normalized as ScriptureTranslationCode;
-  }
-  return 'KJV';
-}
-
-/** Canonicalize user-provided book names to known Bible book names. */
-function canonicalizeBookName(value: string): string | null {
-  return canonicalBookMap.get(value.trim().toLowerCase()) ?? null;
-}
 
 /** Read one canonical chapter for reader route with navigation metadata. */
 export async function readReaderChapter(input: {
@@ -40,8 +15,8 @@ export async function readReaderChapter(input: {
   translation: string;
 }): Promise<ReaderChapterResponse> {
   const db = requireDb();
-  const translation = normalizeTranslation(input.translation);
-  const canonicalBook = canonicalizeBookName(input.book);
+  const translation = normalizeScriptureTranslationCode(input.translation);
+  const canonicalBook = canonicalizeBibleBookName(input.book);
   if (!canonicalBook) {
     throw new ClientError(400, 'book must be a valid Bible book');
   }

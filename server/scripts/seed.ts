@@ -222,12 +222,6 @@ function buildSeededContext(reference: string): {
   };
 }
 
-const STARTER_TODO_TASKS = [
-  'Review template docs',
-  'Create your first feature',
-  'Ship your MVP',
-] as const;
-
 /**
  * Seed starter data transactionally.
  * Uses an advisory transaction lock and upsert semantics so reruns can heal
@@ -242,16 +236,6 @@ async function seedDatabase(): Promise<void> {
   await db.transaction(async (tx) => {
     // Prevent concurrent seed jobs from racing each other.
     await tx.execute(sql`select pg_advisory_xact_lock(839421)`);
-
-    for (const task of STARTER_TODO_TASKS) {
-      await tx.execute(sql`
-        insert into "todos" ("task")
-        select ${task}
-        where not exists (
-          select 1 from "todos" where "task" = ${task}
-        )
-      `);
-    }
 
     const seededSlugs = emotionSeedData.map((emotion) => emotion.slug);
     for (const emotion of emotionSeedData) {

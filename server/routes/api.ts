@@ -27,6 +27,11 @@ import { readHello } from '@server/controllers/system/hello-controller.js';
 import { getScriptureSourcesDiagnostics } from '@server/controllers/scripture/scripture-diagnostics-controller.js';
 import { getReaderChapter } from '@server/controllers/scripture/reader-controller.js';
 import {
+  deleteReaderState,
+  getReaderState,
+  patchReaderState,
+} from '@server/controllers/scripture/reader-state-controller.js';
+import {
   deleteSavedScripture,
   getSavedScriptureGroups,
   getSavedScriptures,
@@ -37,12 +42,6 @@ import {
 } from '@server/controllers/scripture/saved-scripture-controller.js';
 import { getScriptureSearch } from '@server/controllers/scripture/scripture-search-controller.js';
 import { getScriptureContext } from '@server/controllers/scripture/scripture-context-controller.js';
-import {
-  deleteTodo,
-  getTodos,
-  patchTodo,
-  postTodo,
-} from '@server/controllers/todos/todo-controller.js';
 
 const apiRouter = Router();
 
@@ -73,6 +72,9 @@ apiRouter.get('/emotions/:slug/scriptures/random', getRandomEmotionScripture);
 apiRouter.get('/scripture-context', getScriptureContext);
 apiRouter.get('/scriptures/search', getScriptureSearch);
 apiRouter.get('/reader/chapter', getReaderChapter);
+apiRouter.get('/reader/state', getReaderState);
+apiRouter.patch('/reader/state', patchReaderState);
+apiRouter.delete('/reader/state', deleteReaderState);
 apiRouter.get('/saved-scriptures', getSavedScriptures);
 apiRouter.get('/saved-scriptures/grouped', getSavedScriptureGroups);
 apiRouter.post('/saved-scriptures', postSavedScripture);
@@ -80,9 +82,5 @@ apiRouter.post('/saved-scriptures/batch', postSavedScriptureBatch);
 apiRouter.patch('/saved-scriptures/:savedId', patchSavedScripture);
 apiRouter.patch('/saved-scriptures/:savedId/note', patchSavedScriptureNote);
 apiRouter.delete('/saved-scriptures/:savedId', deleteSavedScripture);
-apiRouter.get('/todos', getTodos);
-apiRouter.post('/todos', postTodo);
-apiRouter.patch('/todos/:todoId', patchTodo);
-apiRouter.delete('/todos/:todoId', deleteTodo);
 
 export default apiRouter;

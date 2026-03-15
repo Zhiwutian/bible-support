@@ -1,9 +1,3 @@
-insert into "todos" ("task", "isCompleted")
-values
-  ('Review template docs', false),
-  ('Create your first feature', false),
-  ('Ship your MVP', false);
-
 insert into "emotions" ("slug", "name", "description")
 values
   ('fear', 'Fear', 'When feeling afraid, these verses remind believers of God''s protection and presence.'),

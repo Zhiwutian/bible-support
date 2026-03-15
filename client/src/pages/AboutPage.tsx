@@ -22,6 +22,15 @@ export function AboutPage() {
           You can continue as a guest for local use, or sign in to access
           account-linked profile settings and synced saved scripture ownership.
         </p>
+        <p className="text-base leading-relaxed text-slate-700">
+          Need a walkthrough? Open the{' '}
+          <Link
+            to="/tutorial"
+            className="font-semibold text-indigo-700 hover:text-indigo-600">
+            Tutorial
+          </Link>{' '}
+          route for route-by-route usage guidance.
+        </p>
       </div>
 
       <section className="mt-6">

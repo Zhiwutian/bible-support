@@ -1,8 +1,8 @@
 import {
-  boolean,
   check,
   index,
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
@@ -11,19 +11,6 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-
-// Starter table to demonstrate Drizzle schema + migrations.
-export const todos = pgTable('todos', {
-  todoId: serial('todoId').primaryKey(),
-  task: text('task').notNull(),
-  isCompleted: boolean('isCompleted').notNull().default(false),
-  createdAt: timestamp('createdAt', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updatedAt', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
 
 export const emotions = pgTable(
   'emotions',
@@ -321,9 +308,68 @@ export const savedScriptureItems = pgTable(
       'saved_scripture_items_owner_or_device_check',
       sql`${table.ownerUserId} is not null or ${table.deviceId} is not null`,
     ),
+    savedScriptureItemsSourceModeCheck: check(
+      'saved_scripture_items_source_mode_check',
+      sql`${table.sourceMode} in ('local', 'remote')`,
+    ),
     savedScriptureItemsNoteLengthCheck: check(
       'saved_scripture_items_note_length_check',
       sql`${table.note} is null or char_length(${table.note}) <= 4000`,
+    ),
+  }),
+);
+
+export const readerState = pgTable(
+  'reader_state',
+  {
+    userId: uuid('userId')
+      .primaryKey()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    preferences: jsonb('preferences'),
+    bookmarkBook: text('bookmarkBook'),
+    bookmarkChapter: integer('bookmarkChapter'),
+    bookmarkVerse: integer('bookmarkVerse'),
+    bookmarkTranslation: text('bookmarkTranslation'),
+    bookmarkScrollOffset: integer('bookmarkScrollOffset'),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    readerStateBookmarkChapterPositiveCheck: check(
+      'reader_state_bookmark_chapter_positive_check',
+      sql`${table.bookmarkChapter} is null or ${table.bookmarkChapter} > 0`,
+    ),
+    readerStateBookmarkVersePositiveCheck: check(
+      'reader_state_bookmark_verse_positive_check',
+      sql`${table.bookmarkVerse} is null or ${table.bookmarkVerse} > 0`,
+    ),
+    readerStateBookmarkScrollOffsetCheck: check(
+      'reader_state_bookmark_scroll_offset_check',
+      sql`${table.bookmarkScrollOffset} is null or ${table.bookmarkScrollOffset} >= 0`,
+    ),
+    readerStateBookmarkTupleCheck: check(
+      'reader_state_bookmark_tuple_check',
+      sql`(
+        ${table.bookmarkBook} is null and
+        ${table.bookmarkChapter} is null and
+        ${table.bookmarkVerse} is null and
+        ${table.bookmarkTranslation} is null and
+        ${table.bookmarkScrollOffset} is null
+      ) or (
+        ${table.bookmarkBook} is not null and
+        ${table.bookmarkChapter} is not null and
+        ${table.bookmarkVerse} is not null and
+        ${table.bookmarkTranslation} is not null and
+        ${table.bookmarkScrollOffset} is not null
+      )`,
+    ),
+    readerStateBookmarkTranslationCheck: check(
+      'reader_state_bookmark_translation_check',
+      sql`${table.bookmarkTranslation} is null or ${table.bookmarkTranslation} in ('KJV', 'ASV', 'WEB')`,
     ),
   }),
 );

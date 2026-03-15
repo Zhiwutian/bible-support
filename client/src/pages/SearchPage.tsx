@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
 import type {
   SavedScriptureItem,
@@ -15,6 +16,8 @@ import {
   EmptyState,
   Input,
   SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import {
   readSavedScriptures,
@@ -26,6 +29,7 @@ import {
 
 /** Render a three-mode scripture search experience with save actions. */
 export function SearchPage() {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const [mode, setMode] = useState<ScriptureSearchMode>('guided');
   const [translation, setTranslation] =
@@ -42,6 +46,10 @@ export function SearchPage() {
   const [savedItems, setSavedItems] = useState<SavedScriptureItem[]>([]);
   const [selectedVerseKeys, setSelectedVerseKeys] = useState<string[]>([]);
   const [isBatchSaving, setIsBatchSaving] = useState(false);
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
 
   const savedKeySet = useMemo(
     () =>
@@ -163,6 +171,16 @@ export function SearchPage() {
     }
   }
 
+  function handleOpenVerseInReader(verse: ScriptureVerseResult) {
+    const readerParams = new URLSearchParams({
+      book: verse.book,
+      chapter: String(verse.chapter),
+      translation: verse.translation,
+      verse: String(verse.verse),
+    });
+    navigate(`/reader?${readerParams.toString()}`);
+  }
+
   return (
     <>
       <SectionHeader
@@ -172,7 +190,19 @@ export function SearchPage() {
 
       <Card className="mb-4 space-y-4 border p-4">
         <label className="flex min-w-[220px] max-w-sm flex-col gap-1 text-sm font-semibold">
-          Search Type
+          <span className="flex items-center gap-2">
+            Search Type
+            <SettingHelpButton
+              settingLabel="Search Type"
+              onClick={() =>
+                setSettingsHelp({
+                  title: 'Search Type',
+                  description:
+                    'Guided picker uses book/chapter fields. Reference input accepts formats like John 3:16. Keyword search finds verses by words or phrases.',
+                })
+              }
+            />
+          </span>
           <select
             className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2"
             value={mode}
@@ -188,7 +218,19 @@ export function SearchPage() {
         <form className="space-y-3" onSubmit={handleSearch}>
           <div className="flex flex-wrap gap-3">
             <label className="flex min-w-[140px] flex-1 flex-col gap-1 text-sm font-semibold">
-              Translation
+              <span className="flex items-center gap-2">
+                Translation
+                <SettingHelpButton
+                  settingLabel="Search translation"
+                  onClick={() =>
+                    setSettingsHelp({
+                      title: 'Translation',
+                      description:
+                        'Chooses which Bible translation is used for search results and saves.',
+                    })
+                  }
+                />
+              </span>
               <select
                 className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2"
                 value={translation}
@@ -206,7 +248,19 @@ export function SearchPage() {
             {mode === 'guided' && (
               <>
                 <label className="flex min-w-[200px] flex-[2] flex-col gap-1 text-sm font-semibold">
-                  Book
+                  <span className="flex items-center gap-2">
+                    Book
+                    <SettingHelpButton
+                      settingLabel="Search book"
+                      onClick={() =>
+                        setSettingsHelp({
+                          title: 'Book',
+                          description:
+                            'Sets which Bible book to search when using Guided picker mode.',
+                        })
+                      }
+                    />
+                  </span>
                   <select
                     className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2"
                     value={book}
@@ -219,7 +273,19 @@ export function SearchPage() {
                   </select>
                 </label>
                 <label className="flex min-w-[120px] flex-1 flex-col gap-1 text-sm font-semibold">
-                  Chapter
+                  <span className="flex items-center gap-2">
+                    Chapter
+                    <SettingHelpButton
+                      settingLabel="Search chapter"
+                      onClick={() =>
+                        setSettingsHelp({
+                          title: 'Chapter',
+                          description:
+                            'Sets chapter number for Guided picker searches.',
+                        })
+                      }
+                    />
+                  </span>
                   <Input
                     className="min-h-11"
                     type="number"
@@ -229,7 +295,19 @@ export function SearchPage() {
                   />
                 </label>
                 <label className="flex min-w-[120px] flex-1 flex-col gap-1 text-sm font-semibold">
-                  Verse start
+                  <span className="flex items-center gap-2">
+                    Verse start
+                    <SettingHelpButton
+                      settingLabel="Verse start"
+                      onClick={() =>
+                        setSettingsHelp({
+                          title: 'Verse start',
+                          description:
+                            'Optional start verse for a smaller verse range in Guided picker mode.',
+                        })
+                      }
+                    />
+                  </span>
                   <Input
                     className="min-h-11"
                     type="number"
@@ -244,7 +322,19 @@ export function SearchPage() {
                   />
                 </label>
                 <label className="flex min-w-[120px] flex-1 flex-col gap-1 text-sm font-semibold">
-                  Verse end
+                  <span className="flex items-center gap-2">
+                    Verse end
+                    <SettingHelpButton
+                      settingLabel="Verse end"
+                      onClick={() =>
+                        setSettingsHelp({
+                          title: 'Verse end',
+                          description:
+                            'Optional end verse for a verse range. Leave blank to search one verse or full chapter context as entered.',
+                        })
+                      }
+                    />
+                  </span>
                   <Input
                     className="min-h-11"
                     type="number"
@@ -263,9 +353,28 @@ export function SearchPage() {
 
             {mode !== 'guided' && (
               <label className="flex min-w-[280px] flex-[3] flex-col gap-1 text-sm font-semibold">
-                {mode === 'reference'
-                  ? 'Reference (example: John 3:16-18)'
-                  : 'Keyword (example: peace, comfort, anxiety)'}
+                <span className="flex items-center gap-2">
+                  {mode === 'reference'
+                    ? 'Reference (example: John 3:16-18)'
+                    : 'Keyword (example: peace, comfort, anxiety)'}
+                  <SettingHelpButton
+                    settingLabel={
+                      mode === 'reference' ? 'Reference input' : 'Keyword input'
+                    }
+                    onClick={() =>
+                      setSettingsHelp({
+                        title:
+                          mode === 'reference'
+                            ? 'Reference input'
+                            : 'Keyword input',
+                        description:
+                          mode === 'reference'
+                            ? 'Enter a scripture reference like John 3:16 or a range like John 3:16-18.'
+                            : 'Enter topic words like peace, comfort, fear, or anxiety to find related verses.',
+                      })
+                    }
+                  />
+                </span>
                 <Input
                   className="min-h-11"
                   value={queryText}
@@ -335,6 +444,16 @@ export function SearchPage() {
                     disabled={savedKeySet.has(getVerseKey(verse))}
                   />
                   Select for grouped save
+                  <SettingHelpButton
+                    settingLabel="Grouped save selection"
+                    onClick={() =>
+                      setSettingsHelp({
+                        title: 'Grouped save',
+                        description:
+                          'Select multiple verses, then use Save selected to store them together as one grouped save action.',
+                      })
+                    }
+                  />
                 </label>
                 <Button
                   variant="ghost"
@@ -345,11 +464,22 @@ export function SearchPage() {
                     ? 'Saved'
                     : 'Save to collection'}
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="min-h-11"
+                  onClick={() => handleOpenVerseInReader(verse)}>
+                  Open in Reader
+                </Button>
               </div>
             </Card>
           ))}
         </div>
       )}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="search-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </>
   );
 }

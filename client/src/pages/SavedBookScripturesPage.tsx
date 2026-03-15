@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   SUPPORTED_SCRIPTURE_TRANSLATIONS,
   type ScriptureTranslationCode,
@@ -16,6 +16,8 @@ import {
   EmptyState,
   ModalShell,
   SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import {
   deleteSavedScripture,
@@ -27,6 +29,7 @@ import {
 /** Render saved verses for one selected Bible book. */
 export function SavedBookScripturesPage() {
   const { showToast } = useToast();
+  const navigate = useNavigate();
   const { book: bookParam } = useParams();
   const decodedBook = useMemo(() => {
     if (!bookParam) return '';
@@ -54,6 +57,10 @@ export function SavedBookScripturesPage() {
   const [noteDraftBySavedId, setNoteDraftBySavedId] = useState<
     Record<number, string>
   >({});
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
 
   const refreshSavedGroups = useCallback(async () => {
     const response = await readSavedScriptureGroups();
@@ -213,6 +220,16 @@ export function SavedBookScripturesPage() {
     }
   }
 
+  function handleOpenItemInReader(item: SavedScriptureItem) {
+    const readerParams = new URLSearchParams({
+      book: item.book,
+      chapter: String(item.chapter),
+      translation: item.translation,
+      verse: String(item.verseStart),
+    });
+    navigate(`/reader?${readerParams.toString()}`);
+  }
+
   return (
     <>
       <SectionHeader
@@ -270,6 +287,16 @@ export function SavedBookScripturesPage() {
                     </p>
                     <div className="flex items-center gap-2 text-sm text-slate-700">
                       <span>Translation</span>
+                      <SettingHelpButton
+                        settingLabel="Saved verse translation"
+                        onClick={() =>
+                          setSettingsHelp({
+                            title: 'Saved verse translation',
+                            description:
+                              'Lets you change the translation for this saved verse while keeping the same reference coordinates.',
+                          })
+                        }
+                      />
                       <button
                         type="button"
                         className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
@@ -279,7 +306,19 @@ export function SavedBookScripturesPage() {
                       </button>
                     </div>
                     <label className="flex flex-col gap-1 text-sm text-slate-700">
-                      Note
+                      <span className="flex items-center gap-2">
+                        Note
+                        <SettingHelpButton
+                          settingLabel="Saved verse note"
+                          onClick={() =>
+                            setSettingsHelp({
+                              title: 'Saved verse note',
+                              description:
+                                'Stores one personal plain-text note for this saved verse entry.',
+                            })
+                          }
+                        />
+                      </span>
                       <textarea
                         className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
                         value={noteDraftBySavedId[item.savedId] ?? ''}
@@ -297,6 +336,12 @@ export function SavedBookScripturesPage() {
                       {new Date(item.createdAt).toLocaleString()}
                     </p>
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        className="min-h-11"
+                        onClick={() => handleOpenItemInReader(item)}>
+                        Open in reader
+                      </Button>
                       <Button
                         variant="ghost"
                         className="min-h-11"
@@ -360,25 +405,30 @@ export function SavedBookScripturesPage() {
             ))}
           </div>
           <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
-              className="min-h-11 rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            <Button
+              variant="ghost"
+              className="min-h-11"
               onClick={() => setTranslationModalItem(null)}
               disabled={updatingTranslationId === translationModalItem.savedId}>
               Cancel
-            </button>
-            <button
-              type="button"
-              className="min-h-11 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
+            </Button>
+            <Button
+              variant="primary"
+              className="min-h-11 disabled:opacity-60"
               onClick={applyTranslationChange}
               disabled={updatingTranslationId === translationModalItem.savedId}>
               {updatingTranslationId === translationModalItem.savedId
                 ? 'Updating...'
                 : 'Apply'}
-            </button>
+            </Button>
           </div>
         </ModalShell>
       )}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="saved-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </>
   );
 }

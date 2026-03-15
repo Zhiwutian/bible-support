@@ -13,10 +13,10 @@ At runtime, the browser loads static assets from the server and calls API routes
 
 - **Browser Client**
   - Executes React UI.
-  - Uses React Router for route-level pages (`/`, `/emotions/:slug`, `/emotions/:slug/context`, `/about`).
+  - Uses React Router for route-level pages (`/`, `/search`, `/saved`, `/saved/:book`, `/reader`, `/emotions/:slug`, `/emotions/:slug/context`, `/tutorial`, `/about`, `/profile`, `/admin`).
   - Uses `react-hook-form` + `zod` for client-side form handling/validation.
   - Uses Context + reducer (`AppStateProvider`) for lean global UI state.
-  - Calls backend endpoints for emotion and scripture data.
+  - Calls backend endpoints for emotion, scripture search/reader/saved workflows, and authenticated profile/admin actions.
 - **Express Server**
   - Serves API routes.
   - Organizes handlers by `routes/`, `controllers/`, and `services/`.
@@ -46,7 +46,12 @@ Example server paths in this template:
 - `GET /api/emotions` -> `routes/api.ts` -> `controllers/emotions/emotion-controller.ts` -> `services/emotion-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
 - `GET /api/emotions/:slug/scriptures` -> `routes/api.ts` -> `controllers/emotions/emotion-controller.ts` -> `services/emotion-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
 - `GET /api/scripture-context?scriptureId=...` -> `routes/api.ts` -> `controllers/scripture/scripture-context-controller.ts` -> `services/scripture-context-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
-- `GET /api/todos` -> `routes/api.ts` -> `controllers/todos/todo-controller.ts` -> `services/todo-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET /api/scriptures/search` -> `routes/api.ts` -> `controllers/scripture/scripture-search-controller.ts` -> `services/scripture-search-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET /api/reader/chapter` -> `routes/api.ts` -> `controllers/scripture/reader-controller.ts` -> `services/reader-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET/PATCH/DELETE /api/reader/state` -> `routes/api.ts` -> `controllers/scripture/reader-state-controller.ts` -> `services/reader-state-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET/POST/PATCH/DELETE /api/saved-scriptures*` -> `routes/api.ts` -> `controllers/scripture/saved-scripture-controller.ts` -> `services/saved-scripture-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET/PATCH /api/auth/*` -> `routes/api.ts` -> `controllers/auth/auth-controller.ts` -> `services/auth-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
+- `GET/PATCH /api/admin/*` -> `routes/api.ts` -> `controllers/admin/admin-controller.ts` -> `services/admin-service.ts` -> `db/drizzle.ts` -> `db/schema.ts`
 
 ## Error Handling
 
@@ -67,7 +72,7 @@ Example server paths in this template:
 - **Local component state (`useState`)**
   - For short-lived view state owned by one component.
 - **Context + reducer (global UI state)**
-  - For app-level UI state shared by multiple components (for example, todo list filters).
+  - For app-level UI state shared by multiple components (for example, display settings and accessibility controls).
 - **Server state**
   - Data loaded from `/api/*` remains request-driven through feature API modules and hooks (for example, `emotion-api.ts` + `useEmotionScriptures`).
 

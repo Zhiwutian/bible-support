@@ -626,3 +626,31 @@ To-do's from the plan have already been created. Do not create them again. Mark 
 146.  **User prompt (full):** "let's do it"
       **Included files in prompt:** None
       **Assistant response summary:** Began Phase 6 documentation finalization by creating a dedicated rollout proposal for reader/grouped-save/notes and updating README, feature docs, styleguide patterns, changelog, and this running log to reflect implemented behavior and operational guidance.
+
+147.  **User prompt (full):** "make sure you add this to a proposal first. Then begin implementation."
+      **Included files in prompt:** None
+      **Assistant response summary:** Added a dedicated proposal (`docs/proposals/reader-styles-bookmarks-account-sync.md`) and implemented reader-style/bookmark/account-sync foundation: shared reader-state contracts, local preference schema migration (`readingStyle`), local bookmark persistence helpers, authenticated reader-state API (`GET/PATCH/DELETE /api/reader/state`), new `reader_state` DB migration, Reader UI support for `verse`/`standard`/`clean` styles, click-to-bookmark + jump/resume behavior, account-wins sync path with debounce/no-op suppression, clear-synced-state control, new backend route tests, and updated docs/changelog/styleguides.
+
+148.  **User prompt (full):** "ok, last thing I want to add is a `Tutorial` route which included information on each of the other routes and how to use them... once that is complete I want to do an indepth review..."  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Implemented `Tutorial` route/page, wired app navigation + route registration, added route test coverage, then initiated an immediate-fix full-stack review workflow.
+
+149.  **User prompt (full):** "1. Yes 2. moderate refactors and clean as indicated 3. both 4. yes 5. immediate fixes with updates"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Executed high-risk review fixes first: reader-state hydration loop hardening, safer button-casing strategy, SQL/Drizzle schema parity update for `reader_state`, saved-scripture controller deduplication, and styleguide synchronization.
+
+150.  **User prompt (full):** "yes, let's clear it out, we can do the same to the database"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Removed legacy Todos end-to-end (frontend feature files, backend routes/controllers/services/tests, app-state `todoFilter`, SQL/data references) and added migration `0013_remove_legacy_todos.sql` with journal update.
+
+151.  **User prompt (full):** "yes please do"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Completed next refactor package by extracting shared `SettingHelpModal`, replacing duplicated settings-help modal blocks across pages, and converting repeated raw modal/menu buttons to shared `Button` primitive usage.
+
+152.  **User prompt (full):** "yes please do"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Implemented backend/database cleanup package: centralized reader-preference schema+normalization in `server/lib/reader-state-preferences.ts`, reused in controller/service, added DB constraints for `saved_scripture_items.sourceMode` and `reader_state.bookmarkTranslation` (plus migration `0014_reader_saved_constraints.sql`), and updated changelog/styleguides.
+
+153.  **User prompt (full):** "yes please"  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Executed the next approved review package: centralized canonical scripture normalization in `server/lib/scripture-normalization.ts`, updated reader/emotion/search services to reuse shared helpers, synchronized architecture/project-structure/backend-pattern docs with current routes/endpoints, and completed lint validation plus dead-path sweep with no additional cleanup required.

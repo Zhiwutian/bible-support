@@ -47,6 +47,30 @@ Implementation:
 
 Do not add ad-hoc per-page scale logic; use global text-scale classes.
 
+## Reader Comfort Settings
+
+Reader-specific controls should be grouped into:
+
+- `Theme`
+- `Typography`
+- `Layout`
+- `Accessibility`
+
+Reader controls are expected to:
+
+- keep scripture navigation params (`book`, `chapter`, `translation`) separate from comfort preferences,
+- persist comfort preferences locally with a versioned payload,
+- include a one-click reset to Reader defaults,
+- use route-scoped CSS tokens/variables for theme and typography changes.
+- include an optional non-intrusive break reminder pattern that can be dismissed or turned off.
+
+Default Reader baseline should prioritize long-form comfort:
+
+- sepia theme,
+- medium font size,
+- relaxed line height,
+- balanced content width.
+
 ## Color and Contrast
 
 - Default page shell uses sky/slate palette.

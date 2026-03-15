@@ -8,6 +8,30 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added centralized scripture normalization helper module:
+  - `server/lib/scripture-normalization.ts`
+  - shared canonical Bible-book aliasing and translation-code normalization used by scripture search, reader, and emotion services.
+- Added centralized reader-preferences validation/normalization module:
+  - `server/lib/reader-state-preferences.ts`
+  - reused by reader-state controller and service to reduce contract drift risk.
+- Added DB hardening migration:
+  - `database/migrations/0014_reader_saved_constraints.sql`
+  - introduces `NOT VALID` checks for `saved_scripture_items.sourceMode` and `reader_state.bookmarkTranslation`.
+- Added reader styles + bookmarking + account-sync proposal:
+  - `docs/proposals/reader-styles-bookmarks-account-sync.md`
+- Added authenticated reader-state API surface:
+  - `GET /api/reader/state`
+  - `PATCH /api/reader/state`
+  - `DELETE /api/reader/state`
+- Added `reader_state` schema/migration foundation for account-synced reader preferences + single bookmark resume point:
+  - `database/migrations/0012_reader_state_account_sync.sql`
+- Added reader-state server route coverage:
+  - `server/routes/reader-state-api.test.ts`
+- Added reader UX behaviors:
+  - `Reading style` selector (`verse`, `standard`, `clean`)
+  - click-to-save bookmark with `Jump to last place`
+  - account-aware reader state sync (`account_wins`) with local fallback
+  - clear synced reader data control in Reader Options
 - Added scripture reader + grouped-save rollout proposal:
   - `docs/proposals/scripture-reader-multisave-notes-rollout.md`
 - Added backend reader and saved-scripture observability events:
@@ -139,6 +163,13 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Changed database schema parity for domain checks:
+  - `saved_scripture_items.sourceMode` constrained to `local|remote`
+  - `reader_state.bookmarkTranslation` constrained to `KJV|ASV|WEB|null`
+- Changed scripture services to reuse shared canonical normalization helpers instead of maintaining duplicated local maps/parsers.
+- Changed architecture/project-structure docs to reflect current route surface (`/search`, `/saved`, `/reader`, `/tutorial`, `/profile`, `/admin`) and active API endpoint groupings.
+- Changed backend styleguide to document centralized reader-state preference schema usage.
+- Changed database styleguide to include `NOT VALID` retrofit-constraint rollout guidance.
 - Updated README API reference and MVP section for reader/grouped-save/note capabilities.
 - Updated `docs/verse-search-save.md` to document grouped saves (`saveGroupId`), note constraints, reader route behavior, and observability guidance.
 - Updated styleguide patterns (`frontend`, `backend`, `database`) with URL-state, observability, grouped-index, and note-constraint guidance for future extensions.

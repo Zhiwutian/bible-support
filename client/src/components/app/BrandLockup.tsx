@@ -2,6 +2,7 @@ type BrandLockupContext = 'menu' | 'header' | 'modal';
 
 type BrandLockupProps = {
   context: BrandLockupContext;
+  compact?: boolean;
 };
 
 const brandLockupByContext: Record<
@@ -33,16 +34,26 @@ const brandLockupByContext: Record<
 };
 
 /** Render the app brand lockup for shell and auth surfaces. */
-export function BrandLockup({ context }: BrandLockupProps) {
+export function BrandLockup({ context, compact = false }: BrandLockupProps) {
   const config = brandLockupByContext[context];
+  const containerClassName =
+    context === 'header' && compact
+      ? 'inline-flex items-center gap-3 pr-1'
+      : config.containerClassName;
+  const logoClassName =
+    context === 'header' && compact
+      ? 'h-12 w-12 shrink-0 rounded-sm'
+      : config.logoClassName;
   return (
-    <div className={config.containerClassName}>
+    <div className={containerClassName}>
       <img
         src="/logo-glow-bible.svg"
         alt="Scripture and Solace logo"
-        className={config.logoClassName}
+        className={logoClassName}
       />
-      <span className={config.titleClassName}>Scripture &amp; Solace</span>
+      {!compact ? (
+        <span className={config.titleClassName}>Scripture &amp; Solace</span>
+      ) : null}
     </div>
   );
 }
