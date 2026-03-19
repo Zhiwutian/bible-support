@@ -64,6 +64,12 @@ Reader controls are expected to:
 - use route-scoped CSS tokens/variables for theme and typography changes.
 - include an optional non-intrusive break reminder pattern that can be dismissed or turned off.
 
+Reader implementation should keep these boundaries explicit:
+
+- Reader presentation components belong in `client/src/features/reader/*` and remain stateless whenever practical.
+- Reader route/page files should orchestrate data loading and mutations, not hold large repeated UI blocks.
+- Reader interaction surfaces should prefer semantic classes (`reader-verse-inline-hit`, `reader-verse-paragraph`) over global utility-hook coupling.
+
 Default Reader baseline should prioritize long-form comfort:
 
 - sepia theme,

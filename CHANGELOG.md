@@ -8,6 +8,37 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added reader chapter-control extraction for incremental decomposition:
+  - `client/src/features/reader/ReaderChapterControls.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` without behavior changes.
+- Added reader options modal extraction for incremental decomposition:
+  - `client/src/features/reader/ReaderOptionsModal.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` without behavior changes.
+- Added reader chapter content extraction for incremental decomposition:
+  - `client/src/features/reader/ReaderChapterContent.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` while preserving existing reader interactions.
+- Added reader verse actions modal extraction for incremental decomposition:
+  - `client/src/features/reader/ReaderVerseActionsModal.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` while preserving existing actions behavior.
+- Added reader note modal extraction for incremental decomposition:
+  - `client/src/features/reader/ReaderNoteModal.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` while preserving note-edit flow behavior.
+- Added reader chapter route-state hook for incremental logic decomposition:
+  - `client/src/features/reader/useReaderChapterRouteState.ts`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` for chapter input/URL sync state management.
+- Added reader account-sync hook for incremental logic decomposition:
+  - `client/src/features/reader/useReaderAccountSync.ts`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` for local persistence + authenticated reader-state sync.
+- Added reader verse-actions hook for incremental logic decomposition:
+  - `client/src/features/reader/useReaderVerseActions.ts`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` for save/note/share action orchestration and modal state management.
+- Added reader status/break reminder presentation extractions:
+  - `client/src/features/reader/ReaderStatusBar.tsx`
+  - `client/src/features/reader/ReaderBreakReminder.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` without behavior changes.
+- Added reader chapter navigation extraction:
+  - `client/src/features/reader/ReaderChapterNavigation.tsx`
+  - integrated into `client/src/pages/BibleReaderPage.tsx` without behavior changes.
 - Added centralized scripture normalization helper module:
   - `server/lib/scripture-normalization.ts`
   - shared canonical Bible-book aliasing and translation-code normalization used by scripture search, reader, and emotion services.
@@ -163,6 +194,11 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Consolidated duplicate mobile `select` media-query rules in `client/src/index.css` to reduce cascade drift risk and keep a single canonical touch-target policy.
+- Updated reader verse hover styling to rely on reader-scoped semantic interaction classes instead of `hover:bg-slate-*` utility coupling inside chapter text.
+- Updated styleguide docs to codify Reader decomposition boundaries and extraction sequence in:
+  - `docs/styleguide/frontend-patterns.md`
+  - `docs/styleguide/ui-styleguide.md`
 - Changed database schema parity for domain checks:
   - `saved_scripture_items.sourceMode` constrained to `local|remote`
   - `reader_state.bookmarkTranslation` constrained to `KJV|ASV|WEB|null`
