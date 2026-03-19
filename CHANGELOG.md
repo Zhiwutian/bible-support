@@ -6,6 +6,11 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ## [Unreleased]
 
+### Changed
+
+- Cursor rules: added examples to `honest-feedback-on-ideas`; clarified scope, cross-links, and doc pointers across pre-commit, release, secrets, auth, API, DB, and frontend rules; added rule-relationship map to `docs/rules-registry.md`.
+- Cursor rules: aligned with current stack (reader/CSS guardrails, `features/` layout, `asyncHandler`/validation, MSW handlers, auth-audit contracts, NOT VALID/VALIDATE, VITE rollout, audit workflow).
+
 ### Added
 
 - Added `docs/styleguide/backend-observability-security.md` (logging, rate limits, health/ready, security checklist, seeds/audit notes).

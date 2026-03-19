@@ -6,11 +6,13 @@ alwaysApply: false
 
 # Frontend Style Enforcement
 
-Apply this rule before generating or editing frontend UI code.
+Apply **before generating or substantially editing** frontend UI code.
+
+**Pair with:** **`frontend-accessibility-guard`** for a11y/token checks on the same change.
 
 ## Pre-Generation Steps
 
-1. Read `docs/styleguide/ui-styleguide.md`.
+1. Read `docs/styleguide/ui-styleguide.md` and skim `docs/styleguide/frontend-patterns.md` for structure/API patterns.
 2. Reuse existing UI primitives before creating new component styles.
 3. Keep accessibility behavior consistent (text scale, high contrast, mobile modal/menu interactions).
 
@@ -19,4 +21,6 @@ Apply this rule before generating or editing frontend UI code.
 - Prefer Tailwind utilities in component files.
 - Use global CSS only for shared tokens/primitives in `client/src/index.css`.
 - Keep interactions readable and predictable; avoid hidden/complex controls.
+- Prefer **decomposition** (hooks + presentation components) for large pages—see **Reader feature** patterns in `docs/styleguide/frontend-patterns.md`.
+- Add or extend **Vitest + RTL** coverage for non-trivial flows; split broad `App.test.tsx` scenarios into feature/route suites when touching those areas.
 - For UI behavior changes, update relevant docs in `docs/styleguide/` in the same PR.

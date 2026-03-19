@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Release Readiness Checks
 
-Apply this rule when preparing deployment-related changes or validating release readiness.
+Apply when validating **deploy / release readiness** or **production cutover** (broader than day-to-day commits).
+
+**Overlap:** Same core commands as **`pre-commit-quality-gate`**; this rule adds deploy/auth/DB bootstrap sanity. Use pre-commit for every PR; use this before tagging, going live, or large infra/auth changes.
 
 ## Planning Mode
 
@@ -32,3 +34,15 @@ Apply this rule when preparing deployment-related changes or validating release 
 
 - Use `db:migrate` + `db:seed` for hosted bootstrap.
 - Do not use destructive local-import commands on hosted databases.
+
+## Optional smoke
+
+- After deploy, `DEPLOY_URL=... pnpm run smoke:deploy` when URLs/env are available (see `docs/development-workflow.md`).
+
+## Feature flags / staged rollout
+
+- If release touches **reader comfort**, **API base URL**, or other **VITE_*** toggles, cross-check `docs/development-workflow.md` (e.g. Reader Comfort Rollout) and `docs/configuration.md` so production env matches intent.
+
+## Supply chain (advisory)
+
+- Scheduled **`pnpm audit --audit-level high`** runs in `.github/workflows/audit-scheduled.yml`; review failures on a cadence, not only at release.

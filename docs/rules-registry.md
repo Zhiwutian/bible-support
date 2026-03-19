@@ -8,6 +8,19 @@ This document tracks active Cursor rule files under `.cursor/rules/`.
 - Make rule updates auditable in PRs.
 - Avoid duplicated or conflicting rule behavior.
 
+## How rules fit together (quick map)
+
+| Situation               | Primary rules                                                           |
+| ----------------------- | ----------------------------------------------------------------------- |
+| Idea / “should we…”     | `honest-feedback-on-ideas`                                              |
+| Before commit           | `pre-commit-quality-gate` + `secret-commit-approval-gate`               |
+| Before release / deploy | `release-readiness-checks`                                              |
+| Auth, env, logging      | `auth-secrets-safety` (+ observability doc in styleguide)               |
+| API / shared types      | `api-contract-discipline` + often `backend-api-boundaries`              |
+| Schema / migrations     | `db-migration-safety`                                                   |
+| UI / a11y               | `style-enforcement-frontend` + `frontend-accessibility-guard`           |
+| API mocks / MSW         | `api-contract-discipline` (includes `client/src/test/handlers.ts` glob) |
+
 ## Active Rules
 
 | Rule File                                        | Intent                                                                      | Activation      | Primary Use Stage                         |

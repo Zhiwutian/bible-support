@@ -1,21 +1,26 @@
 ---
 description: API contract + test + docs discipline
-globs: "{server/**/*.ts,shared/**/*contracts*.ts,docs/**/*.md,README.md}"
+globs: "{server/**/*.ts,shared/**/*contracts*.ts,client/src/test/handlers.ts,docs/**/*.md,README.md}"
 alwaysApply: false
 ---
 
 # API Contract Discipline
 
-Apply this rule when changing request/response behavior, route semantics, or shared contracts.
+Apply when changing **request/response behavior, status codes, route semantics, or types in `shared/*contracts*.ts`** (including fields clients rely on).
+
+**Also coordinate with DB/Zod parity** when checks or validation change—see `docs/styleguide/database-constraints.md`.
+
+**Related:** **`backend-api-boundaries`** (layering); client call sites under `client/` should stay type-aligned with `shared/`.
 
 ## Required Pairing
 
 When API behavior changes, update together:
 
 - route/controller/service implementation
-- shared contract types under `shared/`
-- backend route tests
-- relevant docs (`README.md`, `docs/*`)
+- shared contract types under `shared/` (including non-`*contracts*` names when they define API payloads, e.g. `auth-audit-contracts.ts`)
+- backend route tests (`server/routes/*.test.ts`)
+- **MSW** defaults in `client/src/test/handlers.ts` when integration tests mock those paths
+- relevant docs (`README.md`, `docs/*`, `docs/styleguide/database-constraints.md` if DB checks/Zod align)
 
 ## Behavior Consistency
 
