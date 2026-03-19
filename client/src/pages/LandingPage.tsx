@@ -11,8 +11,8 @@ export function LandingPage({ onLoginWithGoogle, onContinueAsGuest }: Props) {
         Welcome to Scripture &amp; Solace
       </h1>
       <p className="mt-3 text-base text-slate-700">
-        Read scripture, save passages, and find emotional support. Sign in to
-        sync your account, or continue as a guest for local use.
+        Find scripture support, save meaningful passages, and continue at your
+        own pace. Sign in to sync across devices, or continue as guest.
       </p>
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button

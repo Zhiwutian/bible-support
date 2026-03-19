@@ -6,6 +6,8 @@ This document describes the implemented search/save expansion for fast scripture
 
 - Guided picker
   - Inputs: `book`, `chapter`, optional `verseStart`, optional `verseEnd`
+  - Chapter input accepts temporary empty state (no search until chapter is re-entered).
+  - Chapter values are constrained to the selected book's maximum chapter count.
   - Best for clarity and low cognitive load.
 - Reference input
   - Inputs: free text like `John 3`, `John 3:16`, `John 3:16-18`
@@ -38,6 +40,7 @@ This document describes the implemented search/save expansion for fast scripture
     - `book`, `chapter`, `verseStart`, `verseEnd` (for guided)
     - `limit`
 - `GET /api/saved-scriptures`
+- `GET /api/saved-scriptures/chapter`
 - `GET /api/saved-scriptures/grouped`
 - `POST /api/saved-scriptures`
 - `POST /api/saved-scriptures/batch`
@@ -112,6 +115,7 @@ Expected input shape:
 - Global high-contrast toggle with persisted preference.
 - Large controls (`min-h-11`) on search/save actions.
 - Simplified labels and predictable placement for key actions.
+- Helper copy uses a warm + practical tone with recovery-first error messaging.
 - Text-size options now include: `Small`, `Medium`, `Large`, and `XL`.
 - Mobile uses a shared display-settings modal with live preview and `Cancel` rollback for both text size and high contrast.
 
@@ -124,12 +128,33 @@ Expected input shape:
   - chapter-level `displayText`
   - `hasPrevious` / `hasNext` and chapter navigation references.
 - Reader UI supports previous/next chapter actions and keeps URL state synchronized.
+- When the user is on the first chapter of a book, `Previous chapter` can roll into the last chapter of the previous canonical book (when available for the selected translation).
+- When the user is on the last chapter of a book, `Next chapter` can roll into chapter 1 of the next canonical book (when available for the selected translation).
 - Reader supports three reading styles:
   - `verse`: reference + verse text
   - `standard`: superscript verse number formatting
   - `clean`: paragraph-style reading without verse indicators
 - Reader supports click-to-save bookmark and `Jump to last place` resume behavior.
+- Reader supports verse-level actions (`Bookmark`, `Save verse`, `View/Edit note`) from a verse-click actions modal (mobile bottom-sheet style).
+- Reader verse actions include `Share verse` using native share first with clipboard fallback.
+- In `standard` mode, verse text stays paragraph-style while each verse segment remains individually selectable for actions.
+- In `clean` mode, the same paragraph-style per-verse segment selection is available without extra selector rows.
+- `View/Edit note` in Reader can initialize note editing for unsaved verses by auto-saving that verse first.
+- Reader can fetch chapter-scoped saved rows for note/save state, avoiding full saved-list hydration for each chapter view.
+- Saved note indicators render per covered verse and open a note-edit modal directly from the chapter view.
 - Authenticated sessions can sync reader preferences/bookmark to account state (`account_wins`); guests remain local-storage based.
+
+## Shared Verse Links
+
+- Shared verse links use a public route:
+  - `/verse?book=<Book>&chapter=<N>&verse=<N>&translation=<Code>`
+- Recipients can open this route as guests or signed-in users.
+- Verse detail route behavior:
+  - canonicalizes and validates query params
+  - fetches verse content through existing scripture search (`mode=reference`)
+  - offers navigation actions: `Open in Reader`, `Open Search`, `Go to Support`
+  - supports `Share verse` (native share when available, clipboard fallback otherwise)
+  - supports `Copy link`
 
 ## Rollout Observability
 

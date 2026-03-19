@@ -56,6 +56,9 @@ const SearchPage = lazy(async () => ({
 const BibleReaderPage = lazy(async () => ({
   default: (await import('@/pages/BibleReaderPage')).BibleReaderPage,
 }));
+const VerseDetailPage = lazy(async () => ({
+  default: (await import('@/pages/VerseDetailPage')).VerseDetailPage,
+}));
 const SavedScripturesPage = lazy(async () => ({
   default: (await import('@/pages/SavedScripturesPage')).SavedScripturesPage,
 }));
@@ -139,8 +142,12 @@ export default function App() {
     (authSession ? 'Signed in user' : 'Guest');
   const accountInitial = accountDisplayName.charAt(0).toUpperCase();
   const currentRouteIntent = `${location.pathname}${location.search}${location.hash}`;
+  const isPublicShareRoute = location.pathname === '/verse';
   const shouldShowLanding =
-    !isAuthLoading && !authSession && !hasEnteredGuestMode;
+    !isAuthLoading &&
+    !authSession &&
+    !hasEnteredGuestMode &&
+    !isPublicShareRoute;
 
   const openDisplaySettingsModal = useCallback(() => {
     setInitialTextScale(state.textScale);
@@ -240,21 +247,23 @@ export default function App() {
             }
             showToast({
               title: 'Signed in',
-              description: 'Your account session is active.',
+              description: 'You are signed in and ready to continue.',
               variant: 'success',
             });
             return;
           }
           showToast({
             title: 'Sign-in incomplete',
-            description: 'Could not confirm session state. Please try again.',
+            description:
+              'We could not confirm your session yet. Please try again.',
             variant: 'error',
           });
         })
         .catch(() => {
           showToast({
             title: 'Sign-in incomplete',
-            description: 'Could not confirm session state. Please try again.',
+            description:
+              'We could not confirm your session yet. Please try again.',
             variant: 'error',
           });
         });
@@ -269,7 +278,7 @@ export default function App() {
             ? 'Sign-in session expired. Please try again.'
             : reason === 'auth_not_enabled'
               ? 'Authentication is not enabled for this environment.'
-              : 'Could not complete sign-in. Please try again.');
+              : 'We could not complete sign-in. Please try again.');
       showToast({
         title: 'Sign-in failed',
         description,
@@ -346,7 +355,8 @@ export default function App() {
     } catch (err) {
       showToast({
         title: 'Could not sign out',
-        description: err instanceof Error ? err.message : 'Please try again.',
+        description:
+          err instanceof Error ? err.message : 'Please try signing out again.',
         variant: 'error',
       });
     }
@@ -821,22 +831,26 @@ export default function App() {
               }>
               <Routes>
                 {shouldShowLanding ? (
-                  <Route
-                    path="*"
-                    element={
-                      <LandingPage
-                        onLoginWithGoogle={() =>
-                          startSocialLogin('google', currentRouteIntent)
-                        }
-                        onContinueAsGuest={continueAsGuest}
-                      />
-                    }
-                  />
+                  <>
+                    <Route path="/verse" element={<VerseDetailPage />} />
+                    <Route
+                      path="*"
+                      element={
+                        <LandingPage
+                          onLoginWithGoogle={() =>
+                            startSocialLogin('google', currentRouteIntent)
+                          }
+                          onContinueAsGuest={continueAsGuest}
+                        />
+                      }
+                    />
+                  </>
                 ) : (
                   <>
                     <Route path="/" element={<EmotionsPage />} />
                     <Route path="/search" element={<SearchPage />} />
                     <Route path="/reader" element={<BibleReaderPage />} />
+                    <Route path="/verse" element={<VerseDetailPage />} />
                     <Route path="/saved" element={<SavedScripturesPage />} />
                     <Route
                       path="/saved/:book"

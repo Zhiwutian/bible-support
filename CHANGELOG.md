@@ -169,6 +169,23 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Changed Reader mobile UX polish:
   - Reader Options modal now supports internal scrolling with sticky top/bottom action regions on small screens.
   - Reader route cards now render full-width (edge-to-edge) on mobile while preserving inset card styling on `sm+`.
+- Changed reader chapter navigation to support cross-book forward flow:
+  - when a selected book reaches its last chapter, `Next chapter` now advances to chapter 1 of the next canonical book (if available for the active translation).
+- Changed reader chapter navigation to support cross-book backward flow:
+  - when a selected book is at chapter 1, `Previous chapter` now moves to the last chapter of the previous canonical book (if available for the active translation).
+- Added Reader save-and-note workflow enhancements:
+  - new `GET /api/saved-scriptures/chapter` endpoint for chapter-scoped saved rows.
+  - Reader verse click now opens an actions modal with `Bookmark here`, `Save verse`, and `View/Edit note` (mobile bottom-sheet treatment).
+  - Reader verse actions now include `Share verse`, which uses native share first with clipboard fallback.
+  - Added public shared-verse route (`/verse`) with canonical query-param links and actions to open Reader/Search/Support.
+  - Added share telemetry coverage for click/success/fallback/failure outcomes.
+  - `standard` and `clean` reader modes now preserve paragraph flow while keeping per-verse segment selection for save/note actions.
+  - Reader note editing now supports unsaved verses by auto-saving the selected verse before opening/saving note content.
+  - Reader note indicator now appears per covered verse and opens a note modal for editing.
+  - Reader chapter-saved lookups use abortable fetches to prevent stale navigation flashes during rapid chapter/book changes.
+- Updated frontend helper/microcopy voice to a consistent hybrid tone (kind + practical) across current routes, including help modals, inline guidance, empty states, and status messages.
+- Expanded Tutorial route into a robust onboarding guide with route workflows, shared-verse guidance, troubleshooting, and recommended next steps.
+- Added lightweight shared copy-token module (`client/src/lib/copy.ts`) for recurring UI phrases to reduce wording drift.
 - Changed scripture services to reuse shared canonical normalization helpers instead of maintaining duplicated local maps/parsers.
 - Changed architecture/project-structure docs to reflect current route surface (`/search`, `/saved`, `/reader`, `/tutorial`, `/profile`, `/admin`) and active API endpoint groupings.
 - Changed backend styleguide to document centralized reader-state preference schema usage.

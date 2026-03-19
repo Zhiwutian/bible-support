@@ -14,6 +14,7 @@ This document tracks active Cursor rule files under `.cursor/rules/`.
 | ------------------------------------------------ | --------------------------------------------------------------------------- | --------------- | ---------------------------------------- |
 | `.cursor/rules/pre-commit-quality-gate.mdc`      | Core pre-commit checks for quality/docs/DB/deploy readiness                 | Always-on       | Pre-commit and PR readiness              |
 | `.cursor/rules/release-readiness-checks.mdc`     | Ensure final verification and deploy-safe checks                            | Always-on       | Pre-deploy/release validation            |
+| `.cursor/rules/secret-commit-approval-gate.mdc`  | Block secret-like file commits without explicit user approval               | Always-on       | Staging and commit preparation           |
 | `.cursor/rules/auth-secrets-safety.mdc`          | Prevent secret leaks and unsafe auth logging/config patterns                | Scoped by globs | Auth/env/logging changes                 |
 | `.cursor/rules/api-contract-discipline.mdc`      | Keep API behavior, contracts, tests, and docs synchronized                  | Scoped by globs | API/contract changes                     |
 | `.cursor/rules/db-migration-safety.mdc`          | Enforce schema-to-migration parity and safe DB evolution                    | Scoped by globs | DB/schema changes                        |

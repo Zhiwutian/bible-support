@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
+import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
 import type {
   SavedScriptureItem,
   ScriptureSearchMode,
@@ -19,6 +20,7 @@ import {
   SettingHelpButton,
   SettingHelpModal,
 } from '@/components/ui';
+import { appCopy } from '@/lib/copy';
 import {
   readSavedScriptures,
   saveScriptureBatch,
@@ -35,7 +37,7 @@ export function SearchPage() {
   const [translation, setTranslation] =
     useState<ScriptureTranslationCode>('KJV');
   const [book, setBook] = useState<string>(BIBLE_BOOKS[42]);
-  const [chapter, setChapter] = useState(3);
+  const [chapter, setChapter] = useState<number | ''>(3);
   const [verseStart, setVerseStart] = useState<number | ''>('');
   const [verseEnd, setVerseEnd] = useState<number | ''>('');
   const [queryText, setQueryText] = useState('');
@@ -61,6 +63,13 @@ export function SearchPage() {
       ),
     [savedItems],
   );
+  const maxChapterForBook = useMemo(() => getMaxChaptersForBook(book), [book]);
+
+  useEffect(() => {
+    if (chapter === '') return;
+    if (chapter <= maxChapterForBook) return;
+    setChapter(maxChapterForBook);
+  }, [book, chapter, maxChapterForBook]);
 
   function getVerseKey(verse: ScriptureVerseResult): string {
     return `${verse.translation}:${verse.book}:${verse.chapter}:${verse.verse}:${verse.verse}`;
@@ -85,6 +94,11 @@ export function SearchPage() {
 
   async function handleSearch(event: FormEvent) {
     event.preventDefault();
+    if (mode === 'guided' && chapter === '') {
+      setResults([]);
+      setSelectedVerseKeys([]);
+      return;
+    }
     setError('');
     setIsLoading(true);
     try {
@@ -93,7 +107,7 @@ export function SearchPage() {
         translation,
         q: queryText,
         book,
-        chapter,
+        chapter: chapter === '' ? undefined : chapter,
         verseStart: verseStart === '' ? undefined : verseStart,
         verseEnd: verseEnd === '' ? undefined : verseEnd,
         limit: 40,
@@ -103,8 +117,9 @@ export function SearchPage() {
       setSelectedVerseKeys([]);
       if (payload.verses.length === 0) {
         showToast({
-          title: 'No verses found',
-          description: 'Try a different search mode or broader query.',
+          title: 'No verses found yet',
+          description:
+            'Try a broader phrase, a different translation, or another search type.',
           variant: 'info',
         });
       }
@@ -112,7 +127,7 @@ export function SearchPage() {
       const message = err instanceof Error ? err.message : 'Search failed';
       setError(message);
       showToast({
-        title: 'Search failed',
+        title: 'Search could not be completed',
         description: message,
         variant: 'error',
       });
@@ -128,14 +143,14 @@ export function SearchPage() {
       );
       setSavedItems((current) => [saved, ...current]);
       showToast({
-        title: 'Saved verse',
-        description: verse.reference,
+        title: 'Verse saved',
+        description: `${verse.reference} is now in your collection.`,
         variant: 'success',
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Save failed';
       showToast({
-        title: 'Could not save verse',
+        title: 'We could not save that verse',
         description: message,
         variant: 'error',
       });
@@ -155,14 +170,14 @@ export function SearchPage() {
       setSavedItems((current) => [...response.items, ...current]);
       setSelectedVerseKeys([]);
       showToast({
-        title: 'Saved selected verses',
-        description: `${response.items.length} verse(s) saved together.`,
+        title: 'Selected verses saved',
+        description: `${response.items.length} verse(s) were saved together.`,
         variant: 'success',
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Batch save failed';
       showToast({
-        title: 'Could not save selected verses',
+        title: 'We could not save selected verses',
         description: message,
         variant: 'error',
       });
@@ -185,7 +200,7 @@ export function SearchPage() {
     <>
       <SectionHeader
         title="Bible Search"
-        description="Compare search styles: guided picker, reference input, and keyword search."
+        description="Find verses with guided, reference, or keyword search, then save or open them in Reader."
       />
 
       <Card className="mb-4 space-y-4 border p-4">
@@ -198,7 +213,7 @@ export function SearchPage() {
                 setSettingsHelp({
                   title: 'Search Type',
                   description:
-                    'Guided picker uses book/chapter fields. Reference input accepts formats like John 3:16. Keyword search finds verses by words or phrases.',
+                    'Guided uses book and chapter fields. Reference accepts entries like John 3:16. Keyword helps you discover verses by topic words.',
                 })
               }
             />
@@ -226,7 +241,7 @@ export function SearchPage() {
                     setSettingsHelp({
                       title: 'Translation',
                       description:
-                        'Chooses which Bible translation is used for search results and saves.',
+                        'Choose which translation to use for results and saved verses.',
                     })
                   }
                 />
@@ -256,7 +271,7 @@ export function SearchPage() {
                         setSettingsHelp({
                           title: 'Book',
                           description:
-                            'Sets which Bible book to search when using Guided picker mode.',
+                            'Choose the Bible book for guided search.',
                         })
                       }
                     />
@@ -281,7 +296,7 @@ export function SearchPage() {
                         setSettingsHelp({
                           title: 'Chapter',
                           description:
-                            'Sets chapter number for Guided picker searches.',
+                            'Enter the chapter number for guided search.',
                         })
                       }
                     />
@@ -290,8 +305,21 @@ export function SearchPage() {
                     className="min-h-11"
                     type="number"
                     min={1}
+                    max={maxChapterForBook}
                     value={chapter}
-                    onChange={(event) => setChapter(Number(event.target.value))}
+                    onChange={(event) =>
+                      setChapter(
+                        event.target.value === ''
+                          ? ''
+                          : Number(event.target.value),
+                      )
+                    }
+                    onBlur={() => {
+                      if (chapter === '') return;
+                      setChapter(
+                        Math.min(Math.max(1, chapter), maxChapterForBook),
+                      );
+                    }}
                   />
                 </label>
                 <label className="flex min-w-[120px] flex-1 flex-col gap-1 text-sm font-semibold">
@@ -303,7 +331,7 @@ export function SearchPage() {
                         setSettingsHelp({
                           title: 'Verse start',
                           description:
-                            'Optional start verse for a smaller verse range in Guided picker mode.',
+                            'Optional: set a starting verse to narrow guided results.',
                         })
                       }
                     />
@@ -330,7 +358,7 @@ export function SearchPage() {
                         setSettingsHelp({
                           title: 'Verse end',
                           description:
-                            'Optional end verse for a verse range. Leave blank to search one verse or full chapter context as entered.',
+                            'Optional: set an ending verse for a range. Leave blank to keep it broad.',
                         })
                       }
                     />
@@ -383,7 +411,10 @@ export function SearchPage() {
               </label>
             )}
           </div>
-          <Button className="min-h-11 px-6" type="submit" disabled={isLoading}>
+          <Button
+            className="min-h-11 px-6"
+            type="submit"
+            disabled={isLoading || (mode === 'guided' && chapter === '')}>
             {isLoading ? 'Searching...' : 'Search verses'}
           </Button>
         </form>
@@ -391,11 +422,11 @@ export function SearchPage() {
 
       {error && (
         <EmptyState
-          title="Search did not complete"
+          title="Search did not finish"
           description={error}
           actions={
             <Button variant="ghost" onClick={() => setError('')}>
-              Dismiss
+              {appCopy.actions.dismiss}
             </Button>
           }
         />
@@ -407,7 +438,7 @@ export function SearchPage() {
             <p className="text-sm text-slate-700">
               {results.length > 0
                 ? `${results.length} result${results.length === 1 ? '' : 's'}`
-                : 'No results yet'}
+                : appCopy.empty.noResultsYet}
             </p>
             <div className="flex items-center gap-2">
               {selectedVerseKeys.length > 0 && (
@@ -422,7 +453,7 @@ export function SearchPage() {
                 </Button>
               )}
               <Badge>
-                {source === 'local' ? 'Local source' : 'API fallback'}
+                {source === 'local' ? 'Local source' : 'Backup source'}
               </Badge>
             </div>
           </div>
@@ -462,7 +493,7 @@ export function SearchPage() {
                   disabled={savedKeySet.has(getVerseKey(verse))}>
                   {savedKeySet.has(getVerseKey(verse))
                     ? 'Saved'
-                    : 'Save to collection'}
+                    : 'Save to Collection'}
                 </Button>
                 <Button
                   variant="ghost"

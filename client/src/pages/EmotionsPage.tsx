@@ -2,6 +2,7 @@ import { CSSProperties, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/components/app/toast-context';
 import { Button, Card, EmptyState, SectionHeader } from '@/components/ui';
+import { appCopy } from '@/lib/copy';
 import { EmotionTile, readEmotions } from '@/features/emotions/emotion-api';
 import {
   emotionColorMap,
@@ -40,7 +41,7 @@ export function EmotionsPage() {
         const message = err instanceof Error ? err.message : 'Unexpected error';
         setError(message);
         showToast({
-          title: 'Could not load emotions',
+          title: 'Support categories are unavailable',
           description: message,
           variant: 'error',
         });
@@ -66,7 +67,7 @@ export function EmotionsPage() {
       const message = err instanceof Error ? err.message : 'Unexpected error';
       setError(message);
       showToast({
-        title: 'Could not load emotions',
+        title: 'Support categories are unavailable',
         description: message,
         variant: 'error',
       });
@@ -93,19 +94,19 @@ export function EmotionsPage() {
     <>
       <SectionHeader
         title="Scriptural Support"
-        description="Choose How You Are Feeling for Scriptural Support."
+        description="Choose how you feel, then follow a calm scripture path with practical next steps."
       />
 
       {isLoading && (
-        <p className="text-sm text-slate-600">Loading emotions...</p>
+        <p className="text-sm text-slate-600">{appCopy.loading.emotions}</p>
       )}
       {!isLoading && error && (
         <EmptyState
-          title="Could not load emotions"
+          title="We could not load support categories"
           description={error}
           actions={
             <Button variant="ghost" onClick={handleRetry}>
-              Retry
+              {appCopy.actions.retry}
             </Button>
           }
         />

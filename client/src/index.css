@@ -53,6 +53,35 @@ body {
   min-width: 320px;
 }
 
+/*
+ * Mobile native select menus use the rendered control geometry as their anchor.
+ * Keep selects at a touch-friendly size so picker popups are not tiny/misaligned.
+ */
+@media (width <= 768px) {
+  select {
+    font-size: 16px !important;
+    min-height: 44px;
+    line-height: 1.25;
+  }
+}
+
+@media (width <= 768px) {
+  select {
+    font-size: 16px !important;
+    min-height: 44px;
+    line-height: 1.25;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    appearance: menulist;
+    appearance: auto;
+  }
+
+  option,
+  optgroup {
+    font-size: 16px !important;
+  }
+}
+
 button,
 a,
 [role='button'],

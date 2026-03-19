@@ -83,7 +83,7 @@ const scripturesById = Object.values(scripturesByEmotionSlug)
     acc[scripture.scriptureId] = scripture;
     return acc;
   }, {});
-const savedItems: SavedScriptureItem[] = [
+const initialSavedItems: SavedScriptureItem[] = [
   {
     savedId: 101,
     deviceId: 'device-12345678',
@@ -101,10 +101,20 @@ const savedItems: SavedScriptureItem[] = [
     createdAt: new Date().toISOString(),
   },
 ];
+const savedItems: SavedScriptureItem[] = initialSavedItems.map((item) => ({
+  ...item,
+}));
 
 /** Reset in-memory API state between tests to avoid cross-test coupling. */
 export function resetApiMockState() {
-  // No-op for now: handlers return deterministic seeded payloads.
+  savedItems.splice(
+    0,
+    savedItems.length,
+    ...initialSavedItems.map((item) => ({
+      ...item,
+      createdAt: new Date(item.createdAt).toISOString(),
+    })),
+  );
 }
 
 export const handlers = [
@@ -249,8 +259,19 @@ export const handlers = [
             reference: `${book} ${chapter}:16`,
             verseText: 'For God so loved the world...',
           },
+          {
+            translation,
+            book,
+            chapter,
+            verse: 17,
+            reference: `${book} ${chapter}:17`,
+            verseText:
+              'For God sent not his Son into the world to condemn the world...',
+          },
         ],
-        displayText: `${book} ${chapter}:16 For God so loved the world...`,
+        displayText:
+          `${book} ${chapter}:16 For God so loved the world...\n` +
+          `${book} ${chapter}:17 For God sent not his Son into the world to condemn the world...`,
         hasPrevious: chapter > 1,
         hasNext: true,
         previousChapter: chapter > 1 ? { book, chapter: chapter - 1 } : null,
@@ -281,6 +302,71 @@ export const handlers = [
         ],
       },
     });
+  }),
+  http.get('/api/saved-scriptures/chapter', ({ request }) => {
+    const url = new URL(request.url);
+    const translation = (
+      url.searchParams.get('translation') || ''
+    ).toUpperCase();
+    const book = url.searchParams.get('book') || '';
+    const chapter = Number(url.searchParams.get('chapter') || '');
+    const items = savedItems.filter(
+      (item) =>
+        item.translation.toUpperCase() === translation &&
+        item.book === book &&
+        item.chapter === chapter,
+    );
+    return HttpResponse.json({ data: { items } });
+  }),
+  http.post('/api/saved-scriptures', async ({ request }) => {
+    const body = (await request.json()) as {
+      translation: string;
+      book: string;
+      chapter: number;
+      verseStart: number;
+      verseEnd: number;
+      reference: string;
+      sourceMode: string;
+      queryText?: string;
+    };
+    const exists = savedItems.some(
+      (item) =>
+        item.translation === body.translation &&
+        item.book === body.book &&
+        item.chapter === body.chapter &&
+        item.verseStart === body.verseStart &&
+        item.verseEnd === body.verseEnd,
+    );
+    if (exists) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'client_error',
+            message: 'this verse range is already saved',
+          },
+        },
+        { status: 409 },
+      );
+    }
+    const row: SavedScriptureItem = {
+      savedId:
+        savedItems.reduce((max, item) => Math.max(max, item.savedId), 100) + 1,
+      deviceId: 'device-12345678',
+      label: null,
+      saveGroupId: null,
+      note: null,
+      translation: body.translation,
+      book: body.book,
+      chapter: body.chapter,
+      verseStart: body.verseStart,
+      verseEnd: body.verseEnd,
+      reference: body.reference,
+      sourceMode: body.sourceMode,
+      queryText: body.queryText ?? null,
+      createdAt: new Date().toISOString(),
+    };
+    savedItems.unshift(row);
+    return HttpResponse.json({ data: row }, { status: 201 });
   }),
   http.patch(
     '/api/saved-scriptures/:savedId/note',

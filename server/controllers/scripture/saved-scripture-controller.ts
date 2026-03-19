@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts.js';
 import type {
   CreateSavedScriptureBatchRequest,
+  SavedScriptureChapterQuery,
   CreateSavedScriptureRequest,
   UpdateSavedScriptureNoteRequest,
   UpdateSavedScriptureTranslationRequest,
@@ -15,6 +16,7 @@ import {
   createSavedScriptureBatch,
   createSavedScripture,
   migrateDeviceSavedScripturesToUser,
+  readSavedScripturesForChapter,
   readSavedScriptureGroups,
   readSavedScriptures,
   removeSavedScripture,
@@ -50,6 +52,11 @@ const savedScriptureBodySchema = z
   });
 const savedScriptureBatchBodySchema = z.object({
   items: z.array(savedScriptureBodySchema).min(1).max(100),
+});
+const savedScriptureChapterQuerySchema = z.object({
+  translation: z.enum(SUPPORTED_SCRIPTURE_TRANSLATIONS),
+  book: z.string().trim().min(1).max(64),
+  chapter: z.coerce.number().int().positive(),
 });
 
 const savedIdParamsSchema = z.object({
@@ -108,6 +115,24 @@ export async function getSavedScriptures(
     const scope = await resolveScopeWithMigration(req);
     const payload = await readSavedScriptures(scope);
     sendSuccess(res, payload);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** Handle `GET /api/saved-scriptures/chapter`. */
+export async function getSavedScripturesForChapter(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const scope = await resolveScopeWithMigration(req);
+    const query = savedScriptureChapterQuerySchema.parse(
+      req.query,
+    ) as SavedScriptureChapterQuery;
+    const payload = await readSavedScripturesForChapter(scope, query);
+    sendSuccess(res, { items: payload });
   } catch (err) {
     next(err);
   }

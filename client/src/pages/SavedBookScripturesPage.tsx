@@ -19,6 +19,7 @@ import {
   SettingHelpButton,
   SettingHelpModal,
 } from '@/components/ui';
+import { appCopy } from '@/lib/copy';
 import {
   deleteSavedScripture,
   readSavedScriptureGroups,
@@ -94,7 +95,11 @@ export function SavedBookScripturesPage() {
       })
       .catch((err) => {
         if (!isCancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load saves');
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'We could not load saved verses.',
+          );
         }
       })
       .finally(() => {
@@ -139,13 +144,15 @@ export function SavedBookScripturesPage() {
       await refreshSavedGroups();
       setPendingDelete(null);
       showToast({
-        title: 'Removed from collection',
+        title: 'Verse removed',
+        description: 'The verse was removed from your collection.',
         variant: 'success',
       });
     } catch (err) {
       showToast({
-        title: 'Could not remove saved verse',
-        description: err instanceof Error ? err.message : 'Unexpected error',
+        title: 'We could not remove this verse',
+        description:
+          err instanceof Error ? err.message : appCopy.errors.generic,
         variant: 'error',
       });
     } finally {
@@ -166,14 +173,15 @@ export function SavedBookScripturesPage() {
       );
       await refreshSavedGroups();
       showToast({
-        title: 'Updated translation',
-        description: `${updated.reference} now set to ${updated.translation}`,
+        title: 'Translation updated',
+        description: `${updated.reference} is now set to ${updated.translation}.`,
         variant: 'success',
       });
     } catch (err) {
       showToast({
-        title: 'Could not update translation',
-        description: err instanceof Error ? err.message : 'Unexpected error',
+        title: 'We could not update the translation',
+        description:
+          err instanceof Error ? err.message : appCopy.errors.generic,
         variant: 'error',
       });
     } finally {
@@ -207,12 +215,14 @@ export function SavedBookScripturesPage() {
       }));
       showToast({
         title: 'Note saved',
+        description: 'Your note changes are now saved.',
         variant: 'success',
       });
     } catch (err) {
       showToast({
-        title: 'Could not save note',
-        description: err instanceof Error ? err.message : 'Unexpected error',
+        title: 'We could not save your note',
+        description:
+          err instanceof Error ? err.message : appCopy.errors.generic,
         variant: 'error',
       });
     } finally {
@@ -234,7 +244,7 @@ export function SavedBookScripturesPage() {
     <>
       <SectionHeader
         title={decodedBook ? `Saved in ${decodedBook}` : 'Saved verses'}
-        description="Review and manage your saved verses for this book."
+        description="Review and manage saved verses for this book."
       />
 
       <div className="mb-4">
@@ -246,16 +256,16 @@ export function SavedBookScripturesPage() {
       </div>
 
       {isLoading && (
-        <p className="text-sm text-slate-600">Loading saved verses...</p>
+        <p className="text-sm text-slate-600">{appCopy.loading.verses}</p>
       )}
 
       {!isLoading && error && (
         <EmptyState
-          title="Could not load saved verses"
+          title="We could not load saved verses"
           description={error}
           actions={
             <Button variant="ghost" onClick={() => window.location.reload()}>
-              Retry
+              {appCopy.actions.retry}
             </Button>
           }
         />
@@ -264,7 +274,7 @@ export function SavedBookScripturesPage() {
       {!isLoading && !error && bookGroups.length === 0 && (
         <EmptyState
           title="No saved verses in this book"
-          description="Go back to Saved and choose a different book, or add more verses from Search."
+          description="Choose another book in Saved, or add more verses from Search."
         />
       )}
 
@@ -293,7 +303,7 @@ export function SavedBookScripturesPage() {
                           setSettingsHelp({
                             title: 'Saved verse translation',
                             description:
-                              'Lets you change the translation for this saved verse while keeping the same reference coordinates.',
+                              'Change translation while keeping the same book, chapter, and verse reference.',
                           })
                         }
                       />
@@ -314,7 +324,7 @@ export function SavedBookScripturesPage() {
                             setSettingsHelp({
                               title: 'Saved verse note',
                               description:
-                                'Stores one personal plain-text note for this saved verse entry.',
+                                'Add one personal plain-text note for this saved verse.',
                             })
                           }
                         />
