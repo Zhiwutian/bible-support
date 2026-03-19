@@ -3,7 +3,10 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { emotions, scriptures, scriptureVerses } from '@server/db/schema.js';
-import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts.js';
+import {
+  SUPPORTED_SCRIPTURE_TRANSLATIONS,
+  type ScriptureTranslationCode,
+} from '@shared/scripture-search-contracts.js';
 import { ClientError } from '@server/lib/client-error.js';
 import { logger } from '@server/lib/logger.js';
 import {
@@ -24,7 +27,9 @@ type ResolvedScriptureRecord = ScriptureRecord & {
   isTranslationFallback: boolean;
 };
 
-const translationFallbackOrder: SupportedTranslation[] = ['KJV', 'ASV', 'WEB'];
+const translationFallbackOrder: SupportedTranslation[] = [
+  ...SUPPORTED_SCRIPTURE_TRANSLATIONS,
+];
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const localVerseMapCache = new Map<string, Record<string, string>>();
 

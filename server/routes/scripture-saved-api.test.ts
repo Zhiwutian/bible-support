@@ -274,6 +274,24 @@ describe('scripture search + saved routes', () => {
     expect(res.body.data.translation).toBe('ASV');
   });
 
+  it('returns validation_error for invalid sourceMode on POST /api/saved-scriptures', async () => {
+    const res = await request(app)
+      .post('/api/saved-scriptures')
+      .set('x-device-id', 'device-12345678')
+      .send({
+        translation: 'KJV',
+        book: 'John',
+        chapter: 3,
+        verseStart: 16,
+        verseEnd: 16,
+        reference: 'John 3:16',
+        sourceMode: 'bogus',
+      })
+      .expect(400);
+    expect(res.body.error.code).toBe('validation_error');
+    expect(createSavedScriptureMock).not.toHaveBeenCalled();
+  });
+
   it('creates grouped batch for POST /api/saved-scriptures/batch', async () => {
     createSavedScriptureBatchMock.mockResolvedValue({
       saveGroupId: 'f4d6f3d7-8a98-4b5f-84d9-42256e6349d3',

@@ -1,5 +1,8 @@
 import type { ScriptureTranslationCode } from './scripture-search-contracts';
 
+/** Matches DB `saved_scripture_items_source_mode_check` and API Zod. */
+export type SavedScriptureSourceMode = 'local' | 'remote';
+
 export type CreateSavedScriptureRequest = {
   label?: string;
   translation: ScriptureTranslationCode;
@@ -8,7 +11,7 @@ export type CreateSavedScriptureRequest = {
   verseStart: number;
   verseEnd: number;
   reference: string;
-  sourceMode: string;
+  sourceMode: SavedScriptureSourceMode;
   queryText?: string;
 };
 
@@ -37,7 +40,7 @@ export type SavedScriptureItem = {
   verseStart: number;
   verseEnd: number;
   reference: string;
-  sourceMode: string;
+  sourceMode: SavedScriptureSourceMode;
   queryText: string | null;
   createdAt: string;
 };

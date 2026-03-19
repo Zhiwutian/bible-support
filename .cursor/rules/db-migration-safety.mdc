@@ -6,7 +6,11 @@ alwaysApply: false
 
 # Database Migration Safety
 
-Apply this rule when editing schema definitions or data-shape assumptions.
+Apply when editing **Drizzle schema, SQL mirror, migrations, or migration journal**.
+
+**CI:** PRs changing `server/db/schema.ts` or `database/schema.sql` without migration files fail `db-migration-policy` in `.github/workflows/ci.yml`.
+
+**Playbook:** `NOT VALID` / `VALIDATE CONSTRAINT`, journal, and EXPLAIN guidance—`docs/development-workflow.md` (schema change subsection) and `docs/styleguide/database-constraints.md`.
 
 ## Required Updates
 
@@ -24,8 +28,10 @@ Then also update:
 
 - Keep Drizzle schema and SQL schema in parity.
 - Prefer additive, non-destructive migration paths for hosted environments.
+- **`CHECK ... NOT VALID`** migrations need a follow-up **`VALIDATE CONSTRAINT`** once data is clean (see migration `0015_*` pattern and `docs/styleguide/database-constraints.md`).
 - Document operational impact in changelog/docs when schema behavior changes.
 
 ## Verification
 
 - Run migration/type/test checks before commit for schema-related work.
+- For new indexes on hot paths, prefer **`EXPLAIN (ANALYZE, BUFFERS)`** on a realistic dataset when practical (`docs/development-workflow.md`).

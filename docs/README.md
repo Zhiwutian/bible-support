@@ -17,9 +17,15 @@ This folder contains maintainable project documentation for application structur
 - `configuration.md`
   - Split frontend/backend env-file model
   - Local file setup and Render/Vercel env mapping
+- `shared/auth-audit-contracts.ts` (imported by admin contracts and server auth audit writer)
+  - Canonical auth audit event/outcome strings; keep aligned with `auth_audit_events` DB checks
 - `styleguide/`
   - UI styleguide and cross-stack code pattern guides
   - Frontend/backend/database pattern references and extension checklists
+- `styleguide/database-constraints.md`
+  - DB checks and indexes aligned with Zod and shared contracts (Phase 3 reference)
+- `styleguide/backend-observability-security.md`
+  - Logging, rate limits, health/ready, security checklist, `pnpm audit` cadence
 - `rules-registry.md`
   - Index of active Cursor rules under `.cursor/rules/`
   - Purpose, scope, and maintenance process for rule files
@@ -48,6 +54,12 @@ This folder contains maintainable project documentation for application structur
   - Proposal index and structure for future project updates
 - `proposals/oauth-email-login-minimal-pii.md`
   - Concrete OIDC/OAuth implementation path for email login with minimal PII storage
+- `plans/backend-db-review.md`
+  - Backend and database hardening roadmap (validation, services, DB, ops)
+- `plans/backend-db-review-inventory.md`
+  - Living Phase 0 inventory: API map, client usage, initial gap list
+- `plans/reader-comfort-phase-3-4.md`
+  - Reader comfort Phase 3–4 status (a11y, rollout telemetry) vs research proposal
 - `app-startup-walkthrough.md`
   - Step-by-step startup timeline from `pnpm run dev` to first render/API calls
   - Server bootstrap order, route handling path, and error flow

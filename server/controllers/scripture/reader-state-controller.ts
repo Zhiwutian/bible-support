@@ -11,8 +11,8 @@ import {
   readReaderStateByUserId,
 } from '@server/services/reader-state-service.js';
 import {
+  asyncHandler,
   requireSessionUserId,
-  sendError,
   sendSuccess,
 } from '@server/lib/index.js';
 
@@ -35,41 +35,31 @@ const patchReaderStateSchema = z
   );
 
 /** Handle `GET /api/reader/state` for authenticated users. */
-export async function getReaderState(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const userId = requireSessionUserId(req);
-  const payload = await readReaderStateByUserId(userId);
-  sendSuccess(res, payload);
-}
+export const getReaderState = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = requireSessionUserId(req);
+    const payload = await readReaderStateByUserId(userId);
+    sendSuccess(res, payload);
+  },
+);
 
 /** Handle `PATCH /api/reader/state` for authenticated users. */
-export async function patchReaderState(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const userId = requireSessionUserId(req);
-  const parsed = patchReaderStateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    sendError(res, 400, {
-      code: 'validation_error',
-      message: 'invalid reader state payload',
-      details: parsed.error.flatten(),
-    });
-    return;
-  }
-  const input = parsed.data as UpdateReaderStateRequest;
-  const payload = await patchReaderStateByUserId(userId, input);
-  sendSuccess(res, payload);
-}
+export const patchReaderState = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = requireSessionUserId(req);
+    const input = patchReaderStateSchema.parse(
+      req.body,
+    ) as UpdateReaderStateRequest;
+    const payload = await patchReaderStateByUserId(userId, input);
+    sendSuccess(res, payload);
+  },
+);
 
 /** Handle `DELETE /api/reader/state` for authenticated users. */
-export async function deleteReaderState(
-  req: Request,
-  res: Response,
-): Promise<void> {
-  const userId = requireSessionUserId(req);
-  await clearReaderStateByUserId(userId);
-  res.sendStatus(204);
-}
+export const deleteReaderState = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = requireSessionUserId(req);
+    await clearReaderStateByUserId(userId);
+    res.sendStatus(204);
+  },
+);

@@ -7,6 +7,7 @@ import {
   canonicalizeBibleBookName,
   normalizeScriptureTranslationCode,
 } from '@server/lib/scripture-normalization.js';
+import { mapScriptureVerseRow } from '@server/lib/scripture-verse-row.js';
 import { requireDb } from './require-db.js';
 
 /** Read one canonical chapter for reader route with navigation metadata. */
@@ -168,14 +169,7 @@ export async function readReaderChapter(input: {
     translation,
     book: canonicalBook,
     chapter: input.chapter,
-    verses: verses.map((row) => ({
-      translation,
-      book: row.book,
-      chapter: row.chapter,
-      verse: row.verse,
-      reference: row.reference,
-      verseText: row.verseText,
-    })),
+    verses: verses.map((row) => mapScriptureVerseRow(row)),
     displayText: verses
       .map((row) => `${row.reference} ${row.verseText.trim()}`)
       .join('\n'),

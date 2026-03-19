@@ -132,6 +132,12 @@ create index "saved_scripture_items_owner_group_created_idx"
   on "saved_scripture_items" ("ownerUserId", "saveGroupId", "createdAt", "savedId");
 create index "saved_scripture_items_device_group_created_idx"
   on "saved_scripture_items" ("deviceId", "saveGroupId", "createdAt", "savedId");
+create index "saved_scripture_items_owner_chapter_scope_idx"
+  on "saved_scripture_items" using btree ("ownerUserId", "translation", "book", "chapter")
+  where "ownerUserId" is not null;
+create index "saved_scripture_items_device_chapter_scope_idx"
+  on "saved_scripture_items" using btree ("deviceId", "translation", "book", "chapter")
+  where "ownerUserId" is null and "deviceId" is not null;
 create unique index "saved_scripture_items_device_reference_unique"
   on "saved_scripture_items" ("deviceId", "translation", "book", "chapter", "verseStart", "verseEnd")
   where "ownerUserId" is null;

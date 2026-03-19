@@ -6,6 +6,12 @@ import type {
 } from '@shared/scripture-search-contracts.js';
 import { normalizeReaderPreferences } from '@server/lib/reader-state-preferences.js';
 import { readerState } from '@server/db/schema.js';
+import { ClientError } from '@server/lib/client-error.js';
+import {
+  canonicalizeBibleBookName,
+  normalizeReaderBookmarkFields,
+  parsePersistedScriptureTranslation,
+} from '@server/lib/scripture-normalization.js';
 import { requireDb } from './require-db.js';
 
 function normalizeBookmarkFromColumns(row: {
@@ -19,25 +25,24 @@ function normalizeBookmarkFromColumns(row: {
     !row.bookmarkBook ||
     !row.bookmarkChapter ||
     !row.bookmarkVerse ||
-    !row.bookmarkTranslation ||
     row.bookmarkScrollOffset === null
   ) {
     return null;
   }
-  if (
-    row.bookmarkTranslation !== 'KJV' &&
-    row.bookmarkTranslation !== 'ASV' &&
-    row.bookmarkTranslation !== 'WEB'
-  ) {
-    return null;
-  }
-  return {
-    book: row.bookmarkBook,
+  const translation = parsePersistedScriptureTranslation(
+    row.bookmarkTranslation,
+  );
+  if (!translation) return null;
+  const book = canonicalizeBibleBookName(row.bookmarkBook);
+  if (!book) return null;
+  const normalized = normalizeReaderBookmarkFields({
+    book,
     chapter: row.bookmarkChapter,
     verse: row.bookmarkVerse,
-    translation: row.bookmarkTranslation,
+    translation,
     scrollOffset: row.bookmarkScrollOffset,
-  };
+  });
+  return normalized;
 }
 
 export async function readReaderStateByUserId(
@@ -81,8 +86,16 @@ export async function patchReaderStateByUserId(
   const existingBookmark = existing
     ? normalizeBookmarkFromColumns(existing)
     : null;
-  const nextBookmark =
+  let nextBookmark: ReaderBookmark | null =
     input.bookmark !== undefined ? input.bookmark : existingBookmark;
+
+  if (nextBookmark !== null) {
+    const normalized = normalizeReaderBookmarkFields(nextBookmark);
+    if (!normalized) {
+      throw new ClientError(400, 'bookmark book must be a valid Bible book');
+    }
+    nextBookmark = normalized;
+  }
 
   await db
     .insert(readerState)

@@ -6,8 +6,51 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ## [Unreleased]
 
+### Changed
+
+- Cursor rules: added examples to `honest-feedback-on-ideas`; clarified scope, cross-links, and doc pointers across pre-commit, release, secrets, auth, API, DB, and frontend rules; added rule-relationship map to `docs/rules-registry.md`.
+- Cursor rules: aligned with current stack (reader/CSS guardrails, `features/` layout, `asyncHandler`/validation, MSW handlers, auth-audit contracts, NOT VALID/VALIDATE, VITE rollout, audit workflow).
+
 ### Added
 
+- Reader comfort Phase 3–4 tracking and gates: `docs/plans/reader-comfort-phase-3-4.md`, `reader-comfort-telemetry.ts` (+ unit tests) for rollout event payload shape, Reader Options note for global high contrast, and Vitest coverage (high contrast + reader theme classes, reduced motion class, app text scale with reader, telemetry privacy).
+- Added `docs/styleguide/backend-observability-security.md` (logging, rate limits, health/ready, security checklist, seeds/audit notes).
+- Added `.github/workflows/audit-scheduled.yml` (weekly + manual `pnpm audit --audit-level high`, advisory).
+- Added route test for invalid `sourceMode` on POST `/api/saved-scriptures`.
+- Added migrations `0015_validate_reader_saved_check_constraints.sql` and `0016_saved_scripture_chapter_scope_indexes.sql` (journal updated).
+- Added `docs/styleguide/database-constraints.md` (DB ↔ Zod ↔ contract parity; index/query notes for `scripture_verses` and saved items).
+- Added `SavedScriptureSourceMode` in `shared/saved-scripture-contracts.ts` for `sourceMode` fields.
+- Added `shared/auth-audit-contracts.ts` as the single source for auth audit `eventType` / `outcome` literals (aligned with DB checks; re-exported from `admin-contracts`).
+- Added `server/lib/scripture-verse-row.ts` (`mapScriptureVerseRow`) plus `server/lib/scripture-verse-row.test.ts` for shared reader + search verse mapping.
+- Added `parsePersistedScriptureTranslation` and `normalizeReaderBookmarkFields` in `server/lib/scripture-normalization.ts` with unit tests in `server/lib/scripture-normalization.test.ts`.
+- Added `server/lib/async-handler.ts` for consistent `next(err)` on async route failures; optional `onError` for structured logging.
+- Added `server/lib/validation/pagination.ts` (`adminPaginationQuerySchema`, `normalizeAdminPaginationQuery`) for admin list endpoints.
+- Added backend/DB hardening plan and Phase 0 inventory docs:
+  - `docs/plans/backend-db-review.md`
+  - `docs/plans/backend-db-review-inventory.md`
+- Added `server/lib/validation/device-id.ts` (optional `x-device-id` parsing) for reuse across device-scoped APIs.
+- Added optional `PG_POOL_MAX` env (default 10) and explicit pool `idle` / `connection` timeouts in `server/db/pool.ts`.
+
+### Fixed
+
+- Saved scripture batch/note error logging no longer referenced a removed helper (could surface as 500 on some error paths).
+
+### Changed
+
+- `docs/development-workflow.md`: CI parity table vs `ci.yml`, audit workflow pointer, transaction reminder.
+- `docs/styleguide/backend-patterns.md`: rate-limit tunables + link to observability doc.
+- Partial indexes on `saved_scripture_items` for authenticated vs device chapter queries; Drizzle schema and `database/schema.sql` aligned.
+- Saved scripture API: `sourceMode` validated with `z.enum(['local', 'remote'])`; `toSavePayload` and grouped display mapping use shared source-mode types.
+- `docs/development-workflow.md`: schema change / NOT VALID / EXPLAIN playbook; `database-patterns.md` links to `database-constraints.md`.
+- Reader state service: bookmark read/patch uses shared scripture normalization; invalid bookmark book on patch returns 400; DB rows with unknown books or translations surface as no bookmark when read.
+- Saved scripture service: persist and query by canonical Bible book name; translation normalization uses `normalizeScriptureTranslationCode`.
+- Emotion service: translation fallback order derives from `SUPPORTED_SCRIPTURE_TRANSLATIONS`.
+- Auth audit service and admin types consume `shared/auth-audit-contracts.ts`; Drizzle schema documents parity with that module.
+- Scripture search (local DB) and reader chapter responses use `mapScriptureVerseRow` for verse payloads.
+- Refactored admin, saved-scripture, emotion, and reader-state controllers to use `asyncHandler`; admin pagination uses shared validation module.
+- Documented backend operations (health/ready, migrations, pool tuning, transactions, `pnpm audit`) in `docs/development-workflow.md`.
+- Extended `docs/styleguide/backend-patterns.md` with Zod validation conventions, `asyncHandler`, pagination helpers, backend optimization-run triggers, and links to the plan docs.
+- `PATCH /api/reader/state` validation errors now use the same Zod → error-middleware path as other endpoints (`details` as `issues`).
 - Added reader chapter-control extraction for incremental decomposition:
   - `client/src/features/reader/ReaderChapterControls.tsx`
   - integrated into `client/src/pages/BibleReaderPage.tsx` without behavior changes.

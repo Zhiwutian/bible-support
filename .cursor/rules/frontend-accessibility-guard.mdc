@@ -6,7 +6,9 @@ alwaysApply: false
 
 # Frontend Accessibility Guard
 
-Apply this rule when changing UI components, styles, or interaction behavior.
+Apply when changing **UI components, styles, reader themes, or interaction behavior** in the client.
+
+**Docs:** `docs/styleguide/ui-styleguide.md`, `docs/styleguide/frontend-patterns.md`. Reader/dark/sepia global behavior may touch `client/src/index.css`—keep contrast and hover/readability regressions in mind.
 
 ## Required Checks
 
@@ -14,11 +16,13 @@ Apply this rule when changing UI components, styles, or interaction behavior.
 - High-contrast mode remains legible across touched views.
 - Mobile menu/modal behavior keeps overlay + outside-click + Escape handling consistent.
 - Touch target sizing remains usable on mobile.
+- **Reader:** verse blocks and modals stay usable in **sepia + dark** combinations; avoid coupling reader surfaces to generic `hover:bg-slate-*` patterns—prefer **reader-scoped semantic classes** and `index.css` tokens (`docs/styleguide/ui-styleguide.md`).
 
 ## Style Consistency
 
 - Prefer Tailwind utilities for component styling.
 - Use global CSS only for shared primitives/tokens.
+- Domain UI lives under **`client/src/features/*`** (e.g. `features/reader/`) when adding substantial flows; keep pages thin orchestrators per `frontend-patterns.md`.
 - Keep style updates aligned with docs in `docs/styleguide/`.
 
 ## Pre-Commit

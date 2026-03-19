@@ -7,9 +7,14 @@ import type {
   SavedScriptureChapterQuery,
   SavedScriptureDisplayItem,
   SavedScriptureGroupedResponse,
+  SavedScriptureSourceMode,
 } from '@shared/saved-scripture-contracts.js';
 import { savedScriptureItems, scriptureVerses } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
+import {
+  canonicalizeBibleBookName,
+  normalizeScriptureTranslationCode,
+} from '@server/lib/scripture-normalization.js';
 import { requireDb } from './require-db.js';
 
 export type SavedScriptureOwnerScope = {
@@ -58,6 +63,14 @@ function normalizeNoteInput(note: string | null | undefined): string | null {
   return trimmed;
 }
 
+function requireCanonicalBook(book: string): string {
+  const canonical = canonicalizeBibleBookName(book);
+  if (!canonical) {
+    throw new ClientError(400, 'book must be a valid Bible book');
+  }
+  return canonical;
+}
+
 /** List saved scriptures for one scope (authenticated user or device). */
 export async function readSavedScriptures(
   scope: SavedScriptureOwnerScope,
@@ -79,14 +92,16 @@ export async function readSavedScripturesForChapter(
   query: SavedScriptureChapterQuery,
 ): Promise<SavedScriptureItemRecord[]> {
   const db = requireDb();
+  const canonicalBook = requireCanonicalBook(query.book);
+  const translation = normalizeScriptureTranslationCode(query.translation);
   return db
     .select()
     .from(savedScriptureItems)
     .where(
       and(
         ownerScopeWhere(scope),
-        eq(savedScriptureItems.translation, query.translation),
-        eq(savedScriptureItems.book, query.book.trim()),
+        eq(savedScriptureItems.translation, translation),
+        eq(savedScriptureItems.book, canonicalBook),
         eq(savedScriptureItems.chapter, query.chapter),
       ),
     )
@@ -150,6 +165,7 @@ export async function readSavedScriptureGroups(
     const displayItem: SavedScriptureDisplayItem = {
       ...row,
       translation: row.translation as ScriptureTranslationCode,
+      sourceMode: row.sourceMode as SavedScriptureSourceMode,
       createdAt: row.createdAt.toISOString(),
       displayText,
     };
@@ -192,9 +208,10 @@ export async function createSavedScripture(
   dbInput?: DrizzleLike,
 ): Promise<SavedScriptureItemRecord> {
   const db = dbInput ?? requireDb();
-  const normalizedTranslation = input.translation
-    .trim()
-    .toUpperCase() as ScriptureTranslationCode;
+  const canonicalBook = requireCanonicalBook(input.book);
+  const normalizedTranslation = normalizeScriptureTranslationCode(
+    input.translation,
+  );
   const [conflicting] = await db
     .select({ savedId: savedScriptureItems.savedId })
     .from(savedScriptureItems)
@@ -202,7 +219,7 @@ export async function createSavedScripture(
       and(
         ownerScopeWhere(input.scope),
         eq(savedScriptureItems.translation, normalizedTranslation),
-        eq(savedScriptureItems.book, input.book.trim()),
+        eq(savedScriptureItems.book, canonicalBook),
         eq(savedScriptureItems.chapter, input.chapter),
         eq(savedScriptureItems.verseStart, input.verseStart),
         eq(savedScriptureItems.verseEnd, input.verseEnd),
@@ -222,7 +239,7 @@ export async function createSavedScripture(
       ownerUserId: input.scope.ownerUserId ?? null,
       label: input.label?.trim() || null,
       translation: normalizedTranslation,
-      book: input.book.trim(),
+      book: canonicalBook,
       chapter: input.chapter,
       verseStart: input.verseStart,
       verseEnd: input.verseEnd,

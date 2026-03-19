@@ -5,7 +5,11 @@ alwaysApply: true
 
 # Pre-Commit Quality Gate
 
-Apply this rule only when preparing a change for commit/PR readiness.
+Apply when preparing a change for **commit or PR readiness** (or when the user explicitly asks for a quality pass).
+
+**Out of scope:** brainstorming-only messages, pure Q&A, or “explain this file”—unless the user is about to commit those edits.
+
+**Related:** **`AGENTS.md`** (contributor command summary); CI mirrors these commands—see `docs/development-workflow.md` (CI parity table). Does not replace **`secret-commit-approval-gate`** or **`auth-secrets-safety`**.
 
 ## Planning Mode
 
@@ -15,24 +19,28 @@ Apply this rule only when preparing a change for commit/PR readiness.
 
 ## Required Checks
 
-- Run: `pnpm run lint`
+- Run: `pnpm run lint` (includes client ESLint/Stylelint and server ESLint as configured at repo root)
 - Run: `pnpm run tsc`
-- Run: `pnpm run test`
+- Run: `pnpm run test` (or `pnpm run test:changed` for a fast mid-session signal—still run full `test` before merge)
 - Run: `pnpm run build` when frontend/server behavior changed
+- If you change **reader / dark / sepia** behavior in `client/src/index.css`, run **`pnpm --filter client test`** (includes CSS guardrail tests such as `index.css.test.js`).
 
 ## Documentation Gate
 
 When app/config/workflow behavior changes, update:
 
-- `README.md` and/or relevant `docs/*` files
+- `README.md` and/or relevant `docs/*` files (including `docs/styleguide/` when patterns shift)
 - `CHANGELOG.md` under `## [Unreleased]`
+- `docs/plans/*.md` when a committed planning artifact is part of the change
 - `docs/conversation-running-log.md` for major session milestones (when this log process is active)
+
+**Large PRs:** follow post-merge optimization triggers in `docs/styleguide/frontend-patterns.md` and `docs/styleguide/backend-patterns.md` when applicable.
 
 ## Database Gate
 
 If `server/db/schema.ts` or `database/schema.sql` changes:
 
-- Generate/commit migration files in `database/migrations/*`
+- Generate/commit migration files in `database/migrations/*` and update `database/migrations/meta/_journal.json` when required
 - Keep SQL schema and Drizzle schema in parity
 
 ## Deployment/Auth Safety

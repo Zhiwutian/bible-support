@@ -281,6 +281,18 @@ export function ReaderOptionsModal({
           }
         />
       </div>
+      <div
+        className="mt-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700"
+        role="note"
+        aria-label="Global high contrast hint">
+        <p className="font-semibold text-slate-800">Global high contrast</p>
+        <p className="mt-1 leading-snug">
+          For stronger contrast on menus and controls, enable{' '}
+          <span className="font-medium">High contrast</span> under{' '}
+          <span className="font-medium">Menu → Display settings</span>. Reader
+          theme (Light, Sepia, or Dark) still controls chapter reading colors.
+        </p>
+      </div>
       <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
         <label className="flex items-center gap-2">
           <input
