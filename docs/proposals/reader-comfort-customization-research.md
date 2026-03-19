@@ -217,6 +217,8 @@ Must-pass test gate:
 
 ### Phase 3: Accessibility + Eyestrain Enhancements
 
+**Execution status:** `docs/plans/reader-comfort-phase-3-4.md`
+
 Deliverables:
 
 - reduced-motion support in reader interactions,
@@ -230,6 +232,8 @@ Must-pass test gate:
 - cross-browser matrix checks.
 
 ### Phase 4: Staged Rollout + Tuning
+
+**Execution status:** `docs/plans/reader-comfort-phase-3-4.md`
 
 Deliverables:
 

@@ -7,6 +7,7 @@ import App from './App';
 import { AppStateProvider } from '@/state';
 import { MemoryRouter } from 'react-router-dom';
 import { server } from '@/test/server';
+import { isPrivacySafeReaderComfortRolloutPayload } from '@/features/reader/reader-comfort-telemetry';
 
 function renderApp(initialEntries: string[] = ['/']) {
   return render(
@@ -29,6 +30,7 @@ async function continueAsGuest(user: ReturnType<typeof userEvent.setup>) {
 describe('App', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
   });
 
   it('renders emotion tiles on home route', async () => {
@@ -323,6 +325,110 @@ describe('App', () => {
     expect(
       screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
     ).toBeChecked();
+  });
+
+  it('keeps reader theme classes when app high contrast is enabled', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem('high-contrast', 'true');
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
+
+    const shell = document.querySelector('.min-h-screen.app-high-contrast');
+    expect(shell).toBeTruthy();
+
+    const readerRoot = document.querySelector(
+      '.reader-root.reader-theme-sepia',
+    );
+    expect(readerRoot).toBeTruthy();
+  });
+
+  it('applies reader reduced-motion class when preference is enabled', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Reduced motion' }));
+
+    expect(
+      document.querySelector('.reader-root.reader-reduced-motion'),
+    ).toBeTruthy();
+  });
+
+  it('combines app text scale with reader route', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem('text-scale', 'xl');
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
+
+    const shell = document.querySelector('.min-h-screen.app-text-scale-xl');
+    expect(shell).toBeTruthy();
+    expect(document.querySelector('.reader-root')).toBeTruthy();
+  });
+
+  it('emits privacy-safe payloads for reader comfort rollout telemetry', async () => {
+    const user = userEvent.setup();
+    const received: { name: string; payload?: Record<string, unknown> }[] = [];
+    function onTelemetry(event: Event) {
+      const custom = event as CustomEvent<{
+        name: string;
+        payload?: Record<string, unknown>;
+      }>;
+      received.push({
+        name: custom.detail.name,
+        payload: custom.detail.payload,
+      });
+    }
+    window.addEventListener('app:telemetry', onTelemetry);
+
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Theme' }),
+      'dark',
+    );
+    await user.click(
+      screen.getByRole('button', { name: /reset reader settings/i }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+
+    window.removeEventListener('app:telemetry', onTelemetry);
+
+    const comfort = received.filter((e) =>
+      [
+        'reader_preference_changed',
+        'reader_preferences_reset',
+        'reader_break_tip_dismissed',
+      ].includes(e.name),
+    );
+    expect(comfort.length).toBeGreaterThan(0);
+    for (const evt of comfort) {
+      expect(
+        isPrivacySafeReaderComfortRolloutPayload(evt.name, evt.payload),
+      ).toBe(true);
+    }
+  });
+
+  it('shows global high contrast hint in reader options', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    expect(
+      screen.getByRole('note', { name: /global high contrast hint/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Menu → Display settings/i)).toBeInTheDocument();
   });
 
   it('opens reader route from emotion scripture full chapter action', async () => {

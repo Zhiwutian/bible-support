@@ -58,6 +58,8 @@ This folder contains maintainable project documentation for application structur
   - Backend and database hardening roadmap (validation, services, DB, ops)
 - `plans/backend-db-review-inventory.md`
   - Living Phase 0 inventory: API map, client usage, initial gap list
+- `plans/reader-comfort-phase-3-4.md`
+  - Reader comfort Phase 3–4 status (a11y, rollout telemetry) vs research proposal
 - `app-startup-walkthrough.md`
   - Step-by-step startup timeline from `pnpm run dev` to first render/API calls
   - Server bootstrap order, route handling path, and error flow

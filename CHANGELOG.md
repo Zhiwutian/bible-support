@@ -13,6 +13,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Reader comfort Phase 3–4 tracking and gates: `docs/plans/reader-comfort-phase-3-4.md`, `reader-comfort-telemetry.ts` (+ unit tests) for rollout event payload shape, Reader Options note for global high contrast, and Vitest coverage (high contrast + reader theme classes, reduced motion class, app text scale with reader, telemetry privacy).
 - Added `docs/styleguide/backend-observability-security.md` (logging, rate limits, health/ready, security checklist, seeds/audit notes).
 - Added `.github/workflows/audit-scheduled.yml` (weekly + manual `pnpm audit --audit-level high`, advisory).
 - Added route test for invalid `sourceMode` on POST `/api/saved-scriptures`.
