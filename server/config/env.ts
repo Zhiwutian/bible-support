@@ -36,6 +36,8 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(200),
   RATE_LIMIT_WRITE_MAX: z.coerce.number().int().positive().default(60),
   DATABASE_URL: z.string().optional().default(''),
+  /** Max connections in the shared `pg` pool (optional tuning for hosted Postgres limits). */
+  PG_POOL_MAX: z.coerce.number().int().positive().max(100).default(10),
   DB_SSL: parseBooleanEnv(false),
   DB_SSL_REJECT_UNAUTHORIZED: parseBooleanEnv(true),
   TOKEN_SECRET: z.string().min(1, 'TOKEN_SECRET is required'),

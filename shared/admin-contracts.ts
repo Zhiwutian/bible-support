@@ -1,3 +1,13 @@
+import type {
+  AuthAuditEventType,
+  AuthAuditOutcome,
+} from './auth-audit-contracts.js';
+
+export type {
+  AuthAuditEventType,
+  AuthAuditOutcome,
+} from './auth-audit-contracts.js';
+
 export type UserRole = 'user' | 'admin';
 
 export type AdminUserListItem = {
@@ -13,13 +23,8 @@ export type AdminAuthEventListItem = {
   authAuditEventId: number;
   userId: string | null;
   provider: string;
-  eventType:
-    | 'login_start'
-    | 'callback_success'
-    | 'callback_failure'
-    | 'logout'
-    | 'admin_role_change';
-  outcome: 'success' | 'failure';
+  eventType: AuthAuditEventType;
+  outcome: AuthAuditOutcome;
   reason: string | null;
   message: string | null;
   ip: string | null;

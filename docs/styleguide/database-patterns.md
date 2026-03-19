@@ -1,5 +1,7 @@
 # Database Patterns
 
+For a **constraint ↔ Zod ↔ API parity matrix** and index/query notes, see **`database-constraints.md`**.
+
 ## Sources of Truth
 
 - Drizzle schema: `server/db/schema.ts`

@@ -83,6 +83,7 @@ describe('reader state api routes', () => {
       .send({})
       .expect(400);
     expect(res.body.error.code).toBe('validation_error');
+    expect(Array.isArray(res.body.error.details)).toBe(true);
   });
 
   it('patches reader state for authenticated user', async () => {

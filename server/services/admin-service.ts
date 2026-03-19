@@ -7,6 +7,10 @@ import type {
   AdminUserListItem,
   UpdateUserRoleRequest,
 } from '@shared/admin-contracts.js';
+import type {
+  AuthAuditEventType,
+  AuthAuditOutcome,
+} from '@shared/auth-audit-contracts.js';
 import { requireDb } from './require-db.js';
 
 type PaginationInput = {
@@ -101,8 +105,8 @@ export async function listAuthEvents(
       authAuditEventId: row.authAuditEventId,
       userId: row.userId,
       provider: row.provider,
-      eventType: row.eventType as AdminAuthEventListItem['eventType'],
-      outcome: row.outcome as AdminAuthEventListItem['outcome'],
+      eventType: row.eventType as AuthAuditEventType,
+      outcome: row.outcome as AuthAuditOutcome,
       reason: row.reason,
       message: row.message,
       ip: row.ip,

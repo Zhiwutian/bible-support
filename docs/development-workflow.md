@@ -54,6 +54,15 @@ Important:
 - `db:import` is intentionally destructive for local rebuild workflows (drops and recreates schema).
 - Do not run `db:import` against shared/staging/production databases.
 
+### Schema change playbook (Drizzle + SQL migrations)
+
+1. Edit **`server/db/schema.ts`** first (tables, indexes, checks) so types and `drizzle-kit` stay aligned.
+2. Create migration SQL under **`database/migrations/`** and append an entry to **`database/migrations/meta/_journal.json`** (or run **`pnpm run db:generate`** and commit generated files—do not hand-edit generated SQL unless you know the diff).
+3. For **`CHECK ... NOT VALID`**, plan a follow-up migration that runs **`VALIDATE CONSTRAINT`** after backfilling or cleaning bad rows (see **`0015_validate_reader_saved_check_constraints.sql`**).
+4. Keep **Zod** and **shared contracts** in sync with new checks (see **`docs/styleguide/database-constraints.md`**).
+5. CI **`db-migration-policy`** fails if `server/db/schema.ts` changes without migration files—satisfy that gate in the same PR.
+6. After index changes, prefer **`EXPLAIN (ANALYZE, BUFFERS)`** on the target query in a realistic environment before merge.
+
 ## CI Workflow
 
 PRs trigger `/.github/workflows/ci.yml`:
@@ -114,6 +123,16 @@ Hosted DB safety:
 - Use `pnpm run db:migrate` and `pnpm run db:seed` in hosted environments for schema + starter app data.
 - Run `pnpm run db:import:bible-translations` when corpus translations need initial load/refresh.
 - Do not run `pnpm run db:import` on shared/staging/production databases.
+
+### Backend operations snapshot
+
+- **Health**: `GET /api/health` (liveness) and `GET /api/ready` (readiness / DB when configured)—use for load balancers and first-line incident checks.
+- **Migrations**: forward-only SQL under `database/migrations/`; apply with `pnpm run db:migrate`. EC2 deploy path (`.github/workflows/main.yml`) runs migrate + seed after rsync.
+- **Connection pool**: `server/db/pool.ts` uses optional `PG_POOL_MAX` (default `10`), `idleTimeoutMillis` 30s, `connectionTimeoutMillis` 10s. Tune down on small Postgres plans if you see “too many clients” errors.
+- **Multi-step writes**: batch saved scriptures and device→user migration run inside DB transactions; clients should still treat network failures as retryable where idempotency allows (see `docs/styleguide/backend-patterns.md`).
+- **Supply chain**: run `pnpm audit` periodically or before merging large dependency/auth changes; address critical issues; accept or track low-severity noise explicitly.
+
+**Planning / review:** `docs/plans/backend-db-review.md` and `docs/plans/backend-db-review-inventory.md`.
 
 Production verification:
 

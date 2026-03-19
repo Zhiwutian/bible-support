@@ -8,6 +8,7 @@ import {
   type ScriptureVerseResult,
 } from '@shared/scripture-search-contracts.js';
 import { scriptureVerses } from '@server/db/schema.js';
+import { mapScriptureVerseRow } from '@server/lib/scripture-verse-row.js';
 import { requireDb } from './require-db.js';
 import { logger } from '@server/lib/logger.js';
 import {
@@ -45,20 +46,6 @@ type LocalVerseRow = {
   verse: number;
   verseText: string;
 };
-
-/** Convert DB verse row into API response shape. */
-function mapVerseRow(
-  row: typeof scriptureVerses.$inferSelect,
-): ScriptureVerseResult {
-  return {
-    translation: normalizeScriptureTranslationCode(row.translation),
-    book: row.book,
-    chapter: row.chapter,
-    verse: row.verse,
-    reference: row.reference,
-    verseText: row.verseText,
-  };
-}
 
 /** Parse references like "John 3", "John 3:16", "John 3:16-18". */
 function parseReferenceQuery(input: string): ParsedReference | null {
@@ -322,7 +309,7 @@ export async function searchScriptureVerses(
       source: 'local',
       queryText: params.queryText,
       total: localRows.length,
-      verses: localRows.map(mapVerseRow),
+      verses: localRows.map(mapScriptureVerseRow),
     };
   }
 

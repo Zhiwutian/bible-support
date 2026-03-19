@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts.js';
-import { sendSuccess } from '@server/lib/http-response.js';
+import { asyncHandler, sendSuccess } from '@server/lib/index.js';
 import {
   readEmotionScripturesBySlug,
   readEmotions,
@@ -16,26 +16,16 @@ const scriptureQuerySchema = z.object({
 });
 
 /** Handle `GET /api/emotions`. */
-export async function getEmotions(
-  _req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
+export const getEmotions = asyncHandler(
+  async (_req: Request, res: Response) => {
     const emotionRows = await readEmotions();
     sendSuccess(res, emotionRows);
-  } catch (err) {
-    next(err);
-  }
-}
+  },
+);
 
 /** Handle `GET /api/emotions/:slug/scriptures`. */
-export async function getEmotionScriptures(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
+export const getEmotionScriptures = asyncHandler(
+  async (req: Request, res: Response) => {
     const params = emotionSlugParamsSchema.parse(req.params);
     const query = scriptureQuerySchema.parse(req.query);
     const payload = await readEmotionScripturesBySlug(
@@ -43,18 +33,12 @@ export async function getEmotionScriptures(
       query.translation,
     );
     sendSuccess(res, payload);
-  } catch (err) {
-    next(err);
-  }
-}
+  },
+);
 
 /** Handle `GET /api/emotions/:slug/scriptures/random`. */
-export async function getRandomEmotionScripture(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
+export const getRandomEmotionScripture = asyncHandler(
+  async (req: Request, res: Response) => {
     const params = emotionSlugParamsSchema.parse(req.params);
     const query = scriptureQuerySchema.parse(req.query);
     const payload = await readRandomEmotionScriptureBySlug(
@@ -62,7 +46,5 @@ export async function getRandomEmotionScripture(
       query.translation,
     );
     sendSuccess(res, payload);
-  } catch (err) {
-    next(err);
-  }
-}
+  },
+);

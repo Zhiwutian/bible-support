@@ -1,19 +1,21 @@
+import type {
+  AuthAuditEventType,
+  AuthAuditOutcome,
+} from '@shared/auth-audit-contracts.js';
 import { authAuditEvents } from '@server/db/schema.js';
 import { logger } from '@server/lib/logger.js';
 import { requireDb } from './require-db.js';
 
-export type AuthAuditEventType =
-  | 'login_start'
-  | 'callback_success'
-  | 'callback_failure'
-  | 'logout'
-  | 'admin_role_change';
+export type {
+  AuthAuditEventType,
+  AuthAuditOutcome,
+} from '@shared/auth-audit-contracts.js';
 
 type AuthAuditInput = {
   userId?: string | null;
   provider: string;
   eventType: AuthAuditEventType;
-  outcome: 'success' | 'failure';
+  outcome: AuthAuditOutcome;
   reason?: string | null;
   message?: string | null;
   ip?: string | null;

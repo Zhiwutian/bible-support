@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import type { Request } from 'express';
 import { z } from 'zod';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts.js';
 import type {
@@ -9,7 +9,7 @@ import type {
   UpdateSavedScriptureTranslationRequest,
 } from '@shared/saved-scripture-contracts.js';
 import { getSessionUserId } from '@server/lib/auth-context.js';
-import { sendSuccess } from '@server/lib/http-response.js';
+import { asyncHandler, sendSuccess } from '@server/lib/index.js';
 import { ClientError } from '@server/lib/client-error.js';
 import { logger } from '@server/lib/logger.js';
 import {
@@ -24,10 +24,7 @@ import {
   updateSavedScriptureTranslation,
   updateSavedScriptureNote,
 } from '@server/services/saved-scripture-service.js';
-
-const deviceHeaderSchema = z.object({
-  'x-device-id': z.string().trim().min(8).max(128),
-});
+import { readOptionalDeviceId } from '@server/lib/validation/index.js';
 
 const savedScriptureBodySchema = z
   .object({
@@ -38,7 +35,7 @@ const savedScriptureBodySchema = z
     verseStart: z.number().int().positive(),
     verseEnd: z.number().int().positive(),
     reference: z.string().trim().min(1).max(120),
-    sourceMode: z.string().trim().min(1).max(16).default('local'),
+    sourceMode: z.enum(['local', 'remote']).default('local'),
     queryText: z.string().trim().max(160).optional(),
   })
   .superRefine((value, ctx) => {
@@ -69,19 +66,10 @@ const updateSavedScriptureNoteBodySchema = z.object({
   note: z.string().trim().max(4000).nullable(),
 });
 
-/** Read optional normalized device identifier from request headers. */
-function readDeviceId(req: Request): string | null {
-  const raw = req.get('x-device-id');
-  if (!raw) return null;
-  const parsed = deviceHeaderSchema.safeParse({ 'x-device-id': raw });
-  if (!parsed.success) return null;
-  return parsed.data['x-device-id'];
-}
-
 /** Resolve owner scope from auth session + device header. */
 function resolveScope(req: Request): SavedScriptureOwnerScope {
   const ownerUserId = getSessionUserId(req);
-  const deviceId = readDeviceId(req);
+  const deviceId = readOptionalDeviceId(req);
   if (!ownerUserId && !deviceId) {
     throw new ClientError(
       400,
@@ -106,81 +94,45 @@ async function resolveScopeWithMigration(
 }
 
 /** Handle `GET /api/saved-scriptures`. */
-export async function getSavedScriptures(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const scope = await resolveScopeWithMigration(req);
-    const payload = await readSavedScriptures(scope);
-    sendSuccess(res, payload);
-  } catch (err) {
-    next(err);
-  }
-}
+export const getSavedScriptures = asyncHandler(async (req, res) => {
+  const scope = await resolveScopeWithMigration(req);
+  const payload = await readSavedScriptures(scope);
+  sendSuccess(res, payload);
+});
 
 /** Handle `GET /api/saved-scriptures/chapter`. */
-export async function getSavedScripturesForChapter(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const scope = await resolveScopeWithMigration(req);
-    const query = savedScriptureChapterQuerySchema.parse(
-      req.query,
-    ) as SavedScriptureChapterQuery;
-    const payload = await readSavedScripturesForChapter(scope, query);
-    sendSuccess(res, { items: payload });
-  } catch (err) {
-    next(err);
-  }
-}
+export const getSavedScripturesForChapter = asyncHandler(async (req, res) => {
+  const scope = await resolveScopeWithMigration(req);
+  const query = savedScriptureChapterQuerySchema.parse(
+    req.query,
+  ) as SavedScriptureChapterQuery;
+  const payload = await readSavedScripturesForChapter(scope, query);
+  sendSuccess(res, { items: payload });
+});
 
 /** Handle `GET /api/saved-scriptures/grouped`. */
-export async function getSavedScriptureGroups(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const scope = await resolveScopeWithMigration(req);
-    const payload = await readSavedScriptureGroups(scope);
-    sendSuccess(res, payload);
-  } catch (err) {
-    next(err);
-  }
-}
+export const getSavedScriptureGroups = asyncHandler(async (req, res) => {
+  const scope = await resolveScopeWithMigration(req);
+  const payload = await readSavedScriptureGroups(scope);
+  sendSuccess(res, payload);
+});
 
 /** Handle `POST /api/saved-scriptures`. */
-export async function postSavedScripture(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const scope = await resolveScopeWithMigration(req);
-    const body = savedScriptureBodySchema.parse(
-      req.body,
-    ) as CreateSavedScriptureRequest;
-    const payload = await createSavedScripture({
-      scope,
-      ...body,
-    });
-    sendSuccess(res, payload, 201);
-  } catch (err) {
-    next(err);
-  }
-}
+export const postSavedScripture = asyncHandler(async (req, res) => {
+  const scope = await resolveScopeWithMigration(req);
+  const body = savedScriptureBodySchema.parse(
+    req.body,
+  ) as CreateSavedScriptureRequest;
+  const payload = await createSavedScripture({
+    scope,
+    ...body,
+  });
+  sendSuccess(res, payload, 201);
+});
 
 /** Handle `POST /api/saved-scriptures/batch`. */
-export async function postSavedScriptureBatch(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
+export const postSavedScriptureBatch = asyncHandler(
+  async (req, res) => {
     const scope = await resolveScopeWithMigration(req);
     const body = savedScriptureBatchBodySchema.parse(
       req.body,
@@ -195,65 +147,47 @@ export async function postSavedScriptureBatch(
       'saved scripture batch created',
     );
     sendSuccess(res, payload, 201);
-  } catch (err) {
-    logger.warn(
-      {
-        err,
-        ownerUserId: getSessionUserId(req) ?? null,
-        hasDeviceId: Boolean(readDeviceId(req)),
-      },
-      'failed to create saved scripture batch',
-    );
-    next(err);
-  }
-}
+  },
+  {
+    onError: (err, req) => {
+      logger.warn(
+        {
+          err,
+          ownerUserId: getSessionUserId(req) ?? null,
+          hasDeviceId: Boolean(readOptionalDeviceId(req)),
+        },
+        'failed to create saved scripture batch',
+      );
+    },
+  },
+);
 
 /** Handle `DELETE /api/saved-scriptures/:savedId`. */
-export async function deleteSavedScripture(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const scope = await resolveScopeWithMigration(req);
-    const params = savedIdParamsSchema.parse(req.params);
-    await removeSavedScripture(params.savedId, scope);
-    res.sendStatus(204);
-  } catch (err) {
-    next(err);
-  }
-}
+export const deleteSavedScripture = asyncHandler(async (req, res) => {
+  const scope = await resolveScopeWithMigration(req);
+  const params = savedIdParamsSchema.parse(req.params);
+  await removeSavedScripture(params.savedId, scope);
+  res.sendStatus(204);
+});
 
 /** Handle `PATCH /api/saved-scriptures/:savedId`. */
-export async function patchSavedScripture(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const scope = await resolveScopeWithMigration(req);
-    const params = savedIdParamsSchema.parse(req.params);
-    const body = updateSavedScriptureBodySchema.parse(
-      req.body,
-    ) as UpdateSavedScriptureTranslationRequest;
-    const payload = await updateSavedScriptureTranslation(
-      params.savedId,
-      scope,
-      body.translation,
-    );
-    sendSuccess(res, payload);
-  } catch (err) {
-    next(err);
-  }
-}
+export const patchSavedScripture = asyncHandler(async (req, res) => {
+  const scope = await resolveScopeWithMigration(req);
+  const params = savedIdParamsSchema.parse(req.params);
+  const body = updateSavedScriptureBodySchema.parse(
+    req.body,
+  ) as UpdateSavedScriptureTranslationRequest;
+  const payload = await updateSavedScriptureTranslation(
+    params.savedId,
+    scope,
+    body.translation,
+  );
+  sendSuccess(res, payload);
+});
 
 /** Handle `PATCH /api/saved-scriptures/:savedId/note`. */
-export async function patchSavedScriptureNote(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
+export const patchSavedScriptureNote = asyncHandler(
+  async (req, res) => {
     const scope = await resolveScopeWithMigration(req);
     const params = savedIdParamsSchema.parse(req.params);
     const body = updateSavedScriptureNoteBodySchema.parse(
@@ -265,16 +199,18 @@ export async function patchSavedScriptureNote(
       body.note,
     );
     sendSuccess(res, payload);
-  } catch (err) {
-    logger.warn(
-      {
-        err,
-        savedId: req.params.savedId,
-        ownerUserId: getSessionUserId(req) ?? null,
-        hasDeviceId: Boolean(readDeviceId(req)),
-      },
-      'failed to update saved scripture note',
-    );
-    next(err);
-  }
-}
+  },
+  {
+    onError: (err, req) => {
+      logger.warn(
+        {
+          err,
+          savedId: req.params.savedId,
+          ownerUserId: getSessionUserId(req) ?? null,
+          hasDeviceId: Boolean(readOptionalDeviceId(req)),
+        },
+        'failed to update saved scripture note',
+      );
+    },
+  },
+);

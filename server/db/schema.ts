@@ -99,6 +99,7 @@ export const scriptureVerses = pgTable(
       table.chapter,
       table.verse,
     ),
+    /* Reader/search filter by translation first; unique index below also supports (translation, book, chapter, verse). */
     scriptureVersesBookChapterVerseIdx: index(
       'scripture_verses_book_chapter_verse_idx',
     ).on(table.book, table.chapter, table.verse),
@@ -202,6 +203,7 @@ export const authAuditEvents = pgTable(
     authAuditEventsTypeIdx: index('auth_audit_events_type_idx').on(
       table.eventType,
     ),
+    /* Event type strings must match `AUTH_AUDIT_EVENT_TYPES` in `shared/auth-audit-contracts.ts`. */
     authAuditEventsEventTypeCheck: check(
       'auth_audit_events_event_type_check',
       sql`${table.eventType} in (
@@ -264,6 +266,18 @@ export const savedScriptureItems = pgTable(
     savedScriptureItemsDeviceGroupCreatedIdx: index(
       'saved_scripture_items_device_group_created_idx',
     ).on(table.deviceId, table.saveGroupId, table.createdAt, table.savedId),
+    savedScriptureItemsOwnerChapterScopeIdx: index(
+      'saved_scripture_items_owner_chapter_scope_idx',
+    )
+      .on(table.ownerUserId, table.translation, table.book, table.chapter)
+      .where(sql`${table.ownerUserId} is not null`),
+    savedScriptureItemsDeviceChapterScopeIdx: index(
+      'saved_scripture_items_device_chapter_scope_idx',
+    )
+      .on(table.deviceId, table.translation, table.book, table.chapter)
+      .where(
+        sql`${table.ownerUserId} is null and ${table.deviceId} is not null`,
+      ),
     savedScriptureItemsUnique: uniqueIndex(
       'saved_scripture_items_device_reference_unique',
     )
@@ -308,6 +322,7 @@ export const savedScriptureItems = pgTable(
       'saved_scripture_items_owner_or_device_check',
       sql`${table.ownerUserId} is not null or ${table.deviceId} is not null`,
     ),
+    /* Values must match Zod `sourceMode` on POST/PATCH saved-scripture APIs. */
     savedScriptureItemsSourceModeCheck: check(
       'saved_scripture_items_source_mode_check',
       sql`${table.sourceMode} in ('local', 'remote')`,
@@ -367,6 +382,7 @@ export const readerState = pgTable(
         ${table.bookmarkScrollOffset} is not null
       )`,
     ),
+    /* Allowed codes must match `SUPPORTED_SCRIPTURE_TRANSLATIONS` in `shared/scripture-search-contracts.ts`. */
     readerStateBookmarkTranslationCheck: check(
       'reader_state_bookmark_translation_check',
       sql`${table.bookmarkTranslation} is null or ${table.bookmarkTranslation} in ('KJV', 'ASV', 'WEB')`,

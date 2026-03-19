@@ -36,6 +36,9 @@ export function getDbPool(): pg.Pool | null {
 
     pool = new pg.Pool({
       connectionString,
+      max: env.PG_POOL_MAX,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
       ssl: shouldEnableSsl
         ? {
             rejectUnauthorized,

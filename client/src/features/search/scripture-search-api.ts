@@ -17,6 +17,7 @@ import type {
   SavedScriptureChapterResponse,
   SavedScriptureGroupedResponse,
   SavedScriptureItem,
+  SavedScriptureSourceMode,
   UpdateSavedScriptureNoteRequest,
   UpdateSavedScriptureTranslationRequest,
 } from '@shared/saved-scripture-contracts';
@@ -198,7 +199,7 @@ export function toReaderStateBookmarkPayload(
 /** Convert verse rows into a contiguous reference span payload for save. */
 export function toSavePayload(
   verse: ScriptureVerseResult,
-  sourceMode: string,
+  sourceMode: SavedScriptureSourceMode,
   queryText?: string,
 ): CreateSavedScriptureRequest {
   return {

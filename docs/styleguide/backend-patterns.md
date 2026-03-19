@@ -6,6 +6,30 @@
 - Controllers (`server/controllers/*`): parse params/body/query, validate input, map output.
 - Services (`server/services/*`): business logic and DB interactions.
 
+## Request validation (Zod)
+
+- Prefer **`schema.parse()`** inside **`try/catch`** with **`next(err)`** so `ZodError` is normalized by `error-middleware` into `validation_error` with **`details` as `issues`** (stable across endpoints).
+- Avoid mixing **`safeParse` + manual `sendError`** unless you need a custom error code/message; if you do, keep `details` shape aligned with Zod `issues` for client consistency.
+- Shared HTTP parsing helpers and small Zod building blocks live under `server/lib/validation/` (for example `readOptionalDeviceId` for `x-device-id`, **`adminPaginationQuerySchema` + `normalizeAdminPaginationQuery`** for admin list query params).
+
+## Async route handlers
+
+- Use **`asyncHandler`** from `server/lib/async-handler.ts` (re-exported in `server/lib/index.ts`) to wrap `(req, res) => Promise<void>` handlers so rejections and thrown errors always reach **`next(err)`** without repeating `try/catch` per route.
+- Optional **`onError`** hook for structured logging on failure paths (see saved-scripture batch / note handlers).
+
+## Database constraints & index parity
+
+- Maintain alignment between **Postgres checks**, **Drizzle schema**, **Zod**, and **`shared/*` contracts**. See **`docs/styleguide/database-constraints.md`** for the living matrix (translations, saved items, `scripture_verses`, auth audit, NOT VALID workflow).
+
+## Post-merge optimization run (backend-heavy PRs)
+
+After merges that touch several API layers, run a short pass (adjust thresholds to team taste):
+
+- **Trigger examples**: 3+ files under `server/controllers/` or `server/services/`; any `database/migrations/*` or `server/db/schema.ts` change; auth/session changes.
+- **Checklist**: grep for duplicate Zod fragments; confirm new mutations use transactions where needed; confirm `shared/*-contracts` + route tests updated; `pnpm run lint` / `pnpm run test:server` (or root `pnpm run test`); optional `pnpm audit` on dependency-heavy PRs.
+
+**Planning artifact:** `docs/plans/backend-db-review.md` and living inventory `docs/plans/backend-db-review-inventory.md`.
+
 ## Request/Response Contracts
 
 - Use `sendSuccess`/`sendError` from `server/lib/http-response.ts`.
@@ -22,6 +46,7 @@
 - Auth controller/service responsibilities:
   - controller for flow handling and response semantics
   - service for OIDC exchange and account linkage
+- Auth audit vocabulary is defined once in `shared/auth-audit-contracts.ts` (`AUTH_AUDIT_EVENT_TYPES`, `AuthAuditEventType`, `AuthAuditOutcome`). The Postgres check on `auth_audit_events.eventType` must stay aligned (comment in `server/db/schema.ts` points to the shared module).
 - Auth endpoint expectations:
   - `GET /api/auth/login` accepts optional `next` for safe return-path routing
   - `GET /api/auth/callback` keeps browser redirect semantics while preserving endpoint-level JSON errors for API clients
@@ -32,8 +57,11 @@
   - normalize partial/legacy stored preference payloads defensively instead of failing reads.
   - keep reader-preferences validation/normalization centralized in `server/lib/reader-state-preferences.ts` so controller/service layers stay in sync.
 - Scripture normalization expectations:
-  - keep canonical book alias handling and translation-code normalization centralized in `server/lib/scripture-normalization.ts`.
+  - keep canonical book alias handling and translation-code normalization centralized in `server/lib/scripture-normalization.ts` (including **`parsePersistedScriptureTranslation`**, **`normalizeReaderBookmarkFields`** for reader state bookmarks).
   - avoid duplicating per-service alias maps or translation fallback parsing in scripture/reader/emotion services.
+  - persisted saved-scripture rows should store **canonical** book names from `canonicalizeBibleBookName` on write; chapter queries use the same normalization.
+  - emotion translation fallback order should derive from **`SUPPORTED_SCRIPTURE_TRANSLATIONS`** so new translations stay aligned.
+  - map `scripture_verses` rows to API payloads with **`mapScriptureVerseRow`** in `server/lib/scripture-verse-row.ts` (reader chapter + scripture search local DB path).
 
 ## Rate-Limit Pattern
 
