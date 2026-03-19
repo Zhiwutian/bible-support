@@ -9,6 +9,30 @@
 - App-level providers/components: `client/src/components/app/*`
 - Shared utils: `client/src/lib/*`
 
+### Reader Feature Decomposition Pattern
+
+When refactoring large Reader surfaces, prefer this sequence:
+
+1. Extract presentation-only components first.
+2. Keep existing handlers/state in page while wiring extracted components.
+3. Extract hook-level orchestration only after UI boundaries stabilize.
+
+Current Reader decomposition references:
+
+- Presentation components under `client/src/features/reader/`:
+  - `ReaderChapterControls`
+  - `ReaderChapterContent`
+  - `ReaderOptionsModal`
+  - `ReaderVerseActionsModal`
+  - `ReaderNoteModal`
+  - `ReaderStatusBar`
+  - `ReaderBreakReminder`
+  - `ReaderChapterNavigation`
+- Hook-level logic modules:
+  - `useReaderChapterRouteState`
+  - `useReaderAccountSync`
+  - `useReaderVerseActions`
+
 ## State Management
 
 - Use local `useState` for page/feature-owned async state.
@@ -57,6 +81,7 @@
 - Treat app-wide high-contrast overrides as a controlled global layer; avoid adding new `!important` rules outside accessibility scope.
 - For reader-longform surfaces, validate reduced-motion and high-contrast combinations together.
 - For reader bookmarking interactions, keep keyboard-accessible click targets and provide visible status feedback (`role="status"`).
+- For interactive reader verse targets, prefer reader-scoped semantic classes (for example `reader-verse-inline-hit`) over `hover:bg-slate-*` utility hooks to avoid global dark/high-contrast selector bleed.
 
 ## Routing and Entry Pattern
 
