@@ -66,12 +66,13 @@ After merges that touch several API layers, run a short pass (adjust thresholds 
 ## Rate-Limit Pattern
 
 - Read/write split on `/api`.
-- Additional stricter write limiter on `/api/admin`.
+- Additional stricter write limiter on **`/api/admin`**.
 - Keying precedence:
   - session user
   - explicit session header
   - device header
   - IP fallback
+- Tunables: **`RATE_LIMIT_WINDOW_MS`**, **`RATE_LIMIT_MAX`**, **`RATE_LIMIT_WRITE_MAX`** in **`server/config/env.ts`**. Prefer client debouncing before raising write caps; document env changes in **`CHANGELOG.md`**. Details: **`docs/styleguide/backend-observability-security.md`**.
 
 ## Reader + Saved Observability Pattern
 
@@ -81,7 +82,7 @@ After merges that touch several API layers, run a short pass (adjust thresholds 
   - reader success/failure + `durationMs`,
   - note patch failures.
 - For frequent UI write patterns (bookmark/scroll updates), protect APIs with debounce-friendly idempotent updates and unchanged-payload short-circuiting in service/controller layers where practical.
-- Never log sensitive request bodies (for example, full note text, auth tokens).
+- Never log sensitive request bodies (for example, full note text, auth tokens). Full logging policy: **`docs/styleguide/backend-observability-security.md`**.
 
 ## Adding New API Endpoint (Checklist)
 

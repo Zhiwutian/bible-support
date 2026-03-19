@@ -40,26 +40,22 @@ Mirrors the active Cursor plan for backend/DB work. Update this file when phases
 - Partial indexes on `saved_scripture_items` for chapter-scoped lists (`0016`); `scripture_verses` index/query notes documented.
 - Playbook: `docs/development-workflow.md` (schema change subsection) + `database-constraints.md` + `database-patterns.md` cross-link.
 
-## Phase 4 — Observability & security (lightweight)
+## Phase 4 — Observability & security _(complete)_
 
-- Logging: no note bodies / tokens (styleguide).
-- Rate limits: document when to raise write caps for new features.
-- Route tests for changed validation paths.
+- **`docs/styleguide/backend-observability-security.md`**: logging redaction, rate-limit tuning, health/ready, security checklist.
+- **`backend-patterns.md`**: links to observability doc; rate-limit env tunables called out.
+- Route test: invalid **`sourceMode`** on POST saved scriptures → **`validation_error`**.
 
-## Phase 5 — Documentation & hygiene
+## Phase 5 — Documentation & hygiene _(complete)_
 
-- `docs/styleguide/backend-patterns.md`: validation strategy, validation module locations, DB enum alignment rule, backend optimization-run triggers.
-- `CHANGELOG.md` for the wave.
+- Styleguides and **`CHANGELOG.md`** maintained alongside backend waves; optimization-run triggers in **`backend-patterns.md`**.
 
-## Phase 6 — Platform, CI, ops & supply chain
+## Phase 6 — Platform, CI, ops & supply chain _(complete)_
 
-- **CI parity**: root scripts match `.github/workflows/ci.yml` (lint, tsc, test, build); migration policy job for schema edits.
-- **Transaction boundaries**: document multi-step mutations; use transactions where user-visible partial failure matters (batch save and device→user migration are already transactional).
-- **Pool & timeouts**: `server/db/pool.ts` + optional `PG_POOL_MAX` (see `server/.env.example` and `docs/development-workflow.md`).
-- **Seeds/scripts**: keep `server/scripts/seed*.ts` aligned with `server/db/schema.ts`.
-- **Ops runbook**: health/ready endpoints, migrations, incident first steps (`docs/development-workflow.md`).
-- **Security checklist**: Helmet/CORS/sessions, admin auth, logging rules.
-- **Supply chain**: periodic `pnpm audit`; review majors on auth/DB PRs.
+- **CI parity table** in **`docs/development-workflow.md`** (lint/tsc/test/build vs `ci.yml`).
+- **`.github/workflows/audit-scheduled.yml`**: weekly + `workflow_dispatch`, **`pnpm audit --audit-level high`** (advisory).
+- **Transactions** note in development workflow (batch save + device migration).
+- **Pool/timeouts**, **ops/health**, **seeds**: covered in **`development-workflow.md`** and **`backend-observability-security.md`**.
 
 ## Suggested execution order
 

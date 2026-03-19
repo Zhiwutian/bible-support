@@ -57,10 +57,13 @@ The React app calls (via `fetchJson` / `fetchNoContent` and MSW handlers):
 - **`database/schema.sql`** and **`server/db/schema.ts`** updated for new indexes and comments.
 - Shared **`SavedScriptureSourceMode`**; Zod + client `toSavePayload` aligned.
 
-## Follow-ups (later phases)
+## Phases 4–6 _(complete)_
 
-- `pnpm audit` policy note + optional scheduled workflow (low noise).
-- Phase 4+ per `docs/plans/backend-db-review.md`.
+- Observability/security styleguide, CI parity table, scheduled audit workflow, saved-scripture `sourceMode` validation route test.
+
+## Follow-ups (optional)
+
+- Expand route tests when new Zod surfaces ship; tune audit job severity if noise is too high or low.
 
 ## Phase 2 progress _(complete)_
 

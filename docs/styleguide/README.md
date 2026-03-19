@@ -16,6 +16,8 @@ This directory contains implementation-focused guides for UI conventions, archit
   - Drizzle schema, SQL parity, migration, and DB change workflow
 - `database-constraints.md`
   - Check/index ↔ Zod ↔ shared-contract parity; `scripture_verses` and saved-item query patterns
+- `backend-observability-security.md`
+  - Logging boundaries, rate-limit tuning, health routes, security checklist, audit workflow
 
 ## How To Use
 

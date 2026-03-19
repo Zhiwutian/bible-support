@@ -24,6 +24,8 @@ This folder contains maintainable project documentation for application structur
   - Frontend/backend/database pattern references and extension checklists
 - `styleguide/database-constraints.md`
   - DB checks and indexes aligned with Zod and shared contracts (Phase 3 reference)
+- `styleguide/backend-observability-security.md`
+  - Logging, rate limits, health/ready, security checklist, `pnpm audit` cadence
 - `rules-registry.md`
   - Index of active Cursor rules under `.cursor/rules/`
   - Purpose, scope, and maintenance process for rule files

@@ -8,6 +8,9 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Added `docs/styleguide/backend-observability-security.md` (logging, rate limits, health/ready, security checklist, seeds/audit notes).
+- Added `.github/workflows/audit-scheduled.yml` (weekly + manual `pnpm audit --audit-level high`, advisory).
+- Added route test for invalid `sourceMode` on POST `/api/saved-scriptures`.
 - Added migrations `0015_validate_reader_saved_check_constraints.sql` and `0016_saved_scripture_chapter_scope_indexes.sql` (journal updated).
 - Added `docs/styleguide/database-constraints.md` (DB ↔ Zod ↔ contract parity; index/query notes for `scripture_verses` and saved items).
 - Added `SavedScriptureSourceMode` in `shared/saved-scripture-contracts.ts` for `sourceMode` fields.
@@ -28,6 +31,8 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- `docs/development-workflow.md`: CI parity table vs `ci.yml`, audit workflow pointer, transaction reminder.
+- `docs/styleguide/backend-patterns.md`: rate-limit tunables + link to observability doc.
 - Partial indexes on `saved_scripture_items` for authenticated vs device chapter queries; Drizzle schema and `database/schema.sql` aligned.
 - Saved scripture API: `sourceMode` validated with `z.enum(['local', 'remote'])`; `toSavePayload` and grouped display mapping use shared source-mode types.
 - `docs/development-workflow.md`: schema change / NOT VALID / EXPLAIN playbook; `database-patterns.md` links to `database-constraints.md`.

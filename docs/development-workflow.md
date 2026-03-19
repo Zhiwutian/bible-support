@@ -78,6 +78,21 @@ PRs trigger `/.github/workflows/ci.yml`:
 
 This catches most integration issues before merge.
 
+### CI parity (local vs GitHub)
+
+Run the same gates locally before push:
+
+| CI step   | Local command    |
+| --------- | ---------------- |
+| Lint      | `pnpm run lint`  |
+| Typecheck | `pnpm run tsc`   |
+| Test      | `pnpm run test`  |
+| Build     | `pnpm run build` |
+
+**Advisory:** `/.github/workflows/audit-scheduled.yml` runs weekly (and on demand) with **`pnpm audit --audit-level high`**; it does not block PR merges. Run the same command locally before large dependency upgrades.
+
+**Transactions:** batch saved scriptures and device→user migration use DB transactions (`saved-scripture-service`); document any new multi-row mutation similarly in PRs.
+
 ## PR Documentation Checklist
 
 Before opening or merging a PR, verify:
