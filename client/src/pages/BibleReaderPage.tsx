@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
+import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
 import type {
   ReaderBookmark,
   ReaderChapterResponse,
@@ -8,6 +9,7 @@ import type {
   ReaderReadingStyle,
   ScriptureTranslationCode,
 } from '@shared/scripture-search-contracts';
+import type { SavedScriptureItem } from '@shared/saved-scripture-contracts';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
 import {
   Button,
@@ -32,10 +34,18 @@ import {
 import {
   clearReaderState,
   readReaderChapter,
+  readSavedScripturesForChapter,
   readReaderState,
+  saveScripture,
   updateReaderState,
+  updateSavedScriptureNote,
 } from '@/features/search/scripture-search-api';
+import { appCopy } from '@/lib/copy';
 import { trackEvent } from '@/lib/telemetry';
+import {
+  buildAbsoluteVerseShareUrl,
+  shareVerseLink,
+} from '@/lib/verse-sharing';
 
 function parseBooleanFlag(
   value: string | undefined,
@@ -94,6 +104,32 @@ function buildCleanParagraphs(payload: ReaderChapterResponse): Array<{
   return chunks;
 }
 
+type ReaderVerseTarget = {
+  key: string;
+  book: string;
+  chapter: number;
+  verse: number;
+  translation: ScriptureTranslationCode;
+  reference: string;
+  verseText: string;
+};
+
+function toSavedRangeKey(input: {
+  translation: string;
+  book: string;
+  chapter: number;
+  verseStart: number;
+  verseEnd: number;
+}): string {
+  return [
+    input.translation.toUpperCase(),
+    input.book,
+    input.chapter,
+    input.verseStart,
+    input.verseEnd,
+  ].join(':');
+}
+
 /** Render chapter reader view with URL-synced book/chapter/translation state. */
 export function BibleReaderPage() {
   const navigate = useNavigate();
@@ -117,13 +153,20 @@ export function BibleReaderPage() {
   const initialChapter = Number(searchParams.get('chapter') ?? '');
   const initialTranslation = searchParams.get('translation')?.toUpperCase();
   const initialVerse = Number(searchParams.get('verse') ?? '');
-  const [book, setBook] = useState(
+  const initialCanonicalBook =
     initialBook && BIBLE_BOOKS.some((bookName) => bookName === initialBook)
       ? initialBook
-      : BIBLE_BOOKS[0],
+      : BIBLE_BOOKS[0];
+  const initialChapterValue =
+    Number.isInteger(initialChapter) && initialChapter > 0 ? initialChapter : 1;
+  const initialChapterClamped = Math.min(
+    initialChapterValue,
+    getMaxChaptersForBook(initialCanonicalBook),
   );
-  const [chapter, setChapter] = useState(
-    Number.isInteger(initialChapter) && initialChapter > 0 ? initialChapter : 1,
+  const [book, setBook] = useState(initialCanonicalBook);
+  const [chapter, setChapter] = useState(initialChapterClamped);
+  const [chapterInputValue, setChapterInputValue] = useState(
+    String(initialChapterClamped),
   );
   const [translation, setTranslation] = useState<ScriptureTranslationCode>(
     SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
@@ -145,6 +188,18 @@ export function BibleReaderPage() {
   const [bookmark, setBookmark] = useState<ReaderBookmark | null>(() =>
     loadReaderBookmark(),
   );
+  const [savedChapterItems, setSavedChapterItems] = useState<
+    SavedScriptureItem[]
+  >([]);
+  const [verseActionTarget, setVerseActionTarget] =
+    useState<ReaderVerseTarget | null>(null);
+  const [noteModalTarget, setNoteModalTarget] =
+    useState<ReaderVerseTarget | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [isNoteSaving, setIsNoteSaving] = useState(false);
+  const [noteSaveError, setNoteSaveError] = useState('');
+  const verseActionReturnFocusRef = useRef<HTMLElement | null>(null);
+  const noteModalReturnFocusRef = useRef<HTMLElement | null>(null);
   const [isReaderAuthLoading, setIsReaderAuthLoading] = useState(true);
   const [isReaderAuthenticated, setIsReaderAuthenticated] = useState(false);
   const isReaderComfortEnabled = parseBooleanFlag(
@@ -154,6 +209,15 @@ export function BibleReaderPage() {
   const [readerPreferences, setReaderPreferences] = useState<ReaderPreferences>(
     () => loadReaderPreferences(),
   );
+  const maxChapterForBook = useMemo(() => getMaxChaptersForBook(book), [book]);
+
+  useEffect(() => {
+    setChapter((current) => Math.min(Math.max(1, current), maxChapterForBook));
+  }, [maxChapterForBook]);
+
+  useEffect(() => {
+    setChapterInputValue(String(chapter));
+  }, [chapter]);
 
   useEffect(() => {
     if (
@@ -183,7 +247,11 @@ export function BibleReaderPage() {
       })
       .catch((err) => {
         if (isCancelled) return;
-        setError(err instanceof Error ? err.message : 'Could not load chapter');
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'We could not load this chapter.',
+        );
         setPayload(null);
       })
       .finally(() => {
@@ -191,6 +259,25 @@ export function BibleReaderPage() {
       });
     return () => {
       isCancelled = true;
+    };
+  }, [book, chapter, translation]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    readSavedScripturesForChapter(
+      { book, chapter, translation },
+      controller.signal,
+    )
+      .then((response) => {
+        setSavedChapterItems(response.items);
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        // Keep reader usable even if saved-chapter metadata lookup fails.
+        setSavedChapterItems([]);
+      });
+    return () => {
+      controller.abort();
     };
   }, [book, chapter, translation]);
 
@@ -350,14 +437,24 @@ export function BibleReaderPage() {
   }, [payload, readerPreferences.readingStyle]);
 
   useEffect(() => {
-    if (!isOptionsModalOpen) return;
+    if (!verseActionTarget && !noteModalTarget && !isOptionsModalOpen) return;
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
-      setIsOptionsModalOpen(false);
+      if (verseActionTarget) {
+        closeVerseActionsModal();
+        return;
+      }
+      if (noteModalTarget) {
+        closeNoteModal();
+        return;
+      }
+      if (isOptionsModalOpen) {
+        setIsOptionsModalOpen(false);
+      }
     }
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, [isOptionsModalOpen]);
+  }, [isOptionsModalOpen, noteModalTarget, verseActionTarget]);
 
   const chapterLabel = useMemo(() => `${book} ${chapter}`, [book, chapter]);
   const readerRootClassName = useMemo(
@@ -446,13 +543,271 @@ export function BibleReaderPage() {
     const currentSignature = bookmark ? JSON.stringify(bookmark) : '';
     if (nextSignature === currentSignature) return;
     setBookmark(nextBookmark);
-    setBookmarkStatus(`Saved your place at ${book} ${chapter}:${verse}.`);
+    setBookmarkStatus(`You are bookmarked at ${book} ${chapter}:${verse}.`);
     trackEvent('reader_bookmark_set', {
       book,
       chapter,
       verse,
       translation,
     });
+  }
+
+  function toReaderVerseTarget(input: {
+    verse: number;
+    verseText: string;
+  }): ReaderVerseTarget {
+    return {
+      key: `${translation}:${book}:${chapter}:${input.verse}`,
+      book,
+      chapter,
+      verse: input.verse,
+      translation,
+      reference: `${book} ${chapter}:${input.verse}`,
+      verseText: input.verseText,
+    };
+  }
+
+  function findExactSavedItemForVerse(
+    verse: number,
+  ): SavedScriptureItem | null {
+    return (
+      savedItemsByRangeKey.get(
+        toSavedRangeKey({
+          translation,
+          book,
+          chapter,
+          verseStart: verse,
+          verseEnd: verse,
+        }),
+      ) ?? null
+    );
+  }
+
+  function findAnySavedItemForVerse(verse: number): SavedScriptureItem | null {
+    const exact = findExactSavedItemForVerse(verse);
+    if (exact) return exact;
+    const covered = savedItemsByCoveredVerse.get(verse);
+    return covered?.[0] ?? null;
+  }
+
+  function hasSavedNoteForVerse(verse: number): boolean {
+    const covered = savedItemsByCoveredVerse.get(verse) ?? [];
+    return covered.some((item) => Boolean(item.note?.trim()));
+  }
+
+  function openVerseActionsModal(target: ReaderVerseTarget) {
+    verseActionReturnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setVerseActionTarget(target);
+    trackEvent('reader_verse_actions_opened', {
+      book: target.book,
+      chapter: target.chapter,
+      verse: target.verse,
+      translation: target.translation,
+    });
+  }
+
+  function closeVerseActionsModal() {
+    setVerseActionTarget(null);
+    verseActionReturnFocusRef.current?.focus();
+  }
+
+  async function handleSaveVerseFromReader(target: ReaderVerseTarget) {
+    try {
+      const saved = await saveScripture({
+        translation: target.translation,
+        book: target.book,
+        chapter: target.chapter,
+        verseStart: target.verse,
+        verseEnd: target.verse,
+        reference: target.reference,
+        sourceMode: 'local',
+      });
+      setSavedChapterItems((current) => {
+        const exists = current.some((item) => item.savedId === saved.savedId);
+        return exists ? current : [saved, ...current];
+      });
+      setBookmarkStatus(`Saved ${target.reference}.`);
+      closeVerseActionsModal();
+      trackEvent('reader_save_verse', {
+        book: target.book,
+        chapter: target.chapter,
+        verse: target.verse,
+        translation: target.translation,
+      });
+    } catch (err) {
+      setBookmarkStatus(
+        err instanceof Error
+          ? err.message
+          : 'We could not save this verse yet.',
+      );
+    }
+  }
+
+  async function ensureSavedItemForVerse(
+    target: ReaderVerseTarget,
+  ): Promise<SavedScriptureItem> {
+    const existing = findAnySavedItemForVerse(target.verse);
+    if (existing) return existing;
+    const saved = await saveScripture({
+      translation: target.translation,
+      book: target.book,
+      chapter: target.chapter,
+      verseStart: target.verse,
+      verseEnd: target.verse,
+      reference: target.reference,
+      sourceMode: 'local',
+    });
+    setSavedChapterItems((current) => {
+      const exists = current.some((item) => item.savedId === saved.savedId);
+      return exists ? current : [saved, ...current];
+    });
+    setBookmarkStatus(`Saved ${target.reference}.`);
+    trackEvent('reader_save_verse', {
+      book: target.book,
+      chapter: target.chapter,
+      verse: target.verse,
+      translation: target.translation,
+    });
+    return saved;
+  }
+
+  async function openNoteModalForVerse(target: ReaderVerseTarget) {
+    let saved: SavedScriptureItem;
+    try {
+      saved = await ensureSavedItemForVerse(target);
+    } catch (err) {
+      setBookmarkStatus(
+        err instanceof Error
+          ? err.message
+          : 'We could not open note editing yet.',
+      );
+      return;
+    }
+    setNoteSaveError('');
+    setNoteDraft(saved.note ?? '');
+    noteModalReturnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setNoteModalTarget(target);
+    setVerseActionTarget(null);
+    trackEvent('reader_note_opened', {
+      book: target.book,
+      chapter: target.chapter,
+      verse: target.verse,
+      translation: target.translation,
+      hasExistingNote: Boolean(saved.note?.trim()),
+    });
+  }
+
+  function closeNoteModal() {
+    setNoteModalTarget(null);
+    setNoteSaveError('');
+    noteModalReturnFocusRef.current?.focus();
+  }
+
+  async function handleSaveReaderVerseNote() {
+    if (!noteModalTarget) return;
+    let saved: SavedScriptureItem;
+    try {
+      saved = await ensureSavedItemForVerse(noteModalTarget);
+    } catch (err) {
+      setNoteSaveError(
+        err instanceof Error
+          ? err.message
+          : 'We could not prepare this saved verse.',
+      );
+      return;
+    }
+    setIsNoteSaving(true);
+    setNoteSaveError('');
+    try {
+      const updated = await updateSavedScriptureNote(saved.savedId, noteDraft);
+      setSavedChapterItems((current) =>
+        current.map((item) =>
+          item.savedId === updated.savedId
+            ? { ...item, note: updated.note }
+            : item,
+        ),
+      );
+      setBookmarkStatus(`Saved note for ${noteModalTarget.reference}.`);
+      closeNoteModal();
+      trackEvent('reader_note_saved', {
+        book: noteModalTarget.book,
+        chapter: noteModalTarget.chapter,
+        verse: noteModalTarget.verse,
+        translation: noteModalTarget.translation,
+        hasNote: Boolean(updated.note?.trim()),
+      });
+    } catch (err) {
+      setNoteSaveError(
+        err instanceof Error ? err.message : 'We could not save your note yet.',
+      );
+    } finally {
+      setIsNoteSaving(false);
+    }
+  }
+
+  async function handleShareVerseFromReader(target: ReaderVerseTarget) {
+    const shareUrl = buildAbsoluteVerseShareUrl({
+      book: target.book,
+      chapter: target.chapter,
+      verse: target.verse,
+      translation: target.translation,
+    });
+    trackEvent('reader_share_clicked', {
+      book: target.book,
+      chapter: target.chapter,
+      verse: target.verse,
+      translation: target.translation,
+    });
+    try {
+      const outcome = await shareVerseLink({
+        title: `${target.reference} (${target.translation})`,
+        text: target.verseText,
+        url: shareUrl,
+      });
+      if (outcome === 'shared') {
+        setBookmarkStatus(`Share options are open for ${target.reference}.`);
+        closeVerseActionsModal();
+        trackEvent('share_native_success', {
+          source: 'reader',
+          book: target.book,
+          chapter: target.chapter,
+          verse: target.verse,
+          translation: target.translation,
+        });
+        return;
+      }
+      if (outcome === 'copied') {
+        setBookmarkStatus(`Share link copied for ${target.reference}.`);
+        closeVerseActionsModal();
+        trackEvent('share_fallback_copy_success', {
+          source: 'reader',
+          book: target.book,
+          chapter: target.chapter,
+          verse: target.verse,
+          translation: target.translation,
+        });
+        return;
+      }
+      setBookmarkStatus(appCopy.status.shareCanceled);
+    } catch (err) {
+      setBookmarkStatus(
+        err instanceof Error ? err.message : appCopy.errors.couldNotShareVerse,
+      );
+      trackEvent('share_failed', {
+        source: 'reader',
+        book: target.book,
+        chapter: target.chapter,
+        verse: target.verse,
+        translation: target.translation,
+        message: err instanceof Error ? err.message : 'unknown',
+      });
+    }
   }
 
   async function handleClearSyncedReaderData() {
@@ -497,11 +852,40 @@ export function BibleReaderPage() {
     return buildCleanParagraphs(normalizedPayload);
   }, [payload, readerPreferences.hideTranslationIndicators]);
 
+  const savedItemsByRangeKey = useMemo(() => {
+    const map = new Map<string, SavedScriptureItem>();
+    for (const item of savedChapterItems) {
+      map.set(
+        toSavedRangeKey({
+          translation: item.translation,
+          book: item.book,
+          chapter: item.chapter,
+          verseStart: item.verseStart,
+          verseEnd: item.verseEnd,
+        }),
+        item,
+      );
+    }
+    return map;
+  }, [savedChapterItems]);
+
+  const savedItemsByCoveredVerse = useMemo(() => {
+    const map = new Map<number, SavedScriptureItem[]>();
+    for (const item of savedChapterItems) {
+      for (let verse = item.verseStart; verse <= item.verseEnd; verse += 1) {
+        const current = map.get(verse) ?? [];
+        current.push(item);
+        map.set(verse, current);
+      }
+    }
+    return map;
+  }, [savedChapterItems]);
+
   return (
     <div className={readerRootClassName}>
       <SectionHeader
         title="Bible Reader"
-        description="Read by chapter with scrollable text and move forward/backward one chapter at a time."
+        description="Read one chapter at a time, save your place, and use verse actions when you need them."
       />
       {canReturnToSupportVerse && (
         <div className="mb-4 flex items-center gap-2">
@@ -558,7 +942,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Reading style',
                       description:
-                        'Verse shows one verse per line with superscript numbers. Standard shows paragraph flow with superscript verse numbers inline. Clean shows paragraph flow without verse indicators.',
+                        'Verse shows one verse per line. Standard keeps paragraph flow with verse numbers. Clean keeps paragraph flow without verse indicators.',
                     })
                   }
                 />
@@ -588,7 +972,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Theme',
                       description:
-                        'Changes chapter reading colors only (Light, Sepia, Dark). This is separate from global app dark mode.',
+                        'Choose chapter colors (Light, Sepia, or Dark). This setting is separate from app-level dark mode.',
                     })
                   }
                 />
@@ -617,7 +1001,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Font family',
                       description:
-                        'Switches the chapter body text style between serif and sans-serif.',
+                        'Choose serif or sans-serif for chapter text.',
                     })
                   }
                 />
@@ -645,7 +1029,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Reader font size',
                       description:
-                        'Changes only Bible Reader chapter text size. XL is tuned for low-vision readability.',
+                        'Adjust chapter text size in Reader. XL is tuned for low-vision readability.',
                     })
                   }
                 />
@@ -676,7 +1060,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Line height',
                       description:
-                        'Adjusts vertical spacing between text lines inside chapter content.',
+                        'Adjust vertical spacing between lines to improve reading comfort.',
                     })
                   }
                 />
@@ -705,7 +1089,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Paragraph spacing',
                       description:
-                        'Controls spacing between verse/paragraph blocks for easier scanning while reading.',
+                        'Adjust spacing between verse blocks for easier scanning.',
                     })
                   }
                 />
@@ -734,7 +1118,7 @@ export function BibleReaderPage() {
                     setReaderSettingsHelp({
                       title: 'Content width',
                       description:
-                        'Adjusts the maximum line length of chapter text. Narrow is easier for focused reading.',
+                        'Adjust line length for comfort. Narrow can feel easier for focused reading.',
                     })
                   }
                 />
@@ -772,7 +1156,7 @@ export function BibleReaderPage() {
                 setReaderSettingsHelp({
                   title: 'Reduced motion',
                   description:
-                    'Minimizes animation and transition effects in Reader interactions.',
+                    'Reduce animation and transitions in Reader interactions.',
                 })
               }
             />
@@ -795,7 +1179,7 @@ export function BibleReaderPage() {
                 setReaderSettingsHelp({
                   title: 'Gentle break reminders',
                   description:
-                    'Shows a non-intrusive 20-20-20 eye comfort reminder while reading.',
+                    'Show a gentle 20-20-20 eye comfort reminder while reading.',
                 })
               }
             />
@@ -820,7 +1204,7 @@ export function BibleReaderPage() {
                 setReaderSettingsHelp({
                   title: 'Hide translation indicators',
                   description:
-                    'Removes bracket-style markers from verse text while reading. This only changes display, not source data.',
+                    'Hide bracket-style markers while reading. This changes display only, not source text.',
                 })
               }
             />
@@ -852,6 +1236,113 @@ export function BibleReaderPage() {
         titleId="reader-settings-help-title"
         onClose={() => setReaderSettingsHelp(null)}
       />
+      {verseActionTarget && (
+        <ModalShell
+          title={verseActionTarget.reference}
+          titleId="reader-verse-actions-title"
+          onClose={closeVerseActionsModal}
+          className="p-0 md:p-4"
+          panelClassName="w-full max-w-none rounded-t-2xl rounded-b-none border-x-0 border-b-0 pb-[max(1rem,env(safe-area-inset-bottom))] md:max-w-md md:rounded-md md:border md:border-slate-200 md:pb-4">
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-slate-600">
+              Choose what you would like to do with this verse.
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              <Button
+                variant="ghost"
+                className="min-h-11 justify-start"
+                onClick={() => {
+                  handleSetBookmark(verseActionTarget.verse);
+                  closeVerseActionsModal();
+                }}>
+                Bookmark Here
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11 justify-start"
+                disabled={Boolean(
+                  findExactSavedItemForVerse(verseActionTarget.verse),
+                )}
+                onClick={() => {
+                  void handleSaveVerseFromReader(verseActionTarget);
+                }}>
+                Save Verse
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11 justify-start"
+                onClick={() => {
+                  void handleShareVerseFromReader(verseActionTarget);
+                }}>
+                Share Verse
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11 justify-start"
+                onClick={() => {
+                  void openNoteModalForVerse(verseActionTarget);
+                }}>
+                View/Edit Note
+              </Button>
+            </div>
+            {hasSavedNoteForVerse(verseActionTarget.verse) ? (
+              <p className="text-xs text-slate-600">
+                This verse already has a note.
+              </p>
+            ) : null}
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                className="min-h-11"
+                onClick={closeVerseActionsModal}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
+      {noteModalTarget && (
+        <ModalShell
+          title={`Note for ${noteModalTarget.reference}`}
+          titleId="reader-note-modal-title"
+          onClose={closeNoteModal}
+          panelClassName="max-w-lg">
+          <div className="mt-3 space-y-3">
+            <p className="text-sm text-slate-600">
+              Add or edit a note for this saved verse.
+            </p>
+            <textarea
+              aria-label="Reader verse note"
+              className="min-h-32 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+              value={noteDraft}
+              onChange={(event) => setNoteDraft(event.target.value)}
+              placeholder="Add your note..."
+            />
+            {noteSaveError ? (
+              <p className="text-sm text-rose-700" role="alert">
+                {noteSaveError}
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                className="min-h-11"
+                onClick={closeNoteModal}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                className="min-h-11"
+                disabled={isNoteSaving}
+                onClick={() => {
+                  void handleSaveReaderVerseNote();
+                }}>
+                {isNoteSaving ? 'Saving...' : 'Save note'}
+              </Button>
+            </div>
+          </div>
+        </ModalShell>
+      )}
       <Card className="-mx-6 mb-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex min-w-[220px] flex-[2] flex-col gap-1 text-sm font-semibold">
@@ -864,6 +1355,7 @@ export function BibleReaderPage() {
                 setError('');
                 setBook(event.target.value);
                 setChapter(1);
+                setChapterInputValue('1');
               }}>
               {BIBLE_BOOKS.map((bookName) => (
                 <option key={bookName} value={bookName}>
@@ -878,14 +1370,40 @@ export function BibleReaderPage() {
               className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2"
               type="number"
               min={1}
-              value={chapter}
-              onChange={(event) =>
-                (() => {
+              max={maxChapterForBook}
+              value={chapterInputValue}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setChapterInputValue(nextValue);
+                if (nextValue === '') {
+                  setError('');
+                  return;
+                }
+                const parsed = Number(nextValue);
+                if (!Number.isInteger(parsed) || parsed < 1) return;
+                const clamped = Math.min(parsed, maxChapterForBook);
+                setIsLoading(true);
+                setError('');
+                setChapter(clamped);
+              }}
+              onBlur={() => {
+                if (chapterInputValue === '') return;
+                const parsed = Number(chapterInputValue);
+                if (!Number.isInteger(parsed) || parsed < 1) {
+                  setChapterInputValue(String(chapter));
+                  return;
+                }
+                const clamped = Math.min(
+                  Math.max(1, parsed),
+                  maxChapterForBook,
+                );
+                setChapterInputValue(String(clamped));
+                if (clamped !== chapter) {
                   setIsLoading(true);
                   setError('');
-                  setChapter(Math.max(1, Number(event.target.value) || 1));
-                })()
-              }
+                  setChapter(clamped);
+                }
+              }}
             />
           </label>
           <label className="flex min-w-[130px] flex-1 flex-col gap-1 text-sm font-semibold">
@@ -917,11 +1435,11 @@ export function BibleReaderPage() {
       )}
       {!isLoading && error && (
         <EmptyState
-          title="Could not load chapter"
+          title="We could not load this chapter"
           description={error}
           actions={
             <Button variant="ghost" onClick={() => window.location.reload()}>
-              Retry
+              {appCopy.actions.retry}
             </Button>
           }
         />
@@ -948,7 +1466,7 @@ export function BibleReaderPage() {
               <p className="text-xs text-slate-500">Checking account sync…</p>
             ) : isReaderAuthenticated ? (
               <p className="text-xs text-slate-500">
-                Reader settings sync with account.
+                Reader settings sync with your account.
               </p>
             ) : (
               <p className="text-xs text-slate-500">
@@ -972,20 +1490,33 @@ export function BibleReaderPage() {
                         ? 'ring-1 ring-indigo-400'
                         : 'hover:bg-slate-100/60'
                     }`}
-                    onClick={() => handleSetBookmark(verse.verse)}>
+                    onClick={() =>
+                      openVerseActionsModal(
+                        toReaderVerseTarget({
+                          verse: verse.verse,
+                          verseText: verse.verseText,
+                        }),
+                      )
+                    }>
                     <sup className="mr-1 align-super text-xs font-semibold">
                       {verse.verse}
                     </sup>
                     {readerPreferences.hideTranslationIndicators
                       ? stripTranslationIndicatorText(verse.verseText)
                       : verse.verseText}
+                    {hasSavedNoteForVerse(verse.verse) ? (
+                      <sup
+                        aria-label={`Has note for ${book} ${chapter}:${verse.verse}`}
+                        className="ml-1 align-super text-[0.65rem] font-semibold text-indigo-700">
+                        n
+                      </sup>
+                    ) : null}
                   </button>
                 ))}
               {readerPreferences.readingStyle === 'standard' &&
                 cleanParagraphs.map((paragraph) => (
-                  <button
+                  <div
                     key={paragraph.key}
-                    type="button"
                     data-verse-start={paragraph.verses[0]?.verse}
                     data-verse-end={
                       paragraph.verses[paragraph.verses.length - 1]?.verse
@@ -994,23 +1525,52 @@ export function BibleReaderPage() {
                       isBookmarkedVerse(paragraph.firstVerse)
                         ? 'ring-1 ring-indigo-400'
                         : 'hover:bg-slate-100/60'
-                    }`}
-                    onClick={() => handleSetBookmark(paragraph.firstVerse)}>
+                    }`}>
                     {paragraph.verses.map((entry) => (
-                      <span key={`${paragraph.key}-${entry.verse}`}>
-                        <sup className="mr-1 align-super text-xs font-semibold">
+                      <span
+                        key={`${paragraph.key}-${entry.verse}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
+                        className="inline cursor-pointer rounded px-0.5 hover:bg-slate-200/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                        onClick={() =>
+                          openVerseActionsModal(
+                            toReaderVerseTarget({
+                              verse: entry.verse,
+                              verseText: entry.verseText,
+                            }),
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ')
+                            return;
+                          event.preventDefault();
+                          openVerseActionsModal(
+                            toReaderVerseTarget({
+                              verse: entry.verse,
+                              verseText: entry.verseText,
+                            }),
+                          );
+                        }}>
+                        <sup className="mr-1 align-super text-xs font-semibold text-indigo-700">
                           {entry.verse}
                         </sup>
-                        {entry.verseText}{' '}
+                        {entry.verseText}
+                        {hasSavedNoteForVerse(entry.verse) ? (
+                          <sup
+                            aria-label={`Has note for ${book} ${chapter}:${entry.verse}`}
+                            className="ml-1 mr-1 align-super text-[0.55rem] font-semibold text-indigo-700">
+                            n
+                          </sup>
+                        ) : null}{' '}
                       </span>
                     ))}
-                  </button>
+                  </div>
                 ))}
               {readerPreferences.readingStyle === 'clean' &&
                 cleanParagraphs.map((paragraph) => (
-                  <button
+                  <div
                     key={paragraph.key}
-                    type="button"
                     data-verse-start={paragraph.verses[0]?.verse}
                     data-verse-end={
                       paragraph.verses[paragraph.verses.length - 1]?.verse
@@ -1019,10 +1579,44 @@ export function BibleReaderPage() {
                       isBookmarkedVerse(paragraph.firstVerse)
                         ? 'ring-1 ring-indigo-400'
                         : 'hover:bg-slate-100/60'
-                    }`}
-                    onClick={() => handleSetBookmark(paragraph.firstVerse)}>
-                    {paragraph.text}
-                  </button>
+                    }`}>
+                    {paragraph.verses.map((entry) => (
+                      <span
+                        key={`${paragraph.key}-clean-${entry.verse}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
+                        className="inline cursor-pointer rounded px-0.5 hover:bg-slate-200/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                        onClick={() =>
+                          openVerseActionsModal(
+                            toReaderVerseTarget({
+                              verse: entry.verse,
+                              verseText: entry.verseText,
+                            }),
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ')
+                            return;
+                          event.preventDefault();
+                          openVerseActionsModal(
+                            toReaderVerseTarget({
+                              verse: entry.verse,
+                              verseText: entry.verseText,
+                            }),
+                          );
+                        }}>
+                        {entry.verseText}
+                        {hasSavedNoteForVerse(entry.verse) ? (
+                          <sup
+                            aria-label={`Has note for ${book} ${chapter}:${entry.verse}`}
+                            className="ml-1 mr-1 align-super text-[0.55rem] font-semibold text-indigo-700">
+                            n
+                          </sup>
+                        ) : null}{' '}
+                      </span>
+                    ))}
+                  </div>
                 ))}
             </div>
           </div>

@@ -33,6 +33,7 @@ import {
 } from '@server/controllers/scripture/reader-state-controller.js';
 import {
   deleteSavedScripture,
+  getSavedScripturesForChapter,
   getSavedScriptureGroups,
   getSavedScriptures,
   patchSavedScripture,
@@ -76,6 +77,7 @@ apiRouter.get('/reader/state', getReaderState);
 apiRouter.patch('/reader/state', patchReaderState);
 apiRouter.delete('/reader/state', deleteReaderState);
 apiRouter.get('/saved-scriptures', getSavedScriptures);
+apiRouter.get('/saved-scriptures/chapter', getSavedScripturesForChapter);
 apiRouter.get('/saved-scriptures/grouped', getSavedScriptureGroups);
 apiRouter.post('/saved-scriptures', postSavedScripture);
 apiRouter.post('/saved-scriptures/batch', postSavedScriptureBatch);

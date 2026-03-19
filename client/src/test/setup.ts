@@ -5,6 +5,20 @@ import { resetApiMockState } from './handlers';
 import { server } from './server';
 
 beforeAll(() => {
+  Object.defineProperty(globalThis.HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: () => {},
+  });
+  Object.defineProperty(globalThis.navigator, 'clipboard', {
+    configurable: true,
+    value: {
+      writeText: async () => {},
+    },
+  });
+  Object.defineProperty(globalThis.navigator, 'share', {
+    configurable: true,
+    value: undefined,
+  });
   server.listen({ onUnhandledRequest: 'error' });
 });
 

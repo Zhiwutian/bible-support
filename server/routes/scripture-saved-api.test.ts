@@ -6,6 +6,7 @@ import { ClientError } from '@server/lib/client-error.js';
 
 const searchScriptureVersesMock = vi.fn();
 const readSavedScripturesMock = vi.fn();
+const readSavedScripturesForChapterMock = vi.fn();
 const readSavedScriptureGroupsMock = vi.fn();
 const createSavedScriptureMock = vi.fn();
 const createSavedScriptureBatchMock = vi.fn();
@@ -23,6 +24,8 @@ vi.mock('@server/services/scripture-search-service.js', () => ({
 vi.mock('@server/services/saved-scripture-service.js', () => ({
   readSavedScriptures: (...args: unknown[]): unknown =>
     readSavedScripturesMock(...args),
+  readSavedScripturesForChapter: (...args: unknown[]): unknown =>
+    readSavedScripturesForChapterMock(...args),
   readSavedScriptureGroups: (...args: unknown[]): unknown =>
     readSavedScriptureGroupsMock(...args),
   createSavedScripture: (...args: unknown[]): unknown =>
@@ -67,6 +70,7 @@ describe('scripture search + saved routes', () => {
   beforeEach(() => {
     searchScriptureVersesMock.mockReset();
     readSavedScripturesMock.mockReset();
+    readSavedScripturesForChapterMock.mockReset();
     readSavedScriptureGroupsMock.mockReset();
     createSavedScriptureMock.mockReset();
     createSavedScriptureBatchMock.mockReset();
@@ -167,6 +171,33 @@ describe('scripture search + saved routes', () => {
       .expect(200);
     expect(Array.isArray(res.body.data)).toBe(true);
     expect(res.body.data[0].ownerUserId).toBe('user-test-1');
+  });
+
+  it('returns chapter-scoped saved rows for /api/saved-scriptures/chapter', async () => {
+    readSavedScripturesForChapterMock.mockResolvedValue([
+      {
+        savedId: 21,
+        deviceId: 'device-12345678',
+        ownerUserId: 'user-test-1',
+        label: null,
+        translation: 'KJV',
+        book: 'John',
+        chapter: 3,
+        verseStart: 16,
+        verseEnd: 18,
+        reference: 'John 3:16-18',
+        sourceMode: 'local',
+        queryText: null,
+        createdAt: new Date().toISOString(),
+      },
+    ]);
+    const res = await request(app)
+      .get('/api/saved-scriptures/chapter')
+      .set('cookie', sessionCookie)
+      .query({ translation: 'KJV', book: 'John', chapter: 3 })
+      .expect(200);
+    expect(Array.isArray(res.body.data.items)).toBe(true);
+    expect(res.body.data.items[0].reference).toBe('John 3:16-18');
   });
 
   it('returns grouped saved rows for /api/saved-scriptures/grouped', async () => {

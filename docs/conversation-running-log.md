@@ -654,3 +654,7 @@ To-do's from the plan have already been created. Do not create them again. Mark 
 153.  **User prompt (full):** "yes please"  
       **Included files in prompt:** None  
       **Assistant response summary:** Executed the next approved review package: centralized canonical scripture normalization in `server/lib/scripture-normalization.ts`, updated reader/emotion/search services to reuse shared helpers, synchronized architecture/project-structure/backend-pattern docs with current routes/endpoints, and completed lint validation plus dead-path sweep with no additional cleanup required.
+
+154.  **User prompt (full):** "currently, we have the option to save our place in the reader by clicking on the verse... add save verse + note indicator/modal..." and follow-up approval to include range indicators, accessibility hardening, fetch resilience, and telemetry.  
+      **Included files in prompt:** None  
+      **Assistant response summary:** Added chapter-scoped saved lookup endpoint (`GET /api/saved-scriptures/chapter`), integrated Reader verse actions popover (`Bookmark`, `Save verse`, `View/Edit note`), added per-covered-verse note indicator with editable note modal, implemented focus/Escape/outside-click accessibility handling, added abortable chapter-saved fetches to avoid stale flashes, expanded route/frontend tests, and updated docs/changelog/styleguide entries.

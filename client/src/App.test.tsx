@@ -56,8 +56,10 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText(/\(NIV\)/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Actions' }));
-    await user.click(screen.getByRole('button', { name: 'Back' }));
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Actions' }),
+      'back',
+    );
     expect(
       await screen.findByRole('heading', { name: /scriptural support/i }),
     ).toBeInTheDocument();
@@ -94,7 +96,11 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Tutorial' }),
     ).toBeInTheDocument();
-    expect(await screen.findByText(/quick start/i)).toBeInTheDocument();
+    expect(await screen.findByText(/getting started/i)).toBeInTheDocument();
+    expect(await screen.findByText(/troubleshooting/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/recommended next steps/i),
+    ).toBeInTheDocument();
   });
 
   it('renders bible reader route with chapter content', async () => {
@@ -139,8 +145,9 @@ describe('App', () => {
       name: /for god so loved the world/i,
     });
     await user.click(verseButton);
+    await user.click(screen.getByRole('button', { name: 'Bookmark Here' }));
     expect(
-      await screen.findByText(/saved your place at john 3:16/i),
+      await screen.findByText(/you are bookmarked at john 3:16/i),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /next chapter/i }));
@@ -175,6 +182,91 @@ describe('App', () => {
     expect(
       screen.queryByText(/john 3:16 for god so loved the world/i),
     ).not.toBeInTheDocument();
+  });
+
+  it('supports reader verse actions with note indicator and note editing', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await user.selectOptions(
+      screen.getByRole('combobox', { name: 'Reading style' }),
+      'verse',
+    );
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /for god sent not his son into the world to condemn the world/i,
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /view\/edit note/i }));
+    const noteInput = await screen.findByRole('textbox', {
+      name: /reader verse note/i,
+    });
+    expect(await screen.findByText(/saved john 3:17/i)).toBeInTheDocument();
+    await user.clear(noteInput);
+    await user.type(noteInput, 'Reader note from actions');
+    await user.click(screen.getByRole('button', { name: /save note/i }));
+    expect(
+      await screen.findByText(/saved note for john 3:17/i),
+    ).toBeInTheDocument();
+    await user.click(
+      await screen.findByRole('button', {
+        name: /for god sent not his son into the world to condemn the world/i,
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /view\/edit note/i }));
+    expect(
+      await screen.findByDisplayValue('Reader note from actions'),
+    ).toBeInTheDocument();
+  });
+
+  it('shares verse from reader actions with clipboard fallback', async () => {
+    const writeText = vi
+      .spyOn(globalThis.navigator.clipboard, 'writeText')
+      .mockResolvedValue(undefined);
+    const share = vi.fn().mockRejectedValue(new Error('share unavailable'));
+    Object.defineProperty(globalThis.navigator, 'share', {
+      configurable: true,
+      value: share,
+    });
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+    await user.click(
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: /share verse/i }));
+    expect(
+      await screen.findByText(/share link copied for john 3:16/i),
+    ).toBeInTheDocument();
+    expect(share).toHaveBeenCalledTimes(1);
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(String(writeText.mock.calls[0][0])).toContain(
+      '/verse?book=John&chapter=3&verse=16&translation=KJV',
+    );
+    writeText.mockRestore();
+  });
+
+  it('renders public shared verse detail route and can open reader', async () => {
+    const user = userEvent.setup();
+    renderApp(['/verse?book=john&chapter=3&verse=16&translation=kjv']);
+    expect(
+      await screen.findByRole('heading', { name: 'Shared Verse' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/shared link/i)).toBeInTheDocument();
+    expect(await screen.findByText(/john 3:16 \(KJV\)/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/for god so loved the world/i),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /open in reader/i }));
+    await continueAsGuest(user);
+    expect(
+      await screen.findByRole('heading', { name: 'Bible Reader' }),
+    ).toBeInTheDocument();
   });
 
   it('persists reader comfort settings and supports reset', async () => {
@@ -374,7 +466,7 @@ describe('App', () => {
       screen.getByRole('button', { name: /save selected \(1\)/i }),
     );
     expect(
-      await screen.findByText(/saved selected verses/i),
+      await screen.findByText(/selected verses saved/i),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Open menu' }));

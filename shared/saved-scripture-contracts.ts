@@ -63,6 +63,16 @@ export type SavedScriptureGroupedResponse = {
   groups: SavedScriptureGroup[];
 };
 
+export type SavedScriptureChapterQuery = {
+  translation: ScriptureTranslationCode;
+  book: string;
+  chapter: number;
+};
+
+export type SavedScriptureChapterResponse = {
+  items: SavedScriptureItem[];
+};
+
 export type CreateSavedScriptureBatchResponse = {
   saveGroupId: string;
   items: SavedScriptureItem[];

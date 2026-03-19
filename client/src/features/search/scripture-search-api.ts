@@ -13,6 +13,8 @@ import type {
   CreateSavedScriptureBatchRequest,
   CreateSavedScriptureBatchResponse,
   CreateSavedScriptureRequest,
+  SavedScriptureChapterQuery,
+  SavedScriptureChapterResponse,
   SavedScriptureGroupedResponse,
   SavedScriptureItem,
   UpdateSavedScriptureNoteRequest,
@@ -54,6 +56,22 @@ export async function searchScriptures(
 /** Return all saved scripture items for this browser/device. */
 export async function readSavedScriptures(): Promise<SavedScriptureItem[]> {
   return fetchJson<SavedScriptureItem[]>('/api/saved-scriptures');
+}
+
+/** Return saved scriptures scoped to one chapter for the active user/device. */
+export async function readSavedScripturesForChapter(
+  input: SavedScriptureChapterQuery,
+  signal?: AbortSignal,
+): Promise<SavedScriptureChapterResponse> {
+  const searchParams = new URLSearchParams({
+    translation: input.translation,
+    book: input.book,
+    chapter: String(input.chapter),
+  });
+  return fetchJson<SavedScriptureChapterResponse>(
+    `/api/saved-scriptures/chapter?${searchParams.toString()}`,
+    { signal },
+  );
 }
 
 /** Return grouped saved scripture payload with backend display formatting. */

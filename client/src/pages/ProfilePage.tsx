@@ -80,7 +80,7 @@ export function ProfilePage({
         avatarUrl: avatarValue,
       });
       trackEvent('profile_save_success');
-      setSaveSuccess('Profile updated.');
+      setSaveSuccess('Your profile was updated.');
     } catch (error) {
       trackEvent('profile_save_failure');
       const message =
@@ -95,7 +95,7 @@ export function ProfilePage({
     <section className="mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
       <h1 className="text-2xl font-semibold text-slate-900">Profile</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Update your display name and avatar URL.
+        Update your display name and avatar URL so your account feels familiar.
       </p>
 
       <div className="mt-5 flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -128,7 +128,7 @@ export function ProfilePage({
                 setSettingsHelp({
                   title: 'Display name',
                   description:
-                    'The name shown in your account area and app menus. This does not change your external provider account.',
+                    'This name appears in your account area and app menus. It does not change your external login provider profile.',
                 })
               }
             />
@@ -152,7 +152,7 @@ export function ProfilePage({
                 setSettingsHelp({
                   title: 'Avatar URL',
                   description:
-                    'A public image URL used for your profile avatar preview and menu identity.',
+                    'Use a public image URL for your avatar preview and menu identity.',
                 })
               }
             />

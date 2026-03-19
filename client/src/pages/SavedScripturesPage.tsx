@@ -4,6 +4,7 @@ import { BIBLE_BOOKS } from '@shared/bible-books';
 import type { SavedScriptureGroup } from '@shared/saved-scripture-contracts';
 import { Button, Card, EmptyState, SectionHeader } from '@/components/ui';
 import { readSavedScriptureGroups } from '@/features/search/scripture-search-api';
+import { appCopy } from '@/lib/copy';
 
 type SavedBookSummary = {
   book: string;
@@ -67,20 +68,20 @@ export function SavedScripturesPage() {
     <>
       <SectionHeader
         title="Saved Scriptures"
-        description="Your saved verses are grouped by book. Select a book to view and manage saved verses."
+        description="Your saved verses are grouped by book so you can quickly review, edit, and reopen them."
       />
 
       {isLoading && (
-        <p className="text-sm text-slate-600">Loading saved books...</p>
+        <p className="text-sm text-slate-600">{appCopy.loading.savedBooks}</p>
       )}
 
       {!isLoading && error && (
         <EmptyState
-          title="Could not load saved books"
+          title="We could not load your saved books"
           description={error}
           actions={
             <Button variant="ghost" onClick={() => window.location.reload()}>
-              Retry
+              {appCopy.actions.retry}
             </Button>
           }
         />
@@ -89,7 +90,7 @@ export function SavedScripturesPage() {
       {!isLoading && !error && groups.length === 0 && (
         <EmptyState
           title="No saved books yet"
-          description="Go to Search, find a verse, and save it to your collection."
+          description="Start in Search, save a verse, and it will appear here."
         />
       )}
 

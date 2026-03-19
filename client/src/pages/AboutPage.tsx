@@ -9,18 +9,17 @@ export function AboutPage() {
     <>
       <SectionHeader
         title="About This Website"
-        description="Scripture & Solace provides Scriptural Support, flexible Bible search tools, saved verse organization, and profile-based account access."
+        description="Scripture & Solace offers calm, practical scripture guidance through Support, Search, Saved, and Reader routes."
       />
       <div className="space-y-4">
         <p className="text-base leading-relaxed text-slate-700">
-          Use <strong>Support</strong> to find emotion-based scripture reading
-          paths, <strong>Search</strong> for guided/reference/keyword verse
-          lookup, and <strong>Saved</strong> to manage your collected passages
-          and translation preferences.
+          Use <strong>Support</strong> for emotion-based scripture paths,
+          <strong> Search</strong> for guided/reference/keyword lookup, and
+          <strong> Saved</strong> to manage your saved passages and notes.
         </p>
         <p className="text-base leading-relaxed text-slate-700">
-          You can continue as a guest for local use, or sign in to access
-          account-linked profile settings and synced saved scripture ownership.
+          You can continue as guest for local use, or sign in for account-based
+          profile settings and synced saved scripture ownership.
         </p>
         <p className="text-base leading-relaxed text-slate-700">
           Need a walkthrough? Open the{' '}

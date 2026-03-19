@@ -13,6 +13,7 @@ import {
   SettingHelpButton,
   SettingHelpModal,
 } from '@/components/ui';
+import { appCopy } from '@/lib/copy';
 import { getEmotionTheme } from '@/features/emotions/emotion-theme';
 import {
   readScriptureContext,
@@ -31,10 +32,10 @@ export function EmotionScripturePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const touchStartXRef = useRef<number | null>(null);
-  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const [selectedTranslation, setSelectedTranslation] = useState<
     'KJV' | 'ASV' | 'WEB'
   >('KJV');
+  const [selectedAction, setSelectedAction] = useState('');
   const selectedScriptureIdFromUrl = Number(
     searchParams.get('scriptureId') ?? '',
   );
@@ -52,7 +53,6 @@ export function EmotionScripturePage() {
   } = useEmotionScriptures(slug, selectedTranslation, selectedScriptureId);
   const theme = getEmotionTheme(emotion?.slug ?? slug);
   const [showContext, setShowContext] = useState(false);
-  const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [settingsHelp, setSettingsHelp] = useState<{
     title: string;
     description: string;
@@ -87,28 +87,6 @@ export function EmotionScripturePage() {
     setSearchParams(next, { replace: true });
   }, [currentScripture, searchParams, setSearchParams]);
 
-  useEffect(() => {
-    if (!isActionsOpen) return;
-
-    function handleDocumentMouseDown(event: MouseEvent) {
-      if (!actionsMenuRef.current) return;
-      if (actionsMenuRef.current.contains(event.target as Node)) return;
-      setIsActionsOpen(false);
-    }
-
-    function handleDocumentKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return;
-      setIsActionsOpen(false);
-    }
-
-    document.addEventListener('mousedown', handleDocumentMouseDown);
-    document.addEventListener('keydown', handleDocumentKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleDocumentMouseDown);
-      document.removeEventListener('keydown', handleDocumentKeyDown);
-    };
-  }, [isActionsOpen]);
-
   async function handleSaveCurrentScripture() {
     if (!currentScripture) return;
     if (
@@ -118,7 +96,7 @@ export function EmotionScripturePage() {
       !currentScripture.verseEnd
     ) {
       showToast({
-        title: 'Could not save scripture',
+        title: 'We could not save this scripture',
         description:
           'This scripture reference could not be mapped to a saveable verse range.',
         variant: 'error',
@@ -137,15 +115,15 @@ export function EmotionScripturePage() {
         queryText: `support:${emotion?.slug ?? slug ?? 'unknown'}`,
       });
       showToast({
-        title: 'Saved scripture',
-        description: `${currentScripture.reference} (${currentScripture.translation})`,
+        title: 'Scripture saved',
+        description: `${currentScripture.reference} (${currentScripture.translation}) was added to your collection.`,
         variant: 'success',
       });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Could not save scripture';
       showToast({
-        title: 'Could not save scripture',
+        title: 'We could not save this scripture',
         description: message,
         variant: 'error',
       });
@@ -169,19 +147,27 @@ export function EmotionScripturePage() {
   function handleCopyCurrent() {
     if (!currentScripture) return;
     const content = `${currentScripture.reference} (${currentScripture.translation})\n${currentScripture.verseText}`;
+    if (!navigator.clipboard?.writeText) {
+      showToast({
+        title: 'Copy did not work',
+        description: 'Please try again. Clipboard access may be blocked.',
+        variant: 'error',
+      });
+      return;
+    }
     navigator.clipboard
       .writeText(content)
       .then(() =>
         showToast({
-          title: 'Copied to clipboard',
-          description: currentScripture.reference,
+          title: 'Copied',
+          description: `${currentScripture.reference} copied to your clipboard.`,
           variant: 'success',
         }),
       )
       .catch(() =>
         showToast({
-          title: 'Copy failed',
-          description: 'Unable to write to clipboard',
+          title: 'Copy did not work',
+          description: 'Please try again. Clipboard access may be blocked.',
           variant: 'error',
         }),
       );
@@ -203,7 +189,7 @@ export function EmotionScripturePage() {
     const chapter = currentScripture.chapter ?? fallbackChapter;
     if (!book || !Number.isInteger(chapter) || chapter < 1) {
       showToast({
-        title: 'Could not open reader',
+        title: 'We could not open Reader',
         description:
           'This scripture does not include chapter details for reader navigation.',
         variant: 'error',
@@ -271,7 +257,7 @@ export function EmotionScripturePage() {
         [currentScripture.scriptureId]: message,
       }));
       showToast({
-        title: 'Could not load context',
+        title: 'We could not load context',
         description: message,
         variant: 'error',
       });
@@ -294,25 +280,34 @@ export function EmotionScripturePage() {
   }
 
   function handleBackAction() {
-    setIsActionsOpen(false);
     navigate(-1);
   }
 
   function handleCopyAction() {
-    setIsActionsOpen(false);
     handleCopyCurrent();
   }
 
   function handleSaveAction() {
-    setIsActionsOpen(false);
     void handleSaveCurrentScripture();
+  }
+
+  function handleActionSelect(value: string) {
+    if (!value) return;
+    if (value === 'back') {
+      handleBackAction();
+    } else if (value === 'copy') {
+      handleCopyAction();
+    } else if (value === 'save') {
+      handleSaveAction();
+    }
+    setSelectedAction('');
   }
 
   return (
     <div className={`rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
         title={emotion ? `Scriptures for ${emotion.name}` : 'Scriptures'}
-        description="Swipe left/right on mobile or use buttons to navigate fixed-order passages."
+        description="Swipe left or right on mobile, or use the buttons to move through these curated passages."
         metadata={
           scriptures.length > 0 ? (
             <Badge className={theme.badgeClassName}>
@@ -322,22 +317,24 @@ export function EmotionScripturePage() {
         }
       />
 
-      <div className="mb-4 flex items-center gap-2">
-        <label className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
-          Translation
-          <SettingHelpButton
-            settingLabel="Support translation"
-            onClick={() =>
-              setSettingsHelp({
-                title: 'Translation',
-                description:
-                  'Changes which translation is used for Support scriptures and related reader links.',
-              })
-            }
-          />
+      <div className="mb-4 flex w-full flex-col items-stretch gap-2">
+        <div className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 md:w-auto">
+          <div className="mb-2 inline-flex items-center gap-2">
+            Translation
+            <SettingHelpButton
+              settingLabel="Support translation"
+              onClick={() =>
+                setSettingsHelp({
+                  title: 'Translation',
+                  description:
+                    'Choose which translation to use for Support verses and related Reader links.',
+                })
+              }
+            />
+          </div>
           <select
             aria-label="Translation"
-            className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium"
+            className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium"
             value={selectedTranslation}
             onChange={(event) =>
               setSelectedTranslation(
@@ -350,65 +347,52 @@ export function EmotionScripturePage() {
               </option>
             ))}
           </select>
-        </label>
-        <div ref={actionsMenuRef} className="relative">
-          <Button
-            variant="ghost"
-            className={theme.controlClassName}
-            aria-haspopup="true"
-            aria-expanded={isActionsOpen}
-            onClick={() => setIsActionsOpen((current) => !current)}>
+        </div>
+        <div className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 md:w-auto">
+          <div className="mb-2 inline-flex items-center gap-2">
             Actions
-          </Button>
-          <SettingHelpButton
-            settingLabel="Support actions"
-            onClick={() =>
-              setSettingsHelp({
-                title: 'Actions',
-                description:
-                  'Quick menu for Back, Copy, and Save on the currently displayed support verse.',
-              })
-            }
-          />
-          {isActionsOpen && (
-            <Card className="absolute left-0 top-full z-20 mt-2 min-w-36 border border-slate-200 bg-white p-2 shadow-md">
-              <div className="flex flex-col gap-1">
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={handleBackAction}>
-                  Back
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={handleCopyAction}
-                  disabled={!currentScripture}>
-                  Copy
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start"
-                  onClick={handleSaveAction}
-                  disabled={!currentScripture}>
-                  Save
-                </Button>
-              </div>
-            </Card>
-          )}
+            <SettingHelpButton
+              settingLabel="Support actions"
+              onClick={() =>
+                setSettingsHelp({
+                  title: 'Actions',
+                  description:
+                    'Choose a quick action for the current support verse: back, copy, or save.',
+                })
+              }
+            />
+          </div>
+          <select
+            aria-label="Actions"
+            className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium"
+            value={selectedAction}
+            onChange={(event) => {
+              const value = event.target.value;
+              setSelectedAction(value);
+              handleActionSelect(value);
+            }}>
+            <option value="">Choose an action...</option>
+            <option value="back">Back</option>
+            <option value="copy" disabled={!currentScripture}>
+              Copy
+            </option>
+            <option value="save" disabled={!currentScripture}>
+              Save
+            </option>
+          </select>
         </div>
       </div>
 
       {isLoading && (
-        <p className="text-sm text-slate-600">Loading scriptures...</p>
+        <p className="text-sm text-slate-600">{appCopy.loading.verses}</p>
       )}
       {!isLoading && error && (
         <EmptyState
-          title="Could not load scriptures"
+          title="We could not load these scriptures"
           description={error}
           actions={
             <Button variant="ghost" onClick={() => navigate('/')}>
-              Return to support
+              {appCopy.actions.goToSupport}
             </Button>
           }
         />
@@ -435,30 +419,50 @@ export function EmotionScripturePage() {
 
           <div className="mt-20 space-y-10">
             <div className="grid grid-cols-1 gap-2">
-              <div className="flex items-center gap-2">
+              <div className="relative flex items-center">
                 <Button
                   variant="ghost"
-                  className={`min-h-11 flex-1 justify-center ${theme.controlClassName}`}
+                  className={`min-h-11 w-full justify-center pr-12 ${theme.controlClassName}`}
                   onClick={handleOpenFullChapter}>
-                  Read full chapter
+                  <span>Read full chapter</span>
                 </Button>
-                <SettingHelpButton
-                  settingLabel="Read full chapter"
-                  onClick={() =>
-                    setSettingsHelp({
-                      title: 'Read full chapter',
-                      description:
-                        'Opens Bible Reader for the same book/chapter and translation as this support verse.',
-                    })
-                  }
-                />
+                <div className="pointer-events-none absolute right-2">
+                  <div className="pointer-events-auto">
+                    <SettingHelpButton
+                      settingLabel="Read full chapter"
+                      onClick={() =>
+                        setSettingsHelp({
+                          title: 'Read full chapter',
+                          description:
+                            'Open Reader to this same book and chapter in the selected translation.',
+                        })
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-              <Button
-                variant="ghost"
-                className={`w-full justify-center ${theme.controlClassName}`}
-                onClick={handleToggleContext}>
-                {showContext ? 'Hide context' : 'Learn context'}
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  className={`w-full justify-center pr-12 ${theme.controlClassName}`}
+                  onClick={handleToggleContext}>
+                  <span>{showContext ? 'Hide context' : 'Learn context'}</span>
+                </Button>
+                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+                  <div className="pointer-events-auto">
+                    <SettingHelpButton
+                      settingLabel="Learn context"
+                      onClick={() =>
+                        setSettingsHelp({
+                          title: 'Learn context',
+                          description:
+                            'Show a short summary and source details. Use View full context for a deeper explanation.',
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
 
               {showContext && (
                 <Card
@@ -469,13 +473,13 @@ export function EmotionScripturePage() {
                   </p>
                   {isCurrentContextLoading && (
                     <p className="text-base leading-7 text-slate-700">
-                      Loading context...
+                      {appCopy.loading.context}
                     </p>
                   )}
                   {!isCurrentContextLoading && currentContextError && (
                     <p className="text-base leading-7 text-slate-700">
-                      Could not load context right now. You can still use "Read
-                      full chapter" for complete context.
+                      We could not load context right now. You can still use
+                      Read full chapter for full context.
                     </p>
                   )}
                   {!isCurrentContextLoading &&

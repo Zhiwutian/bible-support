@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/app/toast-context';
 import { Button, Card, EmptyState, SectionHeader } from '@/components/ui';
+import { appCopy } from '@/lib/copy';
 import {
   readScriptureContext,
   ScriptureContext,
@@ -66,7 +67,7 @@ export function FullContextPage() {
           err instanceof Error ? err.message : 'Could not load full context';
         setError(message);
         showToast({
-          title: 'Could not load full context',
+          title: 'We could not load full context',
           description: message,
           variant: 'error',
         });
@@ -92,7 +93,7 @@ export function FullContextPage() {
     <div className={`rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
         title="Full Context"
-        description={`Reference: ${reference}${translation ? ` (${translation})` : ''}`}
+        description={`Reference: ${reference}${translation ? ` (${translation})` : ''}.`}
       />
 
       <div className="mb-6 flex items-center gap-2">
@@ -112,18 +113,18 @@ export function FullContextPage() {
       </div>
 
       {isLoading && (
-        <p className="text-sm text-slate-700">Loading full context...</p>
+        <p className="text-sm text-slate-700">{appCopy.loading.context}</p>
       )}
       {!isLoading && error && (
         <EmptyState
-          title="Could not load full context"
+          title="We could not load full context"
           description={error}
           actions={
             <Button
               variant="ghost"
               className={theme.controlClassName}
               onClick={() => navigate(-1)}>
-              Go back
+              Go Back
             </Button>
           }
         />

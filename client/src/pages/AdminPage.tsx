@@ -10,7 +10,7 @@ import {
 } from '@/features/admin/admin-api';
 function errorToMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return 'Request failed. Please try again.';
+  return 'Request did not complete. Please try again.';
 }
 
 type Props = {
@@ -29,7 +29,12 @@ export function AdminPage({ authUserId }: Props) {
   const [eventsTotal, setEventsTotal] = useState(0);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [usersErrorMessage, setUsersErrorMessage] = useState<string | null>(
+    null,
+  );
+  const [eventsErrorMessage, setEventsErrorMessage] = useState<string | null>(
+    null,
+  );
   const [roleReasonByUser, setRoleReasonByUser] = useState<
     Record<string, string>
   >({});
@@ -37,25 +42,25 @@ export function AdminPage({ authUserId }: Props) {
 
   useEffect(() => {
     setIsLoadingUsers(true);
-    setErrorMessage(null);
+    setUsersErrorMessage(null);
     readAdminUsers({ page: usersPage, pageSize: PAGE_SIZE })
       .then((payload) => {
         setUsers(payload.items);
         setUsersTotal(payload.pagination.total);
       })
-      .catch((error) => setErrorMessage(errorToMessage(error)))
+      .catch((error) => setUsersErrorMessage(errorToMessage(error)))
       .finally(() => setIsLoadingUsers(false));
   }, [usersPage]);
 
   useEffect(() => {
     setIsLoadingEvents(true);
-    setErrorMessage(null);
+    setEventsErrorMessage(null);
     readAdminAuthEvents({ page: eventsPage, pageSize: PAGE_SIZE })
       .then((payload) => {
         setEvents(payload.items);
         setEventsTotal(payload.pagination.total);
       })
-      .catch((error) => setErrorMessage(errorToMessage(error)))
+      .catch((error) => setEventsErrorMessage(errorToMessage(error)))
       .finally(() => setIsLoadingEvents(false));
   }, [eventsPage]);
 
@@ -74,11 +79,11 @@ export function AdminPage({ authUserId }: Props) {
   ): Promise<void> {
     const reason = (roleReasonByUser[targetUserId] ?? '').trim();
     if (!reason) {
-      setErrorMessage('Please provide a reason before updating role.');
+      setUsersErrorMessage('Please add a brief reason before updating a role.');
       return;
     }
     setPendingUserId(targetUserId);
-    setErrorMessage(null);
+    setUsersErrorMessage(null);
     try {
       await updateAdminUserRole(targetUserId, { role: nextRole, reason });
       setRoleReasonByUser((prev) => ({ ...prev, [targetUserId]: '' }));
@@ -95,7 +100,7 @@ export function AdminPage({ authUserId }: Props) {
       setEvents(eventsPayload.items);
       setEventsTotal(eventsPayload.pagination.total);
     } catch (error) {
-      setErrorMessage(errorToMessage(error));
+      setUsersErrorMessage(errorToMessage(error));
     } finally {
       setPendingUserId(null);
     }
@@ -106,20 +111,20 @@ export function AdminPage({ authUserId }: Props) {
       <header>
         <h1 className="text-xl font-semibold">Admin</h1>
         <p className="text-sm text-slate-600">
-          Manage user roles and review recent authentication events.
+          Manage user roles and review recent sign-in activity.
         </p>
       </header>
 
-      {errorMessage ? (
+      {usersErrorMessage ? (
         <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {errorMessage}
+          {usersErrorMessage}
         </p>
       ) : null}
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold">Users</h2>
         {isLoadingUsers ? (
-          <p className="mt-3 text-sm text-slate-600">Loading users...</p>
+          <p className="mt-3 text-sm text-slate-600">Loading user list...</p>
         ) : (
           <div className="mt-3 space-y-3">
             {users.map((user) => (
@@ -144,7 +149,7 @@ export function AdminPage({ authUserId }: Props) {
                           [user.userId]: event.target.value,
                         }))
                       }
-                      placeholder="Reason for role update"
+                      placeholder="Reason for role change"
                     />
                     <select
                       className="min-h-10 rounded-md border border-slate-300 px-2 text-sm"
@@ -195,8 +200,15 @@ export function AdminPage({ authUserId }: Props) {
 
       <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="text-lg font-semibold">Recent auth events</h2>
+        {eventsErrorMessage ? (
+          <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {eventsErrorMessage}
+          </p>
+        ) : null}
         {isLoadingEvents ? (
-          <p className="mt-3 text-sm text-slate-600">Loading events...</p>
+          <p className="mt-3 text-sm text-slate-600">
+            Loading sign-in events...
+          </p>
         ) : (
           <ul className="mt-3 space-y-2">
             {events.map((event) => (

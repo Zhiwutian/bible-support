@@ -42,6 +42,7 @@
 - Use arbitrary utility values for one-off exceptions; if repeated in 2+ places, promote to tokenized utility or shared primitive.
 - For shell-level branding/layout clusters repeated across header/menu/modal, extract a small shared presentational component.
 - For Reader typography/theme customization, prefer route-scoped CSS variable tokens instead of one-off utility class chains.
+- For verse-level Reader actions, prefer opening one actions modal from the verse click target and avoid dense per-verse inline action controls.
 
 ## Accessibility Pattern
 
@@ -49,6 +50,7 @@
 - Use modal primitives (`ModalShell`) for dense mobile options.
 - For long mobile setting modals (for example Reader Options), enforce `max-h` + `overflow-y-auto` on panel content so all controls remain reachable.
 - For mobile-reader heavy routes, prefer full-bleed content containers when readability benefits from wider line usage; restore rounded/inset card treatment at `sm+`.
+- For note indicators/action menus, provide explicit `aria-label` text by verse reference and restore focus to invoking controls when menus/modals close.
 - Preserve Escape/outside-click modal behavior consistency.
 - Validate high-contrast and text-scale behavior for changed views.
 - Keep landing and auth-entry actions operable with keyboard and large text scales.
@@ -87,6 +89,66 @@
 - Keep labels explicit and task-oriented (`Search Type`, `Display settings`, `Support`).
 - Use component-level casing (`capitalize` utility on actionable controls) instead of global `button { text-transform: ... }` rules so content buttons (for example scripture text) stay semantically accurate.
 - Use shared `Button` for modal actions and menu controls where behavior matches primary/ghost variants; avoid repeating one-off raw button class stacks.
+
+## Helper Copy and Tone Pattern
+
+- Use a hybrid voice: kind + practical + action-oriented.
+- Keep helper text concise and immediately useful:
+  - what the control does
+  - when to use it
+  - what to do next if it fails
+- Prefer warm, recovery-first error copy (`We could not...`) over abrupt blame-oriented phrasing.
+- For high-reuse UI phrases (retry/copy/share/open-route/loading), use lightweight shared copy tokens so wording stays uniform.
+- Keep route-specific nuance in the page/component and avoid over-abstracting full paragraphs into shared constants.
+
+## Voice QA Checklist
+
+Before merging copy-heavy frontend updates:
+
+1. Check tone consistency across help modals, inline hints, empty states, toasts, and action labels.
+2. Ensure each error message includes a clear recovery action or next step.
+3. Keep sentence length scannable on mobile (short, direct statements).
+4. Re-run route spot checks for Support, Search, Saved, Reader, Tutorial, and shared-verse flows.
+5. Add/update targeted UI assertions for key user-facing strings in critical flows to catch wording drift.
+
+## Copy Freeze (Canonical Phrases)
+
+Use these approved phrases for recurring UI states unless a route needs specific context.
+
+- **Loading**
+  - `Loading...`
+  - `Loading verses...`
+  - `Loading your saved books...`
+  - `Loading support categories...`
+  - `Loading context...`
+- **Recovery Actions**
+  - `Try again`
+  - `Dismiss`
+  - `Open Reader`
+  - `Open Search`
+  - `Go to Support`
+  - `Copy Link`
+  - `Share Verse`
+- **Error Baseline**
+  - `Something went wrong. Please try again.`
+  - `We could not load that right now.`
+  - `Sharing is unavailable on this device.`
+  - `We could not share this verse right now.`
+  - `We could not copy that right now.`
+- **Share/Status**
+  - `Share options are open.`
+  - `Share link copied.`
+  - `Share canceled.`
+- **Empty/Results**
+  - `No results yet`
+  - `No verses found yet`
+
+### Copy Freeze Rules
+
+1. Prefer these phrases first for repeated system states.
+2. Add route-specific details after the canonical phrase when helpful.
+3. Keep tense and structure consistent (`We could not ...` for failures).
+4. Update this section and `client/src/lib/copy.ts` together when introducing a new canonical phrase.
 
 ## Large-Change Frontend Review Rhythm
 

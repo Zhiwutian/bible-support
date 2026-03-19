@@ -4,6 +4,7 @@ import type { ScriptureTranslationCode } from '@shared/scripture-search-contract
 import type {
   CreateSavedScriptureBatchRequest,
   CreateSavedScriptureRequest,
+  SavedScriptureChapterQuery,
   SavedScriptureDisplayItem,
   SavedScriptureGroupedResponse,
 } from '@shared/saved-scripture-contracts.js';
@@ -67,6 +68,31 @@ export async function readSavedScriptures(
     .from(savedScriptureItems)
     .where(ownerScopeWhere(scope))
     .orderBy(
+      desc(savedScriptureItems.createdAt),
+      asc(savedScriptureItems.savedId),
+    );
+}
+
+/** List saved scriptures for one chapter in one translation. */
+export async function readSavedScripturesForChapter(
+  scope: SavedScriptureOwnerScope,
+  query: SavedScriptureChapterQuery,
+): Promise<SavedScriptureItemRecord[]> {
+  const db = requireDb();
+  return db
+    .select()
+    .from(savedScriptureItems)
+    .where(
+      and(
+        ownerScopeWhere(scope),
+        eq(savedScriptureItems.translation, query.translation),
+        eq(savedScriptureItems.book, query.book.trim()),
+        eq(savedScriptureItems.chapter, query.chapter),
+      ),
+    )
+    .orderBy(
+      asc(savedScriptureItems.verseStart),
+      asc(savedScriptureItems.verseEnd),
       desc(savedScriptureItems.createdAt),
       asc(savedScriptureItems.savedId),
     );
