@@ -9,7 +9,7 @@ Apply when preparing a change for **commit or PR readiness** (or when the user e
 
 **Out of scope:** brainstorming-only messages, pure Q&A, or “explain this file”—unless the user is about to commit those edits.
 
-**Related:** CI mirrors these commands—see `docs/development-workflow.md` (CI parity table). Does not replace **`secret-commit-approval-gate`** or **`auth-secrets-safety`**.
+**Related:** **`AGENTS.md`** (contributor command summary); CI mirrors these commands—see `docs/development-workflow.md` (CI parity table). Does not replace **`secret-commit-approval-gate`** or **`auth-secrets-safety`**.
 
 ## Planning Mode
 

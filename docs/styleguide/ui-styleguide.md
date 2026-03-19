@@ -8,6 +8,7 @@ This document tracks the current UI design system and implementation standards.
 - Keep interactions obvious for all ages, including elderly users.
 - Prefer consistency over novelty across pages and controls.
 - Preserve accessibility defaults (text scale + high contrast) across routes.
+- **Pointer feedback:** Native controls get `cursor: pointer` / `not-allowed` via **unlayered `!important` rules at the end of** `client/src/index.css` (beats Tailwind v4 layer ordering). **`.ui-modal-backdrop`** includes `cursor-pointer`; **`.ui-modal-panel`** uses `cursor-default` for readable content while inner buttons keep the pointer.
 
 ## Design Tokens
 

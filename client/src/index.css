@@ -65,25 +65,12 @@ body {
     padding-top: 0.625rem;
     padding-bottom: 0.625rem;
     appearance: auto;
-    appearance: auto;
   }
 
   option,
   optgroup {
     font-size: 16px !important;
   }
-}
-
-button,
-a,
-[role='button'],
-summary {
-  cursor: pointer;
-}
-
-button:disabled,
-[aria-disabled='true'] {
-  cursor: not-allowed;
 }
 
 /* App-wide text scaling tokens used by the Text size control. */
@@ -274,11 +261,11 @@ button:disabled,
 }
 
 .ui-modal-backdrop {
-  @apply fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 md:items-center;
+  @apply fixed inset-0 z-50 flex cursor-pointer items-end justify-center bg-black/40 p-4 md:items-center;
 }
 
 .ui-modal-panel {
-  @apply w-full max-w-md rounded-md border border-slate-200 bg-white p-4 shadow-lg;
+  @apply w-full max-w-md cursor-default rounded-md border border-slate-200 bg-white p-4 shadow-lg;
 }
 
 /* Reader-specific theme and typography tokens for long-form comfort. */
@@ -553,4 +540,34 @@ button:disabled,
 
 .app-dark-mode .reader-root .reader-content [class*='text-slate-'] {
   color: var(--reader-text) !important;
+}
+
+/*
+ * Interactive cursors — unlayered + !important so they always beat Tailwind
+ * @layer base / utilities ordering. Disabled rules are separate so they still win.
+ * (stylelint: block must stay after .app-text-scale-* form rules — see disable below.)
+ */
+/* stylelint-disable no-descending-specificity, selector-not-notation */
+button:disabled,
+button[disabled],
+[aria-disabled='true'] {
+  cursor: not-allowed !important;
+}
+
+button:not(:disabled):not([disabled]),
+[role='button']:not([aria-disabled='true']):not(:disabled),
+a:any-link,
+a[href],
+summary,
+select,
+label[for],
+input[type='checkbox'],
+input[type='radio'] {
+  cursor: pointer !important;
+}
+/* stylelint-enable no-descending-specificity, selector-not-notation */
+
+/* Full-width verse rows are native <button>; reinforce for theme/hover stacking. */
+.reader-root button[type='button'].reader-verse-paragraph {
+  cursor: pointer !important;
 }
