@@ -43,6 +43,28 @@ import {
 } from '@server/controllers/scripture/saved-scripture-controller.js';
 import { getScriptureSearch } from '@server/controllers/scripture/scripture-search-controller.js';
 import { getScriptureContext } from '@server/controllers/scripture/scripture-context-controller.js';
+import {
+  deletePrayerList,
+  deletePrayerListMember,
+  deletePrayerPartner,
+  deletePrayerPartnerNote,
+  getPrayerListById,
+  getPrayerListMembers,
+  getPrayerLists,
+  getPrayerListSessions,
+  getPrayerPartnerById,
+  getPrayerPartnerNotes,
+  getPrayerPartners,
+  patchPrayerList,
+  patchPrayerListMembersReorder,
+  patchPrayerPartner,
+  patchPrayerPartnerNote,
+  postPrayerList,
+  postPrayerListMember,
+  postPrayerListSession,
+  postPrayerPartner,
+  postPrayerPartnerNote,
+} from '@server/controllers/prayer/prayer-controller.js';
 
 const apiRouter = Router();
 
@@ -84,5 +106,37 @@ apiRouter.post('/saved-scriptures/batch', postSavedScriptureBatch);
 apiRouter.patch('/saved-scriptures/:savedId', patchSavedScripture);
 apiRouter.patch('/saved-scriptures/:savedId/note', patchSavedScriptureNote);
 apiRouter.delete('/saved-scriptures/:savedId', deleteSavedScripture);
+apiRouter.get('/prayer-partners', getPrayerPartners);
+apiRouter.get('/prayer-partners/:id', getPrayerPartnerById);
+apiRouter.post('/prayer-partners', postPrayerPartner);
+apiRouter.patch('/prayer-partners/:id', patchPrayerPartner);
+apiRouter.delete('/prayer-partners/:id', deletePrayerPartner);
+apiRouter.get('/prayer-partners/:partnerId/notes', getPrayerPartnerNotes);
+apiRouter.post('/prayer-partners/:partnerId/notes', postPrayerPartnerNote);
+apiRouter.patch(
+  '/prayer-partners/:partnerId/notes/:noteId',
+  patchPrayerPartnerNote,
+);
+apiRouter.delete(
+  '/prayer-partners/:partnerId/notes/:noteId',
+  deletePrayerPartnerNote,
+);
+apiRouter.get('/prayer-lists', getPrayerLists);
+apiRouter.get('/prayer-lists/:listId', getPrayerListById);
+apiRouter.post('/prayer-lists', postPrayerList);
+apiRouter.patch('/prayer-lists/:listId', patchPrayerList);
+apiRouter.delete('/prayer-lists/:listId', deletePrayerList);
+apiRouter.get('/prayer-lists/:listId/members', getPrayerListMembers);
+apiRouter.post('/prayer-lists/:listId/members', postPrayerListMember);
+apiRouter.delete(
+  '/prayer-lists/:listId/members/:partnerId',
+  deletePrayerListMember,
+);
+apiRouter.patch(
+  '/prayer-lists/:listId/members/reorder',
+  patchPrayerListMembersReorder,
+);
+apiRouter.get('/prayer-lists/:listId/sessions', getPrayerListSessions);
+apiRouter.post('/prayer-lists/:listId/sessions', postPrayerListSession);
 
 export default apiRouter;
