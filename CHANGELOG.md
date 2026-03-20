@@ -41,6 +41,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Fixed
 
+- Prayer partner image validation now rejects base64/data URLs with explicit guidance to use hosted `http(s)` URLs, and frontend prayer partner forms now block unsupported image inputs before submit.
 - Saved scripture batch/note error logging no longer referenced a removed helper (could surface as 500 on some error paths).
 
 ### Changed
