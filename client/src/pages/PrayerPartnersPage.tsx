@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PrayerPartner } from '@shared/prayer-contracts';
 import { useToast } from '@/components/app/toast-context';
@@ -59,6 +59,11 @@ export function PrayerPartnersPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [needsUpdateOnly, setNeedsUpdateOnly] = useState(false);
+  const [needsUpdateDays, setNeedsUpdateDays] = useState('14');
+  const [imageFilter, setImageFilter] = useState<'all' | 'has' | 'none'>('all');
+  const [notesFilter, setNotesFilter] = useState<'all' | 'has' | 'none'>('all');
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'oldest'>('recent');
   const [name, setName] = useState('');
   const [prayerFocus, setPrayerFocus] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -156,6 +161,49 @@ export function PrayerPartnersPage() {
     }
   }
 
+  const filteredPartners = useMemo(() => {
+    const days = Math.max(1, Number(needsUpdateDays) || 14);
+    const nowMs = Date.now();
+    const list = partners.filter((partner) => {
+      const hasImage = Boolean(partner.imageUrl);
+      const hasNotes = (partner.noteCount ?? 0) > 0;
+      const needsUpdate =
+        !partner.lastNoteAt ||
+        nowMs - new Date(partner.lastNoteAt).getTime() >
+          days * 24 * 60 * 60 * 1000;
+      if (needsUpdateOnly && !needsUpdate) return false;
+      if (imageFilter === 'has' && !hasImage) return false;
+      if (imageFilter === 'none' && hasImage) return false;
+      if (notesFilter === 'has' && !hasNotes) return false;
+      if (notesFilter === 'none' && hasNotes) return false;
+      return true;
+    });
+    return list.slice().sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'oldest') {
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
+      const aRecent = Math.max(
+        new Date(a.updatedAt).getTime(),
+        a.lastNoteAt ? new Date(a.lastNoteAt).getTime() : 0,
+      );
+      const bRecent = Math.max(
+        new Date(b.updatedAt).getTime(),
+        b.lastNoteAt ? new Date(b.lastNoteAt).getTime() : 0,
+      );
+      return bRecent - aRecent;
+    });
+  }, [
+    imageFilter,
+    needsUpdateDays,
+    needsUpdateOnly,
+    notesFilter,
+    partners,
+    sortBy,
+  ]);
+
   return (
     <>
       <SectionHeader
@@ -208,16 +256,76 @@ export function PrayerPartnersPage() {
         </form>
       </Card>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 space-y-3">
         <h2 className="text-base font-semibold text-slate-800">Your roster</h2>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={includeArchived}
-            onChange={(event) => setIncludeArchived(event.target.checked)}
-          />
-          Show archived
-        </label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(event) => setIncludeArchived(event.target.checked)}
+            />
+            Show archived
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={needsUpdateOnly}
+              onChange={(event) => setNeedsUpdateOnly(event.target.checked)}
+            />
+            Needs update only
+          </label>
+          <label className="block text-sm text-slate-700">
+            Needs update days
+            <Input
+              type="number"
+              min={1}
+              max={365}
+              className="mt-1"
+              value={needsUpdateDays}
+              onChange={(event) => setNeedsUpdateDays(event.target.value)}
+            />
+          </label>
+          <label className="block text-sm text-slate-700">
+            Sort
+            <select
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value as 'recent' | 'name' | 'oldest')
+              }>
+              <option value="recent">Recent activity</option>
+              <option value="name">Alphabetical</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </label>
+          <label className="block text-sm text-slate-700">
+            Image filter
+            <select
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              value={imageFilter}
+              onChange={(event) =>
+                setImageFilter(event.target.value as 'all' | 'has' | 'none')
+              }>
+              <option value="all">All</option>
+              <option value="has">Has image</option>
+              <option value="none">No image</option>
+            </select>
+          </label>
+          <label className="block text-sm text-slate-700">
+            Notes filter
+            <select
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              value={notesFilter}
+              onChange={(event) =>
+                setNotesFilter(event.target.value as 'all' | 'has' | 'none')
+              }>
+              <option value="all">All</option>
+              <option value="has">Has notes</option>
+              <option value="none">No notes</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {isLoading ? (
@@ -228,16 +336,16 @@ export function PrayerPartnersPage() {
         <EmptyState title="Could not load partners" description={error} />
       ) : null}
 
-      {!isLoading && !error && partners.length === 0 ? (
+      {!isLoading && !error && filteredPartners.length === 0 ? (
         <EmptyState
-          title="No prayer partners yet"
-          description="Add your first partner above to begin building your prayer roster."
+          title="No prayer partners match this filter"
+          description="Try adjusting filters or add your first partner above."
         />
       ) : null}
 
-      {!isLoading && !error && partners.length > 0 ? (
+      {!isLoading && !error && filteredPartners.length > 0 ? (
         <div className="space-y-3">
-          {partners.map((partner) => (
+          {filteredPartners.map((partner) => (
             <Card key={partner.partnerId} className="space-y-3 border p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -247,6 +355,12 @@ export function PrayerPartnersPage() {
                   </p>
                   <p className="mt-1 text-sm text-slate-700">
                     {partner.prayerFocus}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Notes: {partner.noteCount ?? 0}
+                    {partner.lastNoteAt
+                      ? ` · Last update ${new Date(partner.lastNoteAt).toLocaleDateString()}`
+                      : ' · No updates yet'}
                   </p>
                 </div>
                 {partner.imageUrl ? (

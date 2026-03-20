@@ -5,6 +5,8 @@ export type PrayerPartner = {
   prayerFocus: string;
   imageUrl: string | null;
   isArchived: boolean;
+  noteCount?: number;
+  lastNoteAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -15,6 +17,8 @@ export type PrayerList = {
   name: string;
   description: string | null;
   isArchived: boolean;
+  sessionCount?: number;
+  lastSessionAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };

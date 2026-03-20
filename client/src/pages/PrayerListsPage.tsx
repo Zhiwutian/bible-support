@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PrayerList } from '@shared/prayer-contracts';
 import { useToast } from '@/components/app/toast-context';
@@ -22,6 +22,9 @@ export function PrayerListsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [notPrayedRecentlyOnly, setNotPrayedRecentlyOnly] = useState(false);
+  const [notPrayedDays, setNotPrayedDays] = useState('7');
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'oldest'>('recent');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -95,6 +98,36 @@ export function PrayerListsPage() {
     }
   }
 
+  const filteredLists = useMemo(() => {
+    const days = Math.max(1, Number(notPrayedDays) || 7);
+    const nowMs = Date.now();
+    const list = lists.filter((item) => {
+      const notPrayedRecently =
+        !item.lastSessionAt ||
+        nowMs - new Date(item.lastSessionAt).getTime() >
+          days * 24 * 60 * 60 * 1000;
+      if (notPrayedRecentlyOnly && !notPrayedRecently) return false;
+      return true;
+    });
+    return list.slice().sort((a, b) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name);
+      if (sortBy === 'oldest') {
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+      }
+      const aRecent = Math.max(
+        new Date(a.updatedAt).getTime(),
+        a.lastSessionAt ? new Date(a.lastSessionAt).getTime() : 0,
+      );
+      const bRecent = Math.max(
+        new Date(b.updatedAt).getTime(),
+        b.lastSessionAt ? new Date(b.lastSessionAt).getTime() : 0,
+      );
+      return bRecent - aRecent;
+    });
+  }, [lists, notPrayedDays, notPrayedRecentlyOnly, sortBy]);
+
   return (
     <>
       <SectionHeader
@@ -134,16 +167,52 @@ export function PrayerListsPage() {
         </form>
       </Card>
 
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 space-y-3">
         <h2 className="text-base font-semibold text-slate-800">Your lists</h2>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={includeArchived}
-            onChange={(event) => setIncludeArchived(event.target.checked)}
-          />
-          Show archived
-        </label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(event) => setIncludeArchived(event.target.checked)}
+            />
+            Show archived
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={notPrayedRecentlyOnly}
+              onChange={(event) =>
+                setNotPrayedRecentlyOnly(event.target.checked)
+              }
+            />
+            Not prayed recently
+          </label>
+          <label className="block text-sm text-slate-700">
+            Not prayed days
+            <Input
+              type="number"
+              min={1}
+              max={365}
+              className="mt-1"
+              value={notPrayedDays}
+              onChange={(event) => setNotPrayedDays(event.target.value)}
+            />
+          </label>
+          <label className="block text-sm text-slate-700">
+            Sort
+            <select
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value as 'recent' | 'name' | 'oldest')
+              }>
+              <option value="recent">Recent activity</option>
+              <option value="name">Alphabetical</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       {isLoading ? (
@@ -154,16 +223,16 @@ export function PrayerListsPage() {
         <EmptyState title="Could not load lists" description={error} />
       ) : null}
 
-      {!isLoading && !error && lists.length === 0 ? (
+      {!isLoading && !error && filteredLists.length === 0 ? (
         <EmptyState
-          title="No prayer lists yet"
-          description="Create your first list above and start organizing your partners."
+          title="No prayer lists match this filter"
+          description="Try adjusting filters or create a new list above."
         />
       ) : null}
 
-      {!isLoading && !error && lists.length > 0 ? (
+      {!isLoading && !error && filteredLists.length > 0 ? (
         <div className="space-y-3">
-          {lists.map((list) => (
+          {filteredLists.map((list) => (
             <Card key={list.listId} className="space-y-3 border p-4">
               <div>
                 <p className="text-base font-semibold text-slate-800">
@@ -175,6 +244,12 @@ export function PrayerListsPage() {
                     {list.description}
                   </p>
                 ) : null}
+                <p className="mt-1 text-xs text-slate-500">
+                  Sessions: {list.sessionCount ?? 0}
+                  {list.lastSessionAt
+                    ? ` · Last prayed ${new Date(list.lastSessionAt).toLocaleDateString()}`
+                    : ' · Not prayed yet'}
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link to={`/prayer-lists/${list.listId}`}>

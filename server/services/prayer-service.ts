@@ -14,6 +14,14 @@ type PrayerListRow = typeof prayerLists.$inferSelect;
 type PrayerListMemberRow = typeof prayerListMembers.$inferSelect;
 type PrayerSessionRow = typeof prayerSessions.$inferSelect;
 type PrayerPartnerNoteRow = typeof prayerPartnerNotes.$inferSelect;
+type PrayerPartnerWithActivity = PrayerPartnerRow & {
+  noteCount: number;
+  lastNoteAt: Date | null;
+};
+type PrayerListWithActivity = PrayerListRow & {
+  sessionCount: number;
+  lastSessionAt: Date | null;
+};
 type PrayerDb = ReturnType<typeof requireDb>;
 type PrayerTx = Parameters<Parameters<PrayerDb['transaction']>[0]>[0];
 
@@ -120,28 +128,147 @@ async function applyMemberOrder(
   }
 }
 
+function partnerActivityDate(partner: PrayerPartnerWithActivity): number {
+  const lastNoteAtMs = partner.lastNoteAt
+    ? new Date(partner.lastNoteAt).getTime()
+    : 0;
+  const updatedAtMs = new Date(partner.updatedAt).getTime();
+  return Math.max(lastNoteAtMs, updatedAtMs);
+}
+
+function listActivityDate(list: PrayerListWithActivity): number {
+  const lastSessionAtMs = list.lastSessionAt
+    ? new Date(list.lastSessionAt).getTime()
+    : 0;
+  const updatedAtMs = new Date(list.updatedAt).getTime();
+  return Math.max(lastSessionAtMs, updatedAtMs);
+}
+
+async function enrichPrayerPartnersWithActivity(
+  db: PrayerDb | PrayerTx,
+  ownerUserId: string,
+  rows: PrayerPartnerRow[],
+): Promise<PrayerPartnerWithActivity[]> {
+  if (rows.length === 0) return [];
+  const partnerIds = rows.map((row) => row.partnerId);
+  const noteRows = await db
+    .select({
+      partnerId: prayerPartnerNotes.partnerId,
+      noteCount: sql<number>`count(*)`,
+      lastNoteAt: sql<Date | null>`max(${prayerPartnerNotes.createdAt})`,
+    })
+    .from(prayerPartnerNotes)
+    .where(
+      and(
+        eq(prayerPartnerNotes.ownerUserId, ownerUserId),
+        inArray(prayerPartnerNotes.partnerId, partnerIds),
+      ),
+    )
+    .groupBy(prayerPartnerNotes.partnerId);
+  const notesByPartner = new Map<
+    number,
+    { noteCount: number; lastNoteAt: Date | null }
+  >();
+  for (const row of noteRows) {
+    if (row.partnerId === null) continue;
+    notesByPartner.set(row.partnerId, {
+      noteCount: Number(row.noteCount),
+      lastNoteAt: row.lastNoteAt,
+    });
+  }
+  return rows.map((row) => {
+    const noteInfo = notesByPartner.get(row.partnerId);
+    return {
+      ...row,
+      noteCount: noteInfo?.noteCount ?? 0,
+      lastNoteAt: noteInfo?.lastNoteAt ?? null,
+    };
+  });
+}
+
+async function enrichPrayerListsWithActivity(
+  db: PrayerDb | PrayerTx,
+  ownerUserId: string,
+  rows: PrayerListRow[],
+): Promise<PrayerListWithActivity[]> {
+  if (rows.length === 0) return [];
+  const listIds = rows.map((row) => row.listId);
+  const sessionRows = await db
+    .select({
+      listId: prayerSessions.listId,
+      sessionCount: sql<number>`count(*)`,
+      lastSessionAt: sql<Date | null>`max(${prayerSessions.createdAt})`,
+    })
+    .from(prayerSessions)
+    .where(
+      and(
+        eq(prayerSessions.ownerUserId, ownerUserId),
+        inArray(prayerSessions.listId, listIds),
+      ),
+    )
+    .groupBy(prayerSessions.listId);
+  const sessionsByList = new Map<
+    number,
+    { sessionCount: number; lastSessionAt: Date | null }
+  >();
+  for (const row of sessionRows) {
+    if (row.listId === null) continue;
+    sessionsByList.set(row.listId, {
+      sessionCount: Number(row.sessionCount),
+      lastSessionAt: row.lastSessionAt,
+    });
+  }
+  return rows.map((row) => {
+    const sessionInfo = sessionsByList.get(row.listId);
+    return {
+      ...row,
+      sessionCount: sessionInfo?.sessionCount ?? 0,
+      lastSessionAt: sessionInfo?.lastSessionAt ?? null,
+    };
+  });
+}
+
 export async function readPrayerPartners(
   ownerUserId: string,
   includeArchived: boolean,
-): Promise<PrayerPartnerRow[]> {
+): Promise<PrayerPartnerWithActivity[]> {
   const db = requireDb();
   const conditions = [eq(prayerPartners.ownerUserId, ownerUserId)];
   if (!includeArchived) {
     conditions.push(eq(prayerPartners.isArchived, false));
   }
-  return db
+  const rows = await db
     .select()
     .from(prayerPartners)
     .where(and(...conditions))
     .orderBy(asc(prayerPartners.isArchived), asc(prayerPartners.name));
+  const withActivity = await enrichPrayerPartnersWithActivity(
+    db,
+    ownerUserId,
+    rows,
+  );
+  return withActivity.sort((a, b) => {
+    const activityDelta = partnerActivityDate(b) - partnerActivityDate(a);
+    if (activityDelta !== 0) return activityDelta;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export async function readPrayerPartner(
   ownerUserId: string,
   partnerId: number,
-): Promise<PrayerPartnerRow> {
+): Promise<PrayerPartnerWithActivity> {
   const db = requireDb();
-  return requireOwnedPartner(db, ownerUserId, partnerId);
+  const row = await requireOwnedPartner(db, ownerUserId, partnerId);
+  const [withActivity] = await enrichPrayerPartnersWithActivity(
+    db,
+    ownerUserId,
+    [row],
+  );
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer partner not found');
+  }
+  return withActivity;
 }
 
 export async function createPrayerPartner(input: {
@@ -149,7 +276,7 @@ export async function createPrayerPartner(input: {
   name: string;
   prayerFocus: string;
   imageUrl?: string | null;
-}): Promise<PrayerPartnerRow> {
+}): Promise<PrayerPartnerWithActivity> {
   const db = requireDb();
   const [created] = await db
     .insert(prayerPartners)
@@ -163,7 +290,15 @@ export async function createPrayerPartner(input: {
   if (!created) {
     throw new ClientError(500, 'failed to create prayer partner');
   }
-  return created;
+  const [withActivity] = await enrichPrayerPartnersWithActivity(
+    db,
+    input.ownerUserId,
+    [created],
+  );
+  if (!withActivity) {
+    throw new ClientError(500, 'failed to create prayer partner');
+  }
+  return withActivity;
 }
 
 export async function updatePrayerPartner(
@@ -175,7 +310,7 @@ export async function updatePrayerPartner(
     imageUrl?: string | null;
     isArchived?: boolean;
   },
-): Promise<PrayerPartnerRow> {
+): Promise<PrayerPartnerWithActivity> {
   const db = requireDb();
   await requireOwnedPartner(db, ownerUserId, partnerId);
   const updates: Partial<typeof prayerPartners.$inferInsert> = {
@@ -201,7 +336,15 @@ export async function updatePrayerPartner(
   if (!updated) {
     throw new ClientError(404, 'prayer partner not found');
   }
-  return updated;
+  const [withActivity] = await enrichPrayerPartnersWithActivity(
+    db,
+    ownerUserId,
+    [updated],
+  );
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer partner not found');
+  }
+  return withActivity;
 }
 
 export async function removePrayerPartner(
@@ -320,32 +463,49 @@ export async function removePrayerPartnerNote(
 export async function readPrayerLists(
   ownerUserId: string,
   includeArchived: boolean,
-): Promise<PrayerListRow[]> {
+): Promise<PrayerListWithActivity[]> {
   const db = requireDb();
   const conditions = [eq(prayerLists.ownerUserId, ownerUserId)];
   if (!includeArchived) {
     conditions.push(eq(prayerLists.isArchived, false));
   }
-  return db
+  const rows = await db
     .select()
     .from(prayerLists)
     .where(and(...conditions))
     .orderBy(asc(prayerLists.isArchived), asc(prayerLists.name));
+  const withActivity = await enrichPrayerListsWithActivity(
+    db,
+    ownerUserId,
+    rows,
+  );
+  return withActivity.sort((a, b) => {
+    const activityDelta = listActivityDate(b) - listActivityDate(a);
+    if (activityDelta !== 0) return activityDelta;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export async function readPrayerList(
   ownerUserId: string,
   listId: number,
-): Promise<PrayerListRow> {
+): Promise<PrayerListWithActivity> {
   const db = requireDb();
-  return requireOwnedList(db, ownerUserId, listId);
+  const row = await requireOwnedList(db, ownerUserId, listId);
+  const [withActivity] = await enrichPrayerListsWithActivity(db, ownerUserId, [
+    row,
+  ]);
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer list not found');
+  }
+  return withActivity;
 }
 
 export async function createPrayerList(input: {
   ownerUserId: string;
   name: string;
   description?: string | null;
-}): Promise<PrayerListRow> {
+}): Promise<PrayerListWithActivity> {
   const db = requireDb();
   const [created] = await db
     .insert(prayerLists)
@@ -358,7 +518,15 @@ export async function createPrayerList(input: {
   if (!created) {
     throw new ClientError(500, 'failed to create prayer list');
   }
-  return created;
+  const [withActivity] = await enrichPrayerListsWithActivity(
+    db,
+    input.ownerUserId,
+    [created],
+  );
+  if (!withActivity) {
+    throw new ClientError(500, 'failed to create prayer list');
+  }
+  return withActivity;
 }
 
 export async function updatePrayerList(
@@ -369,7 +537,7 @@ export async function updatePrayerList(
     description?: string | null;
     isArchived?: boolean;
   },
-): Promise<PrayerListRow> {
+): Promise<PrayerListWithActivity> {
   const db = requireDb();
   await requireOwnedList(db, ownerUserId, listId);
   const updates: Partial<typeof prayerLists.$inferInsert> = {
@@ -392,7 +560,13 @@ export async function updatePrayerList(
   if (!updated) {
     throw new ClientError(404, 'prayer list not found');
   }
-  return updated;
+  const [withActivity] = await enrichPrayerListsWithActivity(db, ownerUserId, [
+    updated,
+  ]);
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer list not found');
+  }
+  return withActivity;
 }
 
 export async function removePrayerList(
