@@ -16,6 +16,7 @@ import {
   Card,
   EmptyState,
   Input,
+  ModalShell,
   SectionHeader,
   SettingHelpButton,
   SettingHelpModal,
@@ -48,6 +49,8 @@ export function SearchPage() {
   const [savedItems, setSavedItems] = useState<SavedScriptureItem[]>([]);
   const [selectedVerseKeys, setSelectedVerseKeys] = useState<string[]>([]);
   const [isBatchSaving, setIsBatchSaving] = useState(false);
+  const [saveActionsTarget, setSaveActionsTarget] =
+    useState<ScriptureVerseResult | null>(null);
   const [settingsHelp, setSettingsHelp] = useState<{
     title: string;
     description: string;
@@ -195,6 +198,16 @@ export function SearchPage() {
     });
     navigate(`/reader?${readerParams.toString()}`);
   }
+
+  const saveActionsTargetKey = saveActionsTarget
+    ? getVerseKey(saveActionsTarget)
+    : null;
+  const isSaveActionsTargetSelected = saveActionsTargetKey
+    ? selectedVerseKeys.includes(saveActionsTargetKey)
+    : false;
+  const isSaveActionsTargetSaved = saveActionsTargetKey
+    ? savedKeySet.has(saveActionsTargetKey)
+    : false;
 
   return (
     <>
@@ -467,33 +480,11 @@ export function SearchPage() {
               </p>
               <p className="leading-8 text-slate-800">{verse.verseText}</p>
               <div className="flex items-center justify-between gap-3">
-                <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={selectedVerseKeys.includes(getVerseKey(verse))}
-                    onChange={() => toggleSelectedVerse(verse)}
-                    disabled={savedKeySet.has(getVerseKey(verse))}
-                  />
-                  Select for grouped save
-                  <SettingHelpButton
-                    settingLabel="Grouped save selection"
-                    onClick={() =>
-                      setSettingsHelp({
-                        title: 'Grouped save',
-                        description:
-                          'Select multiple verses, then use Save selected to store them together as one grouped save action.',
-                      })
-                    }
-                  />
-                </label>
                 <Button
                   variant="ghost"
                   className="min-h-11"
-                  onClick={() => handleSaveVerse(verse)}
-                  disabled={savedKeySet.has(getVerseKey(verse))}>
-                  {savedKeySet.has(getVerseKey(verse))
-                    ? 'Saved'
-                    : 'Save to Collection'}
+                  onClick={() => setSaveActionsTarget(verse)}>
+                  Save actions
                 </Button>
                 <Button
                   variant="ghost"
@@ -511,6 +502,63 @@ export function SearchPage() {
         titleId="search-settings-help-title"
         onClose={() => setSettingsHelp(null)}
       />
+      {saveActionsTarget ? (
+        <ModalShell
+          title="Save actions"
+          titleId="search-save-actions-title"
+          onClose={() => setSaveActionsTarget(null)}>
+          <p className="mt-3 text-sm text-slate-700">
+            {saveActionsTarget.reference} ({saveActionsTarget.translation})
+          </p>
+          <div className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={isSaveActionsTargetSelected}
+                onChange={() => toggleSelectedVerse(saveActionsTarget)}
+                disabled={isSaveActionsTargetSaved}
+              />
+              Select for grouped save
+            </label>
+            <SettingHelpButton
+              settingLabel="Grouped save selection"
+              onClick={() =>
+                setSettingsHelp({
+                  title: 'Grouped save',
+                  description:
+                    'Select multiple verses, then use Save selected to store them together as one grouped save action.',
+                })
+              }
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            {selectedVerseKeys.length > 0 ? (
+              <Button
+                variant="ghost"
+                className="min-h-11"
+                onClick={() => void handleBatchSaveSelected()}
+                disabled={isBatchSaving}>
+                {isBatchSaving
+                  ? 'Saving selected...'
+                  : `Save selected (${selectedVerseKeys.length})`}
+              </Button>
+            ) : null}
+            <Button
+              variant="ghost"
+              className="min-h-11"
+              onClick={() => void handleSaveVerse(saveActionsTarget)}
+              disabled={isSaveActionsTargetSaved}>
+              {isSaveActionsTargetSaved ? 'Saved' : 'Save to Collection'}
+            </Button>
+            <Button
+              variant="primary"
+              className="min-h-11"
+              onClick={() => setSaveActionsTarget(null)}>
+              Done
+            </Button>
+          </div>
+        </ModalShell>
+      ) : null}
     </>
   );
 }

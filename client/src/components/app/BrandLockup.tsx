@@ -42,8 +42,12 @@ export function BrandLockup({ context, compact = false }: BrandLockupProps) {
       : config.containerClassName;
   const logoClassName =
     context === 'header' && compact
-      ? 'h-12 w-12 shrink-0 rounded-sm'
+      ? 'h-[75px] w-[75px] shrink-0 rounded-sm'
       : config.logoClassName;
+  const titleClassName =
+    context === 'header' && compact
+      ? 'app-brand-title app-brand-title-header-compact text-slate-800'
+      : config.titleClassName;
   return (
     <div className={containerClassName}>
       <img
@@ -51,9 +55,7 @@ export function BrandLockup({ context, compact = false }: BrandLockupProps) {
         alt="Scripture and Solace logo"
         className={logoClassName}
       />
-      {!compact ? (
-        <span className={config.titleClassName}>Scripture &amp; Solace</span>
-      ) : null}
+      <span className={titleClassName}>Scripture and Solace</span>
     </div>
   );
 }

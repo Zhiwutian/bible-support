@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/app/ToastProvider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -560,20 +560,37 @@ describe('App', () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /search verses/i }));
-    const selectBoxes = await screen.findAllByRole('checkbox', {
-      name: /select for grouped save/i,
+    const saveActionButtons = await screen.findAllByRole('button', {
+      name: /save actions/i,
     });
-    const enabledCheckbox = selectBoxes.find(
-      (checkbox) => !checkbox.hasAttribute('disabled'),
-    );
-    expect(enabledCheckbox).toBeDefined();
-    await user.click(enabledCheckbox!);
+    let groupedSaveCheckbox: HTMLElement | null = null;
+    for (const actionButton of saveActionButtons) {
+      await user.click(actionButton);
+      const candidate = await screen.findByRole('checkbox', {
+        name: /select for grouped save/i,
+      });
+      if (!candidate.hasAttribute('disabled')) {
+        groupedSaveCheckbox = candidate;
+        break;
+      }
+      await user.click(screen.getByRole('button', { name: 'Done' }));
+    }
+    if (!groupedSaveCheckbox) {
+      throw new Error('Expected at least one enabled grouped save checkbox');
+    }
+    const saveActionsDialog = screen.getByRole('dialog', {
+      name: /save actions/i,
+    });
+    await user.click(groupedSaveCheckbox);
     await user.click(
-      screen.getByRole('button', { name: /save selected \(1\)/i }),
+      within(saveActionsDialog).getByRole('button', {
+        name: /save selected \(1\)/i,
+      }),
     );
     expect(
       await screen.findByText(/selected verses saved/i),
     ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Done' }));
 
     await user.click(screen.getByRole('button', { name: 'Open menu' }));
     await user.click(await screen.findByRole('link', { name: 'Saved' }));

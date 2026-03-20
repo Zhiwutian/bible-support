@@ -24,6 +24,10 @@
   font-size: 1rem;
 }
 
+.app-brand-title-header-compact {
+  font-size: 1.5rem;
+}
+
 .app-brand-title-menu {
   font-size: 1rem;
 }
@@ -34,6 +38,10 @@
 
 @media (width >= 40rem) {
   .app-brand-title-header {
+    font-size: 3rem;
+  }
+
+  .app-brand-title-header-compact {
     font-size: 3rem;
   }
 

@@ -80,8 +80,7 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isHeaderCompact, setIsHeaderCompact] = useState(false);
-  const lastScrollYRef = useRef(0);
+  const isHeaderCompact = true;
   const menuScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [hasEnteredGuestMode, setHasEnteredGuestMode] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -404,49 +403,6 @@ export default function App() {
     menuScrollContainerRef.current.scrollTop = 0;
   }, [isMobileMenuOpen]);
 
-  useEffect(() => {
-    const COMPACT_ENTER_SCROLL_Y = 56;
-    const COMPACT_EXIT_SCROLL_Y = 24;
-    const MIN_SCROLLABLE_DISTANCE = 80;
-
-    function getMaxScrollableDistance() {
-      return Math.max(
-        0,
-        document.documentElement.scrollHeight - window.innerHeight,
-      );
-    }
-
-    function handleHeaderScroll() {
-      const currentScrollY = window.scrollY;
-      const scrollingDown = currentScrollY > lastScrollYRef.current;
-      lastScrollYRef.current = currentScrollY;
-      const maxScrollableDistance = getMaxScrollableDistance();
-
-      setIsHeaderCompact((previous) => {
-        if (currentScrollY <= 0) return false;
-        if (!previous) {
-          return (
-            scrollingDown &&
-            maxScrollableDistance >= MIN_SCROLLABLE_DISTANCE &&
-            currentScrollY >= COMPACT_ENTER_SCROLL_Y
-          );
-        }
-        if (!scrollingDown && currentScrollY <= COMPACT_EXIT_SCROLL_Y) {
-          return false;
-        }
-        return true;
-      });
-    }
-
-    handleHeaderScroll();
-    window.addEventListener('scroll', handleHeaderScroll, { passive: true });
-    window.addEventListener('resize', handleHeaderScroll);
-    return () => {
-      window.removeEventListener('scroll', handleHeaderScroll);
-      window.removeEventListener('resize', handleHeaderScroll);
-    };
-  }, []);
-
   return (
     <div
       className={`min-h-screen w-full ${contrastClassName} ${textScaleClassName}`}>
@@ -606,12 +562,7 @@ export default function App() {
           <div className="min-w-0 xl:col-span-10 xl:col-start-2">
             <header
               className={`sticky top-0 z-40 -mx-6 mb-6 border-b px-6 py-3 backdrop-blur ${navClassName}`}>
-              <nav
-                className={`flex items-start ${
-                  isHeaderCompact
-                    ? 'flex-row justify-between gap-3'
-                    : 'flex-col gap-2'
-                }`}>
+              <nav className="flex flex-row items-start justify-between gap-3">
                 <BrandLockup context="header" compact={isHeaderCompact} />
                 <Button
                   variant="ghost"
