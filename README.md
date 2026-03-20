@@ -126,6 +126,7 @@ Included in the current MVP baseline:
 - Bible chapter reader route with book/chapter/translation URL-state navigation.
 - Verse search with guided/reference/keyword modes and translation support.
 - Saved scriptures with grouped batch save and per-item notes.
+- Prayer partners and prayer lists with account-scoped CRUD, ordered list membership, partner progress notes, and prayer-session tracking.
 - Database-backed emotion/scripture/context data with seeded default content.
 - Standardized API envelope responses and core server hardening (security middleware, rate limiting, error handling).
 
@@ -174,6 +175,26 @@ Responses use an API envelope:
 - `PATCH /api/saved-scriptures/:savedId/note` - update/clear one note for a saved verse item
 - `DELETE /api/saved-scriptures/:savedId` - remove one saved verse for current auth scope
 - `GET /api/reader/chapter` - return one canonicalized chapter payload with prev/next metadata
+- `GET /api/prayer-partners` - list prayer partners for the signed-in user (`includeArchived` optional)
+- `POST /api/prayer-partners` - create prayer partner
+- `GET /api/prayer-partners/:id` - read one prayer partner
+- `PATCH /api/prayer-partners/:id` - update or archive/unarchive one prayer partner
+- `DELETE /api/prayer-partners/:id` - delete one prayer partner
+- `GET /api/prayer-partners/:partnerId/notes` - list progress notes for one partner
+- `POST /api/prayer-partners/:partnerId/notes` - add one progress note
+- `PATCH /api/prayer-partners/:partnerId/notes/:noteId` - edit one progress note
+- `DELETE /api/prayer-partners/:partnerId/notes/:noteId` - delete one progress note
+- `GET /api/prayer-lists` - list prayer lists for the signed-in user (`includeArchived` optional)
+- `POST /api/prayer-lists` - create prayer list
+- `GET /api/prayer-lists/:listId` - read one prayer list
+- `PATCH /api/prayer-lists/:listId` - update or archive/unarchive one prayer list
+- `DELETE /api/prayer-lists/:listId` - delete one prayer list
+- `GET /api/prayer-lists/:listId/members` - list ordered members for one list
+- `POST /api/prayer-lists/:listId/members` - add partner to list (optional insert position)
+- `PATCH /api/prayer-lists/:listId/members/reorder` - reorder all members for one list
+- `DELETE /api/prayer-lists/:listId/members/:partnerId` - remove partner from one list
+- `GET /api/prayer-lists/:listId/sessions` - list prayer sessions for one list
+- `POST /api/prayer-lists/:listId/sessions` - log one prayer session for one list
 - `GET /api/todos` - legacy todo demo endpoint (still available)
 - `POST /api/todos` - create todo with `{ "task": "..." }`
 - `PATCH /api/todos/:todoId` - update completion with `{ "isCompleted": true|false }`

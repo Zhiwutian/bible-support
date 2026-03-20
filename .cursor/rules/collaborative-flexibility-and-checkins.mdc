@@ -1,0 +1,35 @@
+---
+description: Stay flexible in implementation and check in before meaningful scope or behavior changes
+alwaysApply: true
+---
+
+# Collaborative Flexibility and Check-Ins
+
+Use the approved plan as a guide, not a cage.
+
+## Non-Negotiable Invariants (stay strict)
+
+- Preserve security, auth ownership boundaries, and secret-safety requirements.
+- Preserve data integrity and migration safety.
+- Preserve agreed product outcomes and acceptance criteria unless the user approves a change.
+
+## Flexible Execution (allowed without interruption)
+
+- Adjust internal implementation details when user-visible behavior is unchanged.
+- Refactor low-risk structure, naming, and test organization when it improves maintainability.
+- Choose alternative technical paths if they better fit the codebase, while keeping outcomes intact.
+
+## Mandatory Check-In Triggers
+
+Pause and ask the user before proceeding when a discovered issue would change any of:
+
+- Feature scope or priorities
+- User-visible behavior or UX flow
+- Data model semantics or retention policy
+- Delivery timeline, complexity, or risk profile
+
+## Communication Standard
+
+- Briefly explain the issue, proposed options, and recommendation.
+- Continue autonomously only after user confirmation when a trigger applies.
+- If no trigger applies, proceed and report what changed and why.
