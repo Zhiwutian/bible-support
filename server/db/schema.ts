@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   index,
   integer,
@@ -386,6 +387,189 @@ export const readerState = pgTable(
     readerStateBookmarkTranslationCheck: check(
       'reader_state_bookmark_translation_check',
       sql`${table.bookmarkTranslation} is null or ${table.bookmarkTranslation} in ('KJV', 'ASV', 'WEB')`,
+    ),
+  }),
+);
+
+export const prayerPartners = pgTable(
+  'prayer_partners',
+  {
+    partnerId: serial('partnerId').primaryKey(),
+    ownerUserId: uuid('ownerUserId')
+      .notNull()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    prayerFocus: text('prayerFocus').notNull(),
+    imageUrl: text('imageUrl'),
+    isArchived: boolean('isArchived').notNull().default(false),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    prayerPartnersOwnerUserIdx: index('prayer_partners_owner_user_idx').on(
+      table.ownerUserId,
+    ),
+    prayerPartnersOwnerArchivedCreatedIdx: index(
+      'prayer_partners_owner_archived_created_idx',
+    ).on(table.ownerUserId, table.isArchived, table.createdAt, table.partnerId),
+    prayerPartnersNameLengthCheck: check(
+      'prayer_partners_name_length_check',
+      sql`char_length(${table.name}) <= 120`,
+    ),
+    prayerPartnersPrayerFocusLengthCheck: check(
+      'prayer_partners_prayer_focus_length_check',
+      sql`char_length(${table.prayerFocus}) <= 4000`,
+    ),
+    prayerPartnersImageUrlLengthCheck: check(
+      'prayer_partners_image_url_length_check',
+      sql`${table.imageUrl} is null or char_length(${table.imageUrl}) <= 2048`,
+    ),
+  }),
+);
+
+export const prayerLists = pgTable(
+  'prayer_lists',
+  {
+    listId: serial('listId').primaryKey(),
+    ownerUserId: uuid('ownerUserId')
+      .notNull()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description'),
+    isArchived: boolean('isArchived').notNull().default(false),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    prayerListsOwnerUserIdx: index('prayer_lists_owner_user_idx').on(
+      table.ownerUserId,
+    ),
+    prayerListsOwnerArchivedCreatedIdx: index(
+      'prayer_lists_owner_archived_created_idx',
+    ).on(table.ownerUserId, table.isArchived, table.createdAt, table.listId),
+    prayerListsNameLengthCheck: check(
+      'prayer_lists_name_length_check',
+      sql`char_length(${table.name}) <= 120`,
+    ),
+    prayerListsDescriptionLengthCheck: check(
+      'prayer_lists_description_length_check',
+      sql`${table.description} is null or char_length(${table.description}) <= 2000`,
+    ),
+  }),
+);
+
+export const prayerListMembers = pgTable(
+  'prayer_list_members',
+  {
+    prayerListMemberId: serial('prayerListMemberId').primaryKey(),
+    listId: integer('listId')
+      .notNull()
+      .references(() => prayerLists.listId, { onDelete: 'cascade' }),
+    partnerId: integer('partnerId')
+      .notNull()
+      .references(() => prayerPartners.partnerId, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    prayerListMembersListIdx: index('prayer_list_members_list_idx').on(
+      table.listId,
+    ),
+    prayerListMembersPartnerIdx: index('prayer_list_members_partner_idx').on(
+      table.partnerId,
+    ),
+    prayerListMembersListPartnerUnique: uniqueIndex(
+      'prayer_list_members_list_partner_unique',
+    ).on(table.listId, table.partnerId),
+    prayerListMembersListPositionUnique: uniqueIndex(
+      'prayer_list_members_list_position_unique',
+    ).on(table.listId, table.position),
+    prayerListMembersPositionPositiveCheck: check(
+      'prayer_list_members_position_positive_check',
+      sql`${table.position} > 0`,
+    ),
+  }),
+);
+
+export const prayerSessions = pgTable(
+  'prayer_sessions',
+  {
+    prayerSessionId: serial('prayerSessionId').primaryKey(),
+    ownerUserId: uuid('ownerUserId')
+      .notNull()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    listId: integer('listId').references(() => prayerLists.listId, {
+      onDelete: 'set null',
+    }),
+    listNameSnapshot: text('listNameSnapshot').notNull(),
+    note: text('note'),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    prayerSessionsOwnerCreatedIdx: index(
+      'prayer_sessions_owner_created_idx',
+    ).on(table.ownerUserId, table.createdAt, table.prayerSessionId),
+    prayerSessionsListCreatedIdx: index('prayer_sessions_list_created_idx').on(
+      table.listId,
+      table.createdAt,
+      table.prayerSessionId,
+    ),
+    prayerSessionsListNameSnapshotLengthCheck: check(
+      'prayer_sessions_list_name_snapshot_length_check',
+      sql`char_length(${table.listNameSnapshot}) <= 120`,
+    ),
+    prayerSessionsNoteLengthCheck: check(
+      'prayer_sessions_note_length_check',
+      sql`${table.note} is null or char_length(${table.note}) <= 4000`,
+    ),
+  }),
+);
+
+export const prayerPartnerNotes = pgTable(
+  'prayer_partner_notes',
+  {
+    prayerPartnerNoteId: serial('prayerPartnerNoteId').primaryKey(),
+    ownerUserId: uuid('ownerUserId')
+      .notNull()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    partnerId: integer('partnerId').references(() => prayerPartners.partnerId, {
+      onDelete: 'set null',
+    }),
+    partnerNameSnapshot: text('partnerNameSnapshot').notNull(),
+    note: text('note').notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    prayerPartnerNotesOwnerCreatedIdx: index(
+      'prayer_partner_notes_owner_created_idx',
+    ).on(table.ownerUserId, table.createdAt, table.prayerPartnerNoteId),
+    prayerPartnerNotesPartnerCreatedIdx: index(
+      'prayer_partner_notes_partner_created_idx',
+    ).on(table.partnerId, table.createdAt, table.prayerPartnerNoteId),
+    prayerPartnerNotesPartnerNameSnapshotLengthCheck: check(
+      'prayer_partner_notes_partner_name_snapshot_length_check',
+      sql`char_length(${table.partnerNameSnapshot}) <= 120`,
+    ),
+    prayerPartnerNotesNoteLengthCheck: check(
+      'prayer_partner_notes_note_length_check',
+      sql`char_length(${table.note}) <= 4000`,
     ),
   }),
 );
