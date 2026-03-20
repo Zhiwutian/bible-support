@@ -61,17 +61,51 @@ const listMemberParamsSchema = z.object({
   partnerId: z.coerce.number().int().positive(),
 });
 
+const prayerPartnerImageUrlSchema = z
+  .string()
+  .trim()
+  .max(2048, {
+    message:
+      'imageUrl must be 2048 characters or less. Use a hosted http(s) URL, not base64 data.',
+  })
+  .superRefine((value, ctx) => {
+    if (value.toLowerCase().startsWith('data:')) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'imageUrl must be a hosted http(s) URL. Base64 data URLs are not supported.',
+      });
+      return;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'imageUrl must be a valid URL',
+      });
+      return;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'imageUrl must use http or https',
+      });
+    }
+  });
+
 const createPrayerPartnerBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   prayerFocus: z.string().trim().min(1).max(4000),
-  imageUrl: z.string().trim().url().max(2048).nullable().optional(),
+  imageUrl: prayerPartnerImageUrlSchema.nullable().optional(),
 });
 
 const updatePrayerPartnerBodySchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
     prayerFocus: z.string().trim().min(1).max(4000).optional(),
-    imageUrl: z.string().trim().url().max(2048).nullable().optional(),
+    imageUrl: prayerPartnerImageUrlSchema.nullable().optional(),
     isArchived: z.boolean().optional(),
   })
   .refine((body) => Object.keys(body).length > 0, {
