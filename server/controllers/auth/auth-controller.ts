@@ -268,7 +268,10 @@ export async function getAuthCallback(
     const query = callbackQuerySchema.parse(req.query);
     const loginState = readLoginStateCookie(req);
     if (!loginState) {
-      throw new ClientError(401, 'missing or expired auth login state');
+      throw new ClientError(
+        401,
+        'missing or expired auth login state; please start sign-in again',
+      );
     }
     if (query.state !== loginState.state) {
       throw new ClientError(401, 'invalid auth state');

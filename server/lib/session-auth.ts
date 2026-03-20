@@ -6,6 +6,7 @@ import type { OidcLoginState, UserSessionPayload } from './auth-types.js';
 
 const sessionCookieName = 'app_session';
 const loginStateCookieName = 'oidc_login_state';
+const loginStateTtlSeconds = env.AUTH_LOGIN_STATE_TTL_SECONDS;
 
 /** Parse Cookie header into a key-value map. */
 function readCookies(req: Request): Record<string, string> {
@@ -39,10 +40,12 @@ export function setLoginStateCookie(
   res: Response,
   payload: OidcLoginState,
 ): void {
-  const token = jwt.sign(payload, env.SESSION_SECRET, { expiresIn: '10m' });
+  const token = jwt.sign(payload, env.SESSION_SECRET, {
+    expiresIn: loginStateTtlSeconds,
+  });
   res.cookie(loginStateCookieName, token, {
     ...getCookieSettings(),
-    maxAge: 10 * 60 * 1000,
+    maxAge: loginStateTtlSeconds * 1000,
   });
 }
 

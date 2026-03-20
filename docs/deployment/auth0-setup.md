@@ -45,6 +45,7 @@ AUTH_LOGIN_REDIRECT_URI=https://<frontend-host>/
 AUTH_LOGOUT_REDIRECT_URI=https://<frontend-host>/
 SESSION_SECRET=<long-random-secret>
 SESSION_TTL_SECONDS=604800
+AUTH_LOGIN_STATE_TTL_SECONDS=600
 SESSION_COOKIE_SAME_SITE=none
 ```
 
@@ -52,6 +53,7 @@ Notes:
 
 - Keep `SESSION_SECRET` high-entropy and rotate with deployment controls.
 - For split-host deployment (`Vercel` + `Render`), use `SESSION_COOKIE_SAME_SITE=none`; production then requires `Secure=true` (already enabled by server runtime).
+- If users occasionally hit `auth=error&reason=invalid_state` after long/slow provider flows, increase `AUTH_LOGIN_STATE_TTL_SECONDS` (for example `900` or `1200`) and redeploy.
 
 ## 5) Verify Auth Endpoints
 

@@ -52,6 +52,12 @@ const envSchema = z.object({
   AUTH_LOGOUT_REDIRECT_URI: z.string().default(''),
   SESSION_SECRET: z.string().default(''),
   SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(604800),
+  AUTH_LOGIN_STATE_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(3600)
+    .default(600),
   SESSION_COOKIE_SAME_SITE: z
     .enum(SESSION_COOKIE_SAME_SITE_VALUES)
     .default('lax'),

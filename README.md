@@ -71,6 +71,7 @@ Outside devcontainers, this repo also includes `.nvmrc` and engine constraints i
      - `AUTH_LOGOUT_REDIRECT_URI`
      - `SESSION_SECRET`
      - `SESSION_TTL_SECONDS`
+   - `AUTH_LOGIN_STATE_TTL_SECONDS` (OIDC callback state cookie lifetime; default `600`)
      - `SESSION_COOKIE_SAME_SITE`
        - use `none` for split-host frontend/api deployments so auth cookies are sent cross-site
 
