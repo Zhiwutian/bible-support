@@ -130,6 +130,23 @@ describe('prayer routes', () => {
     expect(res.body.data.partnerId).toBe(11);
   });
 
+  it('returns validation_error for base64 data imageUrl on prayer partner create', async () => {
+    const res = await request(app)
+      .post('/api/prayer-partners')
+      .set('cookie', sessionCookie)
+      .send({
+        name: 'Chris Arreola',
+        prayerFocus: 'Health and healing',
+        imageUrl: 'data:image/jpeg;base64,abc123',
+      })
+      .expect(400);
+    expect(res.body.error.code).toBe('validation_error');
+    expect(JSON.stringify(res.body.error.details)).toContain(
+      'Base64 data URLs are not supported',
+    );
+    expect(createPrayerPartnerMock).not.toHaveBeenCalled();
+  });
+
   it('lists prayer lists', async () => {
     readPrayerListsMock.mockResolvedValue([
       {

@@ -228,6 +228,14 @@ Responses use an API envelope:
 - `pnpm run psql` - opens `psql` using `DATABASE_URL`
 - `pnpm run deploy` - pushes `main` to `pub` for deployment workflow
 
+## Prayer Image URL Constraint
+
+Prayer partner `imageUrl` is URL-only in v1:
+
+- Must be a hosted `http` or `https` URL.
+- Must be 2048 characters or less.
+- Base64/data URLs (for example `data:image/jpeg;base64,...`) are not supported.
+
 ## CI and Deployment
 
 - Pull requests run CI checks in `/.github/workflows/ci.yml`:

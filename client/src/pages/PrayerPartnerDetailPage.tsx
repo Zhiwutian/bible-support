@@ -21,6 +21,42 @@ import {
   updatePrayerPartnerNote,
 } from '@/features/prayer-partners/prayer-partners-api';
 
+function normalizePartnerImageUrl(rawValue: string): {
+  value: string | null;
+  error: string | null;
+} {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return { value: null, error: null };
+  if (trimmed.toLowerCase().startsWith('data:')) {
+    return {
+      value: null,
+      error:
+        'Image URL must be a hosted http(s) link. Base64 data URLs are not supported.',
+    };
+  }
+  if (trimmed.length > 2048) {
+    return {
+      value: null,
+      error: 'Image URL must be 2048 characters or less.',
+    };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return {
+        value: null,
+        error: 'Image URL must use http or https.',
+      };
+    }
+  } catch {
+    return {
+      value: null,
+      error: 'Image URL must be a valid URL.',
+    };
+  }
+  return { value: trimmed, error: null };
+}
+
 export function PrayerPartnerDetailPage() {
   const { partnerId } = useParams();
   const { showToast } = useToast();
@@ -67,11 +103,20 @@ export function PrayerPartnerDetailPage() {
 
   async function onSavePartner() {
     if (!partner) return;
+    const parsedImageUrl = normalizePartnerImageUrl(imageUrl);
+    if (parsedImageUrl.error) {
+      showToast({
+        title: 'Invalid image URL',
+        description: parsedImageUrl.error,
+        variant: 'error',
+      });
+      return;
+    }
     try {
       const updated = await updatePrayerPartner(partner.partnerId, {
         name: name.trim(),
         prayerFocus: prayerFocus.trim(),
-        imageUrl: imageUrl.trim() ? imageUrl.trim() : null,
+        imageUrl: parsedImageUrl.value,
       });
       setPartner(updated);
       showToast({ title: 'Partner updated', variant: 'success' });
@@ -192,6 +237,9 @@ export function PrayerPartnerDetailPage() {
             className="mt-1"
             placeholder="https://..."
           />
+          <span className="mt-1 block text-xs font-normal text-slate-500">
+            Use a hosted http(s) image link. Base64 data URLs are not supported.
+          </span>
         </label>
         <div className="flex gap-2">
           <Button variant="primary" onClick={() => void onSavePartner()}>

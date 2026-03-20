@@ -16,6 +16,42 @@ import {
   updatePrayerPartner,
 } from '@/features/prayer-partners/prayer-partners-api';
 
+function normalizePartnerImageUrl(rawValue: string): {
+  value: string | null;
+  error: string | null;
+} {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return { value: null, error: null };
+  if (trimmed.toLowerCase().startsWith('data:')) {
+    return {
+      value: null,
+      error:
+        'Image URL must be a hosted http(s) link. Base64 data URLs are not supported.',
+    };
+  }
+  if (trimmed.length > 2048) {
+    return {
+      value: null,
+      error: 'Image URL must be 2048 characters or less.',
+    };
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return {
+        value: null,
+        error: 'Image URL must use http or https.',
+      };
+    }
+  } catch {
+    return {
+      value: null,
+      error: 'Image URL must be a valid URL.',
+    };
+  }
+  return { value: trimmed, error: null };
+}
+
 export function PrayerPartnersPage() {
   const { showToast } = useToast();
   const [partners, setPartners] = useState<PrayerPartner[]>([]);
@@ -47,12 +83,21 @@ export function PrayerPartnersPage() {
   async function onCreatePartner(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!name.trim() || !prayerFocus.trim()) return;
+    const parsedImageUrl = normalizePartnerImageUrl(imageUrl);
+    if (parsedImageUrl.error) {
+      showToast({
+        title: 'Invalid image URL',
+        description: parsedImageUrl.error,
+        variant: 'error',
+      });
+      return;
+    }
     setIsSaving(true);
     try {
       await createPrayerPartner({
         name: name.trim(),
         prayerFocus: prayerFocus.trim(),
-        imageUrl: imageUrl.trim() ? imageUrl.trim() : null,
+        imageUrl: parsedImageUrl.value,
       });
       setName('');
       setPrayerFocus('');
@@ -152,6 +197,10 @@ export function PrayerPartnersPage() {
               placeholder="https://..."
               className="mt-1"
             />
+            <span className="mt-1 block text-xs font-normal text-slate-500">
+              Use a hosted http(s) image link. Base64 data URLs are not
+              supported.
+            </span>
           </label>
           <Button variant="primary" type="submit" disabled={isSaving}>
             {isSaving ? 'Saving...' : 'Add partner'}
