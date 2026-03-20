@@ -13,6 +13,14 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Prayer List feature foundation:
+  - shared contracts in `shared/prayer-contracts.ts`
+  - schema + SQL parity updates for `prayer_partners`, `prayer_lists`, `prayer_list_members`, `prayer_sessions`, and `prayer_partner_notes`
+  - migration `database/migrations/0017_prayer_partners_lists_foundation.sql` with journal update
+  - backend prayer API routes/controllers/services for partner/list CRUD, note CRUD, list membership management (including reorder), and session logging
+  - frontend routes/pages for Prayer Partners and Prayer Lists (including detail flows for notes, member ordering, and pray-now session logging)
+  - backend route coverage in `server/routes/prayer-api.test.ts`
+- Added Cursor rule `.cursor/rules/collaborative-flexibility-and-checkins.mdc` to codify strict invariants with implementation flexibility and mandatory user check-ins before meaningful scope/behavior changes.
 - Reader comfort Phase 3–4 tracking and gates: `docs/plans/reader-comfort-phase-3-4.md`, `reader-comfort-telemetry.ts` (+ unit tests) for rollout event payload shape, Reader Options note for global high contrast, and Vitest coverage (high contrast + reader theme classes, reduced motion class, app text scale with reader, telemetry privacy).
 - Added `docs/styleguide/backend-observability-security.md` (logging, rate limits, health/ready, security checklist, seeds/audit notes).
 - Added `.github/workflows/audit-scheduled.yml` (weekly + manual `pnpm audit --audit-level high`, advisory).

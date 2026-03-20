@@ -120,6 +120,13 @@
       "when": 1773920000000,
       "tag": "0016_saved_scripture_chapter_scope_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1774010000000,
+      "tag": "0017_prayer_partners_lists_foundation",
+      "breakpoints": true
     }
   ]
 }

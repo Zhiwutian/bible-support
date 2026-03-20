@@ -66,6 +66,19 @@ const SavedBookScripturesPage = lazy(async () => ({
   default: (await import('@/pages/SavedBookScripturesPage'))
     .SavedBookScripturesPage,
 }));
+const PrayerPartnersPage = lazy(async () => ({
+  default: (await import('@/pages/PrayerPartnersPage')).PrayerPartnersPage,
+}));
+const PrayerPartnerDetailPage = lazy(async () => ({
+  default: (await import('@/pages/PrayerPartnerDetailPage'))
+    .PrayerPartnerDetailPage,
+}));
+const PrayerListsPage = lazy(async () => ({
+  default: (await import('@/pages/PrayerListsPage')).PrayerListsPage,
+}));
+const PrayerListDetailPage = lazy(async () => ({
+  default: (await import('@/pages/PrayerListDetailPage')).PrayerListDetailPage,
+}));
 const AdminPage = lazy(async () => ({
   default: (await import('@/pages/AdminPage')).AdminPage,
 }));
@@ -447,6 +460,18 @@ export default function App() {
                       Saved
                     </NavLinkButton>
                     <NavLinkButton
+                      to="/prayer-partners"
+                      className="justify-start text-base font-semibold"
+                      onClick={() => setIsMobileMenuOpen(false)}>
+                      Prayer Partners
+                    </NavLinkButton>
+                    <NavLinkButton
+                      to="/prayer-lists"
+                      className="justify-start text-base font-semibold"
+                      onClick={() => setIsMobileMenuOpen(false)}>
+                      Prayer Lists
+                    </NavLinkButton>
+                    <NavLinkButton
                       to="/reader"
                       className="justify-start text-base font-semibold"
                       onClick={() => setIsMobileMenuOpen(false)}>
@@ -806,6 +831,58 @@ export default function App() {
                     <Route
                       path="/saved/:book"
                       element={<SavedBookScripturesPage />}
+                    />
+                    <Route
+                      path="/prayer-partners"
+                      element={
+                        authSession ? (
+                          <PrayerPartnersPage />
+                        ) : (
+                          <EmptyState
+                            title="Sign in required"
+                            description="You must be signed in to manage prayer partners."
+                          />
+                        )
+                      }
+                    />
+                    <Route
+                      path="/prayer-partners/:partnerId"
+                      element={
+                        authSession ? (
+                          <PrayerPartnerDetailPage />
+                        ) : (
+                          <EmptyState
+                            title="Sign in required"
+                            description="You must be signed in to view prayer partner details."
+                          />
+                        )
+                      }
+                    />
+                    <Route
+                      path="/prayer-lists"
+                      element={
+                        authSession ? (
+                          <PrayerListsPage />
+                        ) : (
+                          <EmptyState
+                            title="Sign in required"
+                            description="You must be signed in to manage prayer lists."
+                          />
+                        )
+                      }
+                    />
+                    <Route
+                      path="/prayer-lists/:listId"
+                      element={
+                        authSession ? (
+                          <PrayerListDetailPage />
+                        ) : (
+                          <EmptyState
+                            title="Sign in required"
+                            description="You must be signed in to view prayer list details."
+                          />
+                        )
+                      }
                     />
                     <Route
                       path="/admin"
