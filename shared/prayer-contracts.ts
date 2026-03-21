@@ -89,3 +89,30 @@ export type CreatePrayerPartnerNoteRequest = {
 export type UpdatePrayerPartnerNoteRequest = {
   note: string;
 };
+
+/** Consecutive prayer days are based on UTC calendar days of list prayer sessions. */
+export type PrayerStreakInsight = {
+  currentDays: number;
+  longestDays: number;
+  /** Most recent UTC date (YYYY-MM-DD) with a session, if any. */
+  lastPrayedDate: string | null;
+};
+
+export type PrayerReminderSettings = {
+  enabled: boolean;
+  hour: number | null;
+  minute: number | null;
+  timezone: string | null;
+};
+
+export type PrayerInsightsResponse = {
+  streak: PrayerStreakInsight;
+  reminder: PrayerReminderSettings;
+};
+
+export type UpdatePrayerReminderSettingsRequest = {
+  reminderEnabled?: boolean;
+  reminderHour?: number;
+  reminderMinute?: number;
+  reminderTimezone?: string | null;
+};

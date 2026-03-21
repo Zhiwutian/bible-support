@@ -40,8 +40,12 @@ function resolveRateLimitKey(req: express.Request): string {
  */
 export function createApp(): express.Express {
   const app = express();
-  // Trust one proxy hop (Render) so req.protocol reflects X-Forwarded-Proto.
-  app.set('trust proxy', 1);
+  // Trust one proxy hop in production (e.g. Render) so req.protocol reflects
+  // X-Forwarded-Proto. In local dev, trusting proxy can mis-read scheme if a
+  // client sends spoofed forwarded headers and break OIDC callback handling.
+  if (env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
   const allowedOrigins = parseCorsOrigins();
   const apiReadRateLimiter = rateLimit({
     windowMs: env.RATE_LIMIT_WINDOW_MS,

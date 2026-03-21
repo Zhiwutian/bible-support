@@ -127,7 +127,8 @@ Included in the current MVP baseline:
 - Bible chapter reader route with book/chapter/translation URL-state navigation.
 - Verse search with guided/reference/keyword modes and translation support.
 - Saved scriptures with grouped batch save and per-item notes.
-- Prayer partners and prayer lists with account-scoped CRUD, ordered list membership, partner progress notes, and prayer-session tracking.
+- Prayer partners and prayer lists with account-scoped CRUD, ordered list membership, partner progress notes, prayer-session tracking, UTC-day streaks from sessions, optional daily reminders (while the app is open), and filter modals on list views.
+- Prayer smart filtering and activity sorting for partners/lists (needs-update, not-prayed-recently, has-image, has-notes, archived toggles).
 - Database-backed emotion/scripture/context data with seeded default content.
 - Standardized API envelope responses and core server hardening (security middleware, rate limiting, error handling).
 
@@ -176,6 +177,8 @@ Responses use an API envelope:
 - `PATCH /api/saved-scriptures/:savedId/note` - update/clear one note for a saved verse item
 - `DELETE /api/saved-scriptures/:savedId` - remove one saved verse for current auth scope
 - `GET /api/reader/chapter` - return one canonicalized chapter payload with prev/next metadata
+- `GET /api/prayer/insights` - prayer streak summary (from list sessions, UTC days) plus saved reminder settings for the signed-in user
+- `PATCH /api/prayer/settings` - update prayer reminder schedule (`reminderEnabled`, local `reminderHour` / `reminderMinute`, `reminderTimezone`)
 - `GET /api/prayer-partners` - list prayer partners for the signed-in user (`includeArchived` optional)
 - `POST /api/prayer-partners` - create prayer partner
 - `GET /api/prayer-partners/:id` - read one prayer partner
@@ -236,6 +239,20 @@ Prayer partner `imageUrl` is URL-only in v1:
 - Must be a hosted `http` or `https` URL.
 - Must be 2048 characters or less.
 - Base64/data URLs (for example `data:image/jpeg;base64,...`) are not supported.
+
+## Prayer Smart Filters
+
+Prayer pages include activity-driven filters and sorting:
+
+- Prayer Partners:
+  - `Needs update` (no note update in X days)
+  - `Has image` / `No image`
+  - `Has notes` / `No notes`
+  - Archived toggle
+- Prayer Lists:
+  - `Not prayed recently` (no prayer session in X days)
+  - Archived toggle
+- Default sort favors recent activity, with optional alphabetical/oldest sorts.
 
 ## CI and Deployment
 

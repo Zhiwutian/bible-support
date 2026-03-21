@@ -15,7 +15,8 @@ Set these in the Auth0 app dashboard:
 
 - **Allowed Callback URLs**
   - `https://<api-host>/api/auth/callback`
-  - local dev: `http://localhost:8080/api/auth/callback`
+  - local dev (default `pnpm run dev`, SPA on Vite `:5173` with `/api` proxy): **`http://localhost:5173/api/auth/callback`** so the `oidc_login_state` cookie (set when the browser hits `/api/auth/login` on `:5173`) is sent when Auth0 redirects back.
+  - local dev (alternate: set client `VITE_API_BASE_URL=http://localhost:8080` so all API calls go to the API origin): `http://localhost:8080/api/auth/callback`
 - **Allowed Logout URLs**
   - `https://<frontend-host>/`
   - local dev: `http://localhost:5173/`

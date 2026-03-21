@@ -54,6 +54,24 @@ Important:
 - `db:import` is intentionally destructive for local rebuild workflows (drops and recreates schema).
 - Do not run `db:import` against shared/staging/production databases.
 
+### Local `db:migrate` errors (`already exists`, `relation … does not exist`)
+
+Drizzle records applied migrations in PostgreSQL (`__drizzle_migrations`). If that table is **empty** but your database **already has** objects from an old run, import, or manual SQL, `pnpm run db:migrate` may try to re-run `0000_*` and fail (for example `relation "todos_todoId_seq" already exists`).
+
+**Safest local fix (throwaway data):** recreate the database, then migrate (and optionally seed):
+
+```sh
+# Replace DB name with the database in your server/.env DATABASE_URL
+dropdb   --if-exists bible_support
+createdb bible_support
+pnpm run db:migrate
+pnpm run db:seed
+```
+
+**Alternative:** full destructive rebuild with `pnpm run db:import` (local only; see warning above).
+
+Do **not** hand-edit production databases to “skip” migrations without a runbook.
+
 ### Schema change playbook (Drizzle + SQL migrations)
 
 1. Edit **`server/db/schema.ts`** first (tables, indexes, checks) so types and `drizzle-kit` stay aligned.

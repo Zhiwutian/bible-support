@@ -90,6 +90,6 @@ After merges that touch several API layers, run a short pass (adjust thresholds 
 2. Add service function.
 3. Add controller handler.
 4. Wire in `server/routes/api.ts` with correct middleware.
-5. Add route tests (`supertest`) and error-path assertions.
+5. Add route tests (`supertest`) and error-path assertions (include **401** for session-scoped reads and **400** validation paths such as empty bodies or invalid enums / IANA time zones).
 6. Add basic observability events on critical mutation/read paths.
 7. Update docs/changelog.

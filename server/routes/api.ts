@@ -51,6 +51,7 @@ import {
   getPrayerListById,
   getPrayerListMembers,
   getPrayerLists,
+  getPrayerInsights,
   getPrayerListSessions,
   getPrayerPartnerById,
   getPrayerPartnerNotes,
@@ -59,6 +60,7 @@ import {
   patchPrayerListMembersReorder,
   patchPrayerPartner,
   patchPrayerPartnerNote,
+  patchPrayerReminderSettings,
   postPrayerList,
   postPrayerListMember,
   postPrayerListSession,
@@ -106,6 +108,8 @@ apiRouter.post('/saved-scriptures/batch', postSavedScriptureBatch);
 apiRouter.patch('/saved-scriptures/:savedId', patchSavedScripture);
 apiRouter.patch('/saved-scriptures/:savedId/note', patchSavedScriptureNote);
 apiRouter.delete('/saved-scriptures/:savedId', deleteSavedScripture);
+apiRouter.get('/prayer/insights', getPrayerInsights);
+apiRouter.patch('/prayer/settings', patchPrayerReminderSettings);
 apiRouter.get('/prayer-partners', getPrayerPartners);
 apiRouter.get('/prayer-partners/:id', getPrayerPartnerById);
 apiRouter.post('/prayer-partners', postPrayerPartner);

@@ -1,12 +1,18 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import type {
+  PrayerInsightsResponse,
+  PrayerReminderSettings,
+} from '@shared/prayer-contracts.js';
 import {
   prayerListMembers,
   prayerLists,
   prayerPartnerNotes,
   prayerPartners,
   prayerSessions,
+  userPrayerSettings,
 } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
+import { isValidIanaTimeZoneId } from '@server/lib/iana-timezone.js';
 import { requireDb } from './require-db.js';
 
 type PrayerPartnerRow = typeof prayerPartners.$inferSelect;
@@ -14,6 +20,7 @@ type PrayerListRow = typeof prayerLists.$inferSelect;
 type PrayerListMemberRow = typeof prayerListMembers.$inferSelect;
 type PrayerSessionRow = typeof prayerSessions.$inferSelect;
 type PrayerPartnerNoteRow = typeof prayerPartnerNotes.$inferSelect;
+type UserPrayerSettingsRow = typeof userPrayerSettings.$inferSelect;
 type PrayerPartnerWithActivity = PrayerPartnerRow & {
   noteCount: number;
   lastNoteAt: Date | null;
@@ -781,4 +788,196 @@ export async function createPrayerSession(input: {
     throw new ClientError(500, 'failed to create prayer session');
   }
   return created;
+}
+
+function addDaysUtc(isoDate: string, delta: number): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const u = Date.UTC(y, m - 1, d + delta);
+  return new Date(u).toISOString().slice(0, 10);
+}
+
+function utcTodayString(d: Date = new Date()): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function computeCurrentStreakUtc(
+  prayedDays: Set<string>,
+  todayUtc: string,
+): number {
+  let start = todayUtc;
+  if (!prayedDays.has(start)) {
+    start = addDaysUtc(todayUtc, -1);
+    if (!prayedDays.has(start)) return 0;
+  }
+  let streak = 0;
+  let cursor = start;
+  while (prayedDays.has(cursor)) {
+    streak += 1;
+    cursor = addDaysUtc(cursor, -1);
+  }
+  return streak;
+}
+
+function computeLongestStreakUtc(sortedAsc: string[]): number {
+  if (sortedAsc.length === 0) return 0;
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < sortedAsc.length; i += 1) {
+    if (addDaysUtc(sortedAsc[i - 1], 1) === sortedAsc[i]) {
+      run += 1;
+      best = Math.max(best, run);
+    } else {
+      run = 1;
+    }
+  }
+  return best;
+}
+
+async function readPrayerSessionDaysUtc(
+  ownerUserId: string,
+): Promise<string[]> {
+  const db = requireDb();
+  const utcPrayerDay = sql`(date_trunc('day', ${prayerSessions.createdAt} AT TIME ZONE 'UTC')::date)`;
+  const rows = await db
+    .select({ d: sql<string>`${utcPrayerDay}::text` })
+    .from(prayerSessions)
+    .where(eq(prayerSessions.ownerUserId, ownerUserId))
+    .groupBy(utcPrayerDay)
+    .orderBy(desc(utcPrayerDay));
+  return rows.map((row) => row.d);
+}
+
+export async function computePrayerStreakInsight(ownerUserId: string): Promise<{
+  currentDays: number;
+  longestDays: number;
+  lastPrayedDate: string | null;
+}> {
+  const daysDesc = await readPrayerSessionDaysUtc(ownerUserId);
+  if (daysDesc.length === 0) {
+    return { currentDays: 0, longestDays: 0, lastPrayedDate: null };
+  }
+  const set = new Set(daysDesc);
+  const todayUtc = utcTodayString();
+  const currentDays = computeCurrentStreakUtc(set, todayUtc);
+  const sortedAsc = [...set].sort();
+  const longestDays = computeLongestStreakUtc(sortedAsc);
+  const lastPrayedDate = daysDesc[0] ?? null;
+  return { currentDays, longestDays, lastPrayedDate };
+}
+
+function toPrayerReminderDto(
+  row: UserPrayerSettingsRow | null,
+): PrayerReminderSettings {
+  if (!row) {
+    return {
+      enabled: false,
+      hour: null,
+      minute: null,
+      timezone: null,
+    };
+  }
+  return {
+    enabled: row.reminderEnabled,
+    hour: row.reminderHour,
+    minute: row.reminderMinute,
+    timezone: row.reminderTimezone,
+  };
+}
+
+async function readUserPrayerSettingsRow(
+  ownerUserId: string,
+): Promise<UserPrayerSettingsRow | null> {
+  const db = requireDb();
+  const [row] = await db
+    .select()
+    .from(userPrayerSettings)
+    .where(eq(userPrayerSettings.userId, ownerUserId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function readPrayerInsights(
+  ownerUserId: string,
+): Promise<PrayerInsightsResponse> {
+  const [streak, settingsRow] = await Promise.all([
+    computePrayerStreakInsight(ownerUserId),
+    readUserPrayerSettingsRow(ownerUserId),
+  ]);
+  return {
+    streak,
+    reminder: toPrayerReminderDto(settingsRow),
+  };
+}
+
+function normalizeReminderTimezone(
+  value: string | null | undefined,
+): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.length > 64 ? trimmed.slice(0, 64) : trimmed;
+}
+
+export async function upsertPrayerReminderSettings(
+  ownerUserId: string,
+  patch: {
+    reminderEnabled?: boolean;
+    reminderHour?: number;
+    reminderMinute?: number;
+    reminderTimezone?: string | null;
+  },
+): Promise<PrayerInsightsResponse> {
+  const db = requireDb();
+  const existing = await readUserPrayerSettingsRow(ownerUserId);
+
+  let h = existing?.reminderHour ?? null;
+  let m = existing?.reminderMinute ?? null;
+  let tz = existing?.reminderTimezone ?? null;
+  if (patch.reminderHour !== undefined) h = patch.reminderHour;
+  if (patch.reminderMinute !== undefined) m = patch.reminderMinute;
+  if (patch.reminderTimezone !== undefined) {
+    tz = normalizeReminderTimezone(patch.reminderTimezone);
+  }
+
+  const enabled = patch.reminderEnabled ?? existing?.reminderEnabled ?? false;
+
+  if (enabled) {
+    h = h ?? 8;
+    m = m ?? 0;
+    tz = tz ?? 'UTC';
+  }
+
+  if (tz !== null && !isValidIanaTimeZoneId(tz)) {
+    throw new ClientError(
+      400,
+      'reminderTimezone must be a valid IANA time zone identifier',
+    );
+  }
+
+  const now = new Date();
+
+  if (!existing) {
+    await db.insert(userPrayerSettings).values({
+      userId: ownerUserId,
+      reminderEnabled: enabled,
+      reminderHour: h,
+      reminderMinute: m,
+      reminderTimezone: tz,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } else {
+    await db
+      .update(userPrayerSettings)
+      .set({
+        reminderEnabled: enabled,
+        reminderHour: h,
+        reminderMinute: m,
+        reminderTimezone: tz,
+        updatedAt: now,
+      })
+      .where(eq(userPrayerSettings.userId, ownerUserId));
+  }
+
+  return readPrayerInsights(ownerUserId);
 }

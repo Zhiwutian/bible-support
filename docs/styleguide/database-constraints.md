@@ -31,6 +31,16 @@ Adding a translation requires: import pipeline, schema/migration if new DB check
 
 The btree `scripture_verses_book_chapter_verse_idx` on `(book, chapter, verse)` helps mixed filters; primary hot paths include `translation` in `WHERE`, satisfied via the unique index prefix.
 
+## User prayer settings (reminders)
+
+| Field / rule                      | Zod / service                                                                                                                                                                                                                                                                                          | DB check                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `reminderEnabled`                 | boolean; when `true`, hour/minute/timezone required (defaults in service)                                                                                                                                                                                                                              | `user_prayer_settings_reminder_enabled_requires_schedule_check`                          |
+| `reminderHour` / `reminderMinute` | `0–23` / `0–59` when set                                                                                                                                                                                                                                                                               | `user_prayer_settings_reminder_hour_check`, `user_prayer_settings_reminder_minute_check` |
+| `reminderTimezone`                | trim, max 64; **IANA** id validated in controller (`superRefine`) and again in `upsertPrayerReminderSettings` via `server/lib/iana-timezone.ts` (`Intl.supportedValuesOf('timeZone')` when available, plus `UTC` / `GMT` / `Etc/UTC` / `Etc/GMT` because Node may omit short ids from the enumeration) | `user_prayer_settings_reminder_timezone_length_check`                                    |
+
+Shared types: `PrayerInsightsResponse`, `UpdatePrayerReminderSettingsRequest` in `shared/prayer-contracts.ts`.
+
 ## Auth audit
 
 See `shared/auth-audit-contracts.ts` and the comment on `auth_audit_events_event_type_check` in `server/db/schema.ts`.
