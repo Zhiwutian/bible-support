@@ -1,12 +1,18 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import type {
+  PrayerInsightsResponse,
+  PrayerReminderSettings,
+} from '@shared/prayer-contracts.js';
 import {
   prayerListMembers,
   prayerLists,
   prayerPartnerNotes,
   prayerPartners,
   prayerSessions,
+  userPrayerSettings,
 } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
+import { isValidIanaTimeZoneId } from '@server/lib/iana-timezone.js';
 import { requireDb } from './require-db.js';
 
 type PrayerPartnerRow = typeof prayerPartners.$inferSelect;
@@ -14,8 +20,24 @@ type PrayerListRow = typeof prayerLists.$inferSelect;
 type PrayerListMemberRow = typeof prayerListMembers.$inferSelect;
 type PrayerSessionRow = typeof prayerSessions.$inferSelect;
 type PrayerPartnerNoteRow = typeof prayerPartnerNotes.$inferSelect;
+type UserPrayerSettingsRow = typeof userPrayerSettings.$inferSelect;
+type PrayerPartnerWithActivity = PrayerPartnerRow & {
+  noteCount: number;
+  lastNoteAt: Date | null;
+};
+type PrayerListWithActivity = PrayerListRow & {
+  sessionCount: number;
+  lastSessionAt: Date | null;
+};
+type PrayerStreakInsight = PrayerInsightsResponse['streak'];
 type PrayerDb = ReturnType<typeof requireDb>;
 type PrayerTx = Parameters<Parameters<PrayerDb['transaction']>[0]>[0];
+
+const PRAYER_STREAK_CACHE_TTL_MS = 60_000;
+const prayerStreakCache = new Map<
+  string,
+  { expiresAt: number; value: PrayerStreakInsight }
+>();
 
 function normalizeOptionalText(
   value: string | null | undefined,
@@ -102,46 +124,165 @@ async function applyMemberOrder(
     );
   }
 
+  const positionCaseBranches = partnerIdsInOrder.map(
+    (partnerId, idx) =>
+      sql`when ${prayerListMembers.partnerId} = ${partnerId} then ${idx + 1}`,
+  );
+
   await tx
     .update(prayerListMembers)
-    .set({ position: sql`${prayerListMembers.position} + 100000` })
-    .where(eq(prayerListMembers.listId, listId));
+    .set({
+      position: sql`case ${sql.join(positionCaseBranches, sql` `)} else ${prayerListMembers.position} end`,
+    })
+    .where(
+      and(
+        eq(prayerListMembers.listId, listId),
+        inArray(prayerListMembers.partnerId, partnerIdsInOrder),
+      ),
+    );
+}
 
-  for (let idx = 0; idx < partnerIdsInOrder.length; idx += 1) {
-    await tx
-      .update(prayerListMembers)
-      .set({ position: idx + 1 })
-      .where(
-        and(
-          eq(prayerListMembers.listId, listId),
-          eq(prayerListMembers.partnerId, partnerIdsInOrder[idx]),
-        ),
-      );
+function partnerActivityDate(partner: PrayerPartnerWithActivity): number {
+  const lastNoteAtMs = partner.lastNoteAt
+    ? new Date(partner.lastNoteAt).getTime()
+    : 0;
+  const updatedAtMs = new Date(partner.updatedAt).getTime();
+  return Math.max(lastNoteAtMs, updatedAtMs);
+}
+
+function listActivityDate(list: PrayerListWithActivity): number {
+  const lastSessionAtMs = list.lastSessionAt
+    ? new Date(list.lastSessionAt).getTime()
+    : 0;
+  const updatedAtMs = new Date(list.updatedAt).getTime();
+  return Math.max(lastSessionAtMs, updatedAtMs);
+}
+
+async function enrichPrayerPartnersWithActivity(
+  db: PrayerDb | PrayerTx,
+  ownerUserId: string,
+  rows: PrayerPartnerRow[],
+): Promise<PrayerPartnerWithActivity[]> {
+  if (rows.length === 0) return [];
+  const partnerIds = rows.map((row) => row.partnerId);
+  const noteRows = await db
+    .select({
+      partnerId: prayerPartnerNotes.partnerId,
+      noteCount: sql<number>`count(*)`,
+      lastNoteAt: sql<Date | null>`max(${prayerPartnerNotes.createdAt})`,
+    })
+    .from(prayerPartnerNotes)
+    .where(
+      and(
+        eq(prayerPartnerNotes.ownerUserId, ownerUserId),
+        inArray(prayerPartnerNotes.partnerId, partnerIds),
+      ),
+    )
+    .groupBy(prayerPartnerNotes.partnerId);
+  const notesByPartner = new Map<
+    number,
+    { noteCount: number; lastNoteAt: Date | null }
+  >();
+  for (const row of noteRows) {
+    if (row.partnerId === null) continue;
+    notesByPartner.set(row.partnerId, {
+      noteCount: Number(row.noteCount),
+      lastNoteAt: row.lastNoteAt,
+    });
   }
+  return rows.map((row) => {
+    const noteInfo = notesByPartner.get(row.partnerId);
+    return {
+      ...row,
+      noteCount: noteInfo?.noteCount ?? 0,
+      lastNoteAt: noteInfo?.lastNoteAt ?? null,
+    };
+  });
+}
+
+async function enrichPrayerListsWithActivity(
+  db: PrayerDb | PrayerTx,
+  ownerUserId: string,
+  rows: PrayerListRow[],
+): Promise<PrayerListWithActivity[]> {
+  if (rows.length === 0) return [];
+  const listIds = rows.map((row) => row.listId);
+  const sessionRows = await db
+    .select({
+      listId: prayerSessions.listId,
+      sessionCount: sql<number>`count(*)`,
+      lastSessionAt: sql<Date | null>`max(${prayerSessions.createdAt})`,
+    })
+    .from(prayerSessions)
+    .where(
+      and(
+        eq(prayerSessions.ownerUserId, ownerUserId),
+        inArray(prayerSessions.listId, listIds),
+      ),
+    )
+    .groupBy(prayerSessions.listId);
+  const sessionsByList = new Map<
+    number,
+    { sessionCount: number; lastSessionAt: Date | null }
+  >();
+  for (const row of sessionRows) {
+    if (row.listId === null) continue;
+    sessionsByList.set(row.listId, {
+      sessionCount: Number(row.sessionCount),
+      lastSessionAt: row.lastSessionAt,
+    });
+  }
+  return rows.map((row) => {
+    const sessionInfo = sessionsByList.get(row.listId);
+    return {
+      ...row,
+      sessionCount: sessionInfo?.sessionCount ?? 0,
+      lastSessionAt: sessionInfo?.lastSessionAt ?? null,
+    };
+  });
 }
 
 export async function readPrayerPartners(
   ownerUserId: string,
   includeArchived: boolean,
-): Promise<PrayerPartnerRow[]> {
+): Promise<PrayerPartnerWithActivity[]> {
   const db = requireDb();
   const conditions = [eq(prayerPartners.ownerUserId, ownerUserId)];
   if (!includeArchived) {
     conditions.push(eq(prayerPartners.isArchived, false));
   }
-  return db
+  const rows = await db
     .select()
     .from(prayerPartners)
     .where(and(...conditions))
     .orderBy(asc(prayerPartners.isArchived), asc(prayerPartners.name));
+  const withActivity = await enrichPrayerPartnersWithActivity(
+    db,
+    ownerUserId,
+    rows,
+  );
+  return withActivity.sort((a, b) => {
+    const activityDelta = partnerActivityDate(b) - partnerActivityDate(a);
+    if (activityDelta !== 0) return activityDelta;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export async function readPrayerPartner(
   ownerUserId: string,
   partnerId: number,
-): Promise<PrayerPartnerRow> {
+): Promise<PrayerPartnerWithActivity> {
   const db = requireDb();
-  return requireOwnedPartner(db, ownerUserId, partnerId);
+  const row = await requireOwnedPartner(db, ownerUserId, partnerId);
+  const [withActivity] = await enrichPrayerPartnersWithActivity(
+    db,
+    ownerUserId,
+    [row],
+  );
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer partner not found');
+  }
+  return withActivity;
 }
 
 export async function createPrayerPartner(input: {
@@ -149,7 +290,7 @@ export async function createPrayerPartner(input: {
   name: string;
   prayerFocus: string;
   imageUrl?: string | null;
-}): Promise<PrayerPartnerRow> {
+}): Promise<PrayerPartnerWithActivity> {
   const db = requireDb();
   const [created] = await db
     .insert(prayerPartners)
@@ -163,7 +304,15 @@ export async function createPrayerPartner(input: {
   if (!created) {
     throw new ClientError(500, 'failed to create prayer partner');
   }
-  return created;
+  const [withActivity] = await enrichPrayerPartnersWithActivity(
+    db,
+    input.ownerUserId,
+    [created],
+  );
+  if (!withActivity) {
+    throw new ClientError(500, 'failed to create prayer partner');
+  }
+  return withActivity;
 }
 
 export async function updatePrayerPartner(
@@ -175,7 +324,7 @@ export async function updatePrayerPartner(
     imageUrl?: string | null;
     isArchived?: boolean;
   },
-): Promise<PrayerPartnerRow> {
+): Promise<PrayerPartnerWithActivity> {
   const db = requireDb();
   await requireOwnedPartner(db, ownerUserId, partnerId);
   const updates: Partial<typeof prayerPartners.$inferInsert> = {
@@ -201,7 +350,15 @@ export async function updatePrayerPartner(
   if (!updated) {
     throw new ClientError(404, 'prayer partner not found');
   }
-  return updated;
+  const [withActivity] = await enrichPrayerPartnersWithActivity(
+    db,
+    ownerUserId,
+    [updated],
+  );
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer partner not found');
+  }
+  return withActivity;
 }
 
 export async function removePrayerPartner(
@@ -320,32 +477,49 @@ export async function removePrayerPartnerNote(
 export async function readPrayerLists(
   ownerUserId: string,
   includeArchived: boolean,
-): Promise<PrayerListRow[]> {
+): Promise<PrayerListWithActivity[]> {
   const db = requireDb();
   const conditions = [eq(prayerLists.ownerUserId, ownerUserId)];
   if (!includeArchived) {
     conditions.push(eq(prayerLists.isArchived, false));
   }
-  return db
+  const rows = await db
     .select()
     .from(prayerLists)
     .where(and(...conditions))
     .orderBy(asc(prayerLists.isArchived), asc(prayerLists.name));
+  const withActivity = await enrichPrayerListsWithActivity(
+    db,
+    ownerUserId,
+    rows,
+  );
+  return withActivity.sort((a, b) => {
+    const activityDelta = listActivityDate(b) - listActivityDate(a);
+    if (activityDelta !== 0) return activityDelta;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export async function readPrayerList(
   ownerUserId: string,
   listId: number,
-): Promise<PrayerListRow> {
+): Promise<PrayerListWithActivity> {
   const db = requireDb();
-  return requireOwnedList(db, ownerUserId, listId);
+  const row = await requireOwnedList(db, ownerUserId, listId);
+  const [withActivity] = await enrichPrayerListsWithActivity(db, ownerUserId, [
+    row,
+  ]);
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer list not found');
+  }
+  return withActivity;
 }
 
 export async function createPrayerList(input: {
   ownerUserId: string;
   name: string;
   description?: string | null;
-}): Promise<PrayerListRow> {
+}): Promise<PrayerListWithActivity> {
   const db = requireDb();
   const [created] = await db
     .insert(prayerLists)
@@ -358,7 +532,15 @@ export async function createPrayerList(input: {
   if (!created) {
     throw new ClientError(500, 'failed to create prayer list');
   }
-  return created;
+  const [withActivity] = await enrichPrayerListsWithActivity(
+    db,
+    input.ownerUserId,
+    [created],
+  );
+  if (!withActivity) {
+    throw new ClientError(500, 'failed to create prayer list');
+  }
+  return withActivity;
 }
 
 export async function updatePrayerList(
@@ -369,7 +551,7 @@ export async function updatePrayerList(
     description?: string | null;
     isArchived?: boolean;
   },
-): Promise<PrayerListRow> {
+): Promise<PrayerListWithActivity> {
   const db = requireDb();
   await requireOwnedList(db, ownerUserId, listId);
   const updates: Partial<typeof prayerLists.$inferInsert> = {
@@ -392,7 +574,13 @@ export async function updatePrayerList(
   if (!updated) {
     throw new ClientError(404, 'prayer list not found');
   }
-  return updated;
+  const [withActivity] = await enrichPrayerListsWithActivity(db, ownerUserId, [
+    updated,
+  ]);
+  if (!withActivity) {
+    throw new ClientError(404, 'prayer list not found');
+  }
+  return withActivity;
 }
 
 export async function removePrayerList(
@@ -606,5 +794,216 @@ export async function createPrayerSession(input: {
   if (!created) {
     throw new ClientError(500, 'failed to create prayer session');
   }
+  prayerStreakCache.delete(input.ownerUserId);
   return created;
+}
+
+function addDaysUtc(isoDate: string, delta: number): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const u = Date.UTC(y, m - 1, d + delta);
+  return new Date(u).toISOString().slice(0, 10);
+}
+
+function utcTodayString(d: Date = new Date()): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function computeCurrentStreakUtc(
+  prayedDays: Set<string>,
+  todayUtc: string,
+): number {
+  let start = todayUtc;
+  if (!prayedDays.has(start)) {
+    start = addDaysUtc(todayUtc, -1);
+    if (!prayedDays.has(start)) return 0;
+  }
+  let streak = 0;
+  let cursor = start;
+  while (prayedDays.has(cursor)) {
+    streak += 1;
+    cursor = addDaysUtc(cursor, -1);
+  }
+  return streak;
+}
+
+function computeLongestStreakUtc(sortedAsc: string[]): number {
+  if (sortedAsc.length === 0) return 0;
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < sortedAsc.length; i += 1) {
+    if (addDaysUtc(sortedAsc[i - 1], 1) === sortedAsc[i]) {
+      run += 1;
+      best = Math.max(best, run);
+    } else {
+      run = 1;
+    }
+  }
+  return best;
+}
+
+async function readPrayerSessionDaysUtc(
+  ownerUserId: string,
+): Promise<string[]> {
+  const db = requireDb();
+  const utcPrayerDay = sql`(date_trunc('day', ${prayerSessions.createdAt} AT TIME ZONE 'UTC')::date)`;
+  const rows = await db
+    .select({ d: sql<string>`${utcPrayerDay}::text` })
+    .from(prayerSessions)
+    .where(eq(prayerSessions.ownerUserId, ownerUserId))
+    .groupBy(utcPrayerDay)
+    .orderBy(desc(utcPrayerDay));
+  return rows.map((row) => row.d);
+}
+
+export async function computePrayerStreakInsight(ownerUserId: string): Promise<{
+  currentDays: number;
+  longestDays: number;
+  lastPrayedDate: string | null;
+}> {
+  const cached = prayerStreakCache.get(ownerUserId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+  const daysDesc = await readPrayerSessionDaysUtc(ownerUserId);
+  if (daysDesc.length === 0) {
+    const emptyInsight = {
+      currentDays: 0,
+      longestDays: 0,
+      lastPrayedDate: null,
+    };
+    prayerStreakCache.set(ownerUserId, {
+      expiresAt: Date.now() + PRAYER_STREAK_CACHE_TTL_MS,
+      value: emptyInsight,
+    });
+    return emptyInsight;
+  }
+  const set = new Set(daysDesc);
+  const todayUtc = utcTodayString();
+  const currentDays = computeCurrentStreakUtc(set, todayUtc);
+  const sortedAsc = [...set].sort();
+  const longestDays = computeLongestStreakUtc(sortedAsc);
+  const lastPrayedDate = daysDesc[0] ?? null;
+  const computedInsight = { currentDays, longestDays, lastPrayedDate };
+  prayerStreakCache.set(ownerUserId, {
+    expiresAt: Date.now() + PRAYER_STREAK_CACHE_TTL_MS,
+    value: computedInsight,
+  });
+  return computedInsight;
+}
+
+function toPrayerReminderDto(
+  row: UserPrayerSettingsRow | null,
+): PrayerReminderSettings {
+  if (!row) {
+    return {
+      enabled: false,
+      hour: null,
+      minute: null,
+      timezone: null,
+    };
+  }
+  return {
+    enabled: row.reminderEnabled,
+    hour: row.reminderHour,
+    minute: row.reminderMinute,
+    timezone: row.reminderTimezone,
+  };
+}
+
+async function readUserPrayerSettingsRow(
+  ownerUserId: string,
+): Promise<UserPrayerSettingsRow | null> {
+  const db = requireDb();
+  const [row] = await db
+    .select()
+    .from(userPrayerSettings)
+    .where(eq(userPrayerSettings.userId, ownerUserId))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function readPrayerInsights(
+  ownerUserId: string,
+): Promise<PrayerInsightsResponse> {
+  const [streak, settingsRow] = await Promise.all([
+    computePrayerStreakInsight(ownerUserId),
+    readUserPrayerSettingsRow(ownerUserId),
+  ]);
+  return {
+    streak,
+    reminder: toPrayerReminderDto(settingsRow),
+  };
+}
+
+function normalizeReminderTimezone(
+  value: string | null | undefined,
+): string | null {
+  if (value === null || value === undefined) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.length > 64 ? trimmed.slice(0, 64) : trimmed;
+}
+
+export async function upsertPrayerReminderSettings(
+  ownerUserId: string,
+  patch: {
+    reminderEnabled?: boolean;
+    reminderHour?: number;
+    reminderMinute?: number;
+    reminderTimezone?: string | null;
+  },
+): Promise<PrayerInsightsResponse> {
+  const db = requireDb();
+  const existing = await readUserPrayerSettingsRow(ownerUserId);
+
+  let h = existing?.reminderHour ?? null;
+  let m = existing?.reminderMinute ?? null;
+  let tz = existing?.reminderTimezone ?? null;
+  if (patch.reminderHour !== undefined) h = patch.reminderHour;
+  if (patch.reminderMinute !== undefined) m = patch.reminderMinute;
+  if (patch.reminderTimezone !== undefined) {
+    tz = normalizeReminderTimezone(patch.reminderTimezone);
+  }
+
+  const enabled = patch.reminderEnabled ?? existing?.reminderEnabled ?? false;
+
+  if (enabled) {
+    h = h ?? 8;
+    m = m ?? 0;
+    tz = tz ?? 'UTC';
+  }
+
+  if (tz !== null && !isValidIanaTimeZoneId(tz)) {
+    throw new ClientError(
+      400,
+      'reminderTimezone must be a valid IANA time zone identifier',
+    );
+  }
+
+  const now = new Date();
+
+  if (!existing) {
+    await db.insert(userPrayerSettings).values({
+      userId: ownerUserId,
+      reminderEnabled: enabled,
+      reminderHour: h,
+      reminderMinute: m,
+      reminderTimezone: tz,
+      createdAt: now,
+      updatedAt: now,
+    });
+  } else {
+    await db
+      .update(userPrayerSettings)
+      .set({
+        reminderEnabled: enabled,
+        reminderHour: h,
+        reminderMinute: m,
+        reminderTimezone: tz,
+        updatedAt: now,
+      })
+      .where(eq(userPrayerSettings.userId, ownerUserId));
+  }
+
+  return readPrayerInsights(ownerUserId);
 }

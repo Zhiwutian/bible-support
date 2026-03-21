@@ -16,6 +16,8 @@ const addPrayerListMemberMock = vi.fn();
 const reorderPrayerListMembersMock = vi.fn();
 const readPrayerSessionsMock = vi.fn();
 const createPrayerSessionMock = vi.fn();
+const readPrayerInsightsMock = vi.fn();
+const upsertPrayerReminderSettingsMock = vi.fn();
 
 vi.mock('@server/services/prayer-service.js', () => ({
   readPrayerPartners: (...args: unknown[]): unknown =>
@@ -51,6 +53,10 @@ vi.mock('@server/services/prayer-service.js', () => ({
     readPrayerSessionsMock(...args),
   createPrayerSession: (...args: unknown[]): unknown =>
     createPrayerSessionMock(...args),
+  readPrayerInsights: (...args: unknown[]): unknown =>
+    readPrayerInsightsMock(...args),
+  upsertPrayerReminderSettings: (...args: unknown[]): unknown =>
+    upsertPrayerReminderSettingsMock(...args),
 }));
 
 describe('prayer routes', () => {
@@ -83,6 +89,8 @@ describe('prayer routes', () => {
     reorderPrayerListMembersMock.mockReset();
     readPrayerSessionsMock.mockReset();
     createPrayerSessionMock.mockReset();
+    readPrayerInsightsMock.mockReset();
+    upsertPrayerReminderSettingsMock.mockReset();
   });
 
   it('requires auth for prayer partners', async () => {
@@ -199,6 +207,90 @@ describe('prayer routes', () => {
       .send({ partnerIdsInOrder: [11] })
       .expect(200);
     expect(res.body.data[0].partnerId).toBe(11);
+  });
+
+  it('requires auth for prayer insights', async () => {
+    const res = await request(app).get('/api/prayer/insights').expect(401);
+    expect(res.body.error.code).toBe('client_error');
+    expect(readPrayerInsightsMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects empty body on prayer settings patch', async () => {
+    const res = await request(app)
+      .patch('/api/prayer/settings')
+      .set('cookie', sessionCookie)
+      .send({})
+      .expect(400);
+    expect(res.body.error.code).toBe('validation_error');
+    expect(upsertPrayerReminderSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid IANA timezone on prayer settings patch', async () => {
+    const res = await request(app)
+      .patch('/api/prayer/settings')
+      .set('cookie', sessionCookie)
+      .send({ reminderTimezone: 'Not/A/Real/Zone_XYZ' })
+      .expect(400);
+    expect(res.body.error.code).toBe('validation_error');
+    expect(upsertPrayerReminderSettingsMock).not.toHaveBeenCalled();
+  });
+
+  it('returns prayer insights for authenticated user', async () => {
+    readPrayerInsightsMock.mockResolvedValue({
+      streak: {
+        currentDays: 2,
+        longestDays: 5,
+        lastPrayedDate: '2026-03-19',
+      },
+      reminder: {
+        enabled: false,
+        hour: null,
+        minute: null,
+        timezone: null,
+      },
+    });
+    const res = await request(app)
+      .get('/api/prayer/insights')
+      .set('cookie', sessionCookie)
+      .expect(200);
+    expect(readPrayerInsightsMock).toHaveBeenCalledWith('user-test-1');
+    expect(res.body.data.streak.currentDays).toBe(2);
+  });
+
+  it('updates prayer reminder settings', async () => {
+    upsertPrayerReminderSettingsMock.mockResolvedValue({
+      streak: {
+        currentDays: 0,
+        longestDays: 0,
+        lastPrayedDate: null,
+      },
+      reminder: {
+        enabled: true,
+        hour: 7,
+        minute: 30,
+        timezone: 'America/Chicago',
+      },
+    });
+    const res = await request(app)
+      .patch('/api/prayer/settings')
+      .set('cookie', sessionCookie)
+      .send({
+        reminderEnabled: true,
+        reminderHour: 7,
+        reminderMinute: 30,
+        reminderTimezone: 'America/Chicago',
+      })
+      .expect(200);
+    expect(upsertPrayerReminderSettingsMock).toHaveBeenCalledWith(
+      'user-test-1',
+      expect.objectContaining({
+        reminderEnabled: true,
+        reminderHour: 7,
+        reminderMinute: 30,
+        reminderTimezone: 'America/Chicago',
+      }),
+    );
+    expect(res.body.data.reminder.enabled).toBe(true);
   });
 
   it('creates a prayer session for a list', async () => {

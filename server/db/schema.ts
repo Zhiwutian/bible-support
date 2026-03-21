@@ -573,3 +573,40 @@ export const prayerPartnerNotes = pgTable(
     ),
   }),
 );
+
+export const userPrayerSettings = pgTable(
+  'user_prayer_settings',
+  {
+    userId: uuid('userId')
+      .primaryKey()
+      .references(() => users.userId, { onDelete: 'cascade' }),
+    reminderEnabled: boolean('reminderEnabled').notNull().default(false),
+    reminderHour: integer('reminderHour'),
+    reminderMinute: integer('reminderMinute'),
+    reminderTimezone: text('reminderTimezone'),
+    createdAt: timestamp('createdAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userPrayerSettingsReminderHourCheck: check(
+      'user_prayer_settings_reminder_hour_check',
+      sql`${table.reminderHour} is null or (${table.reminderHour} >= 0 and ${table.reminderHour} <= 23)`,
+    ),
+    userPrayerSettingsReminderMinuteCheck: check(
+      'user_prayer_settings_reminder_minute_check',
+      sql`${table.reminderMinute} is null or (${table.reminderMinute} >= 0 and ${table.reminderMinute} <= 59)`,
+    ),
+    userPrayerSettingsReminderTimezoneLengthCheck: check(
+      'user_prayer_settings_reminder_timezone_length_check',
+      sql`${table.reminderTimezone} is null or char_length(${table.reminderTimezone}) <= 64`,
+    ),
+    userPrayerSettingsReminderEnabledRequiresScheduleCheck: check(
+      'user_prayer_settings_reminder_enabled_requires_schedule_check',
+      sql`not ${table.reminderEnabled} or (${table.reminderHour} is not null and ${table.reminderMinute} is not null and ${table.reminderTimezone} is not null)`,
+    ),
+  }),
+);

@@ -34,6 +34,16 @@ async function run() {
   if (!health?.data) throw new Error('GET /api/health returned unexpected payload');
   console.log('PASS GET /api/health');
 
+  const prayerInsightsUnauth = await fetch(`${base}/api/prayer/insights`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (prayerInsightsUnauth.status !== 401) {
+    throw new Error(
+      `GET /api/prayer/insights without session expected 401, got ${prayerInsightsUnauth.status}`,
+    );
+  }
+  console.log('PASS GET /api/prayer/insights (401 without session)');
+
   const emotions = await getJson('/api/emotions', 'GET /api/emotions');
   const firstEmotion = emotions?.data?.[0];
   if (!firstEmotion?.slug) {

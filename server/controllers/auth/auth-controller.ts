@@ -156,6 +156,19 @@ function normalizeAvatarInput(value: string | null): string | null {
   return parsed.toString();
 }
 
+/**
+ * Build the callback URL passed to the OIDC client for code exchange.
+ * Must match `AUTH_REDIRECT_URI` (scheme/host/path) exactly; using
+ * `req.protocol` can be wrong locally when `trust proxy` + forwarded headers
+ * are present, which breaks token exchange and can look like a "blank" page.
+ */
+function buildOidcCallbackRequestUrl(req: Request): URL {
+  const configured = new URL(env.AUTH_REDIRECT_URI);
+  const question = req.originalUrl.indexOf('?');
+  const query = question >= 0 ? req.originalUrl.slice(question) : '';
+  return new URL(`${configured.pathname}${query}`, configured.origin);
+}
+
 /** Handle GET /api/auth/login by redirecting to provider. */
 export async function getAuthLogin(req: Request, res: Response): Promise<void> {
   if (!isAuthEnabled()) {
@@ -268,16 +281,16 @@ export async function getAuthCallback(
     const query = callbackQuerySchema.parse(req.query);
     const loginState = readLoginStateCookie(req);
     if (!loginState) {
-      throw new ClientError(401, 'missing or expired auth login state');
+      throw new ClientError(
+        401,
+        'missing or expired auth login state; please start sign-in again',
+      );
     }
     if (query.state !== loginState.state) {
       throw new ClientError(401, 'invalid auth state');
     }
 
-    const callbackUrl = new URL(
-      req.originalUrl,
-      `${req.protocol}://${req.get('host')}`,
-    );
+    const callbackUrl = buildOidcCallbackRequestUrl(req);
     const providerIdentity = await exchangeCodeForProviderIdentity({
       callbackUrl,
       expectedState: loginState.state,

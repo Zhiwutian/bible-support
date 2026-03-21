@@ -17,7 +17,11 @@ export function redirectToLogin(
   provider?: AuthSocialProvider,
   next?: string,
 ): void {
-  const loginUrl = new URL(String(resolveApiInput('/api/auth/login')));
+  const resolvedLoginInput = resolveApiInput('/api/auth/login');
+  const loginUrl =
+    typeof resolvedLoginInput === 'string'
+      ? new URL(resolvedLoginInput, window.location.origin)
+      : new URL(String(resolvedLoginInput), window.location.origin);
   if (provider) {
     loginUrl.searchParams.set('provider', provider);
   }

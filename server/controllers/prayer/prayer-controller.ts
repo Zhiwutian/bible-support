@@ -9,9 +9,11 @@ import type {
   UpdatePrayerListRequest,
   UpdatePrayerPartnerNoteRequest,
   UpdatePrayerPartnerRequest,
+  UpdatePrayerReminderSettingsRequest,
 } from '@shared/prayer-contracts.js';
 import { requireSessionUserId } from '@server/lib/auth-context.js';
 import { asyncHandler, sendSuccess } from '@server/lib/index.js';
+import { isValidIanaTimeZoneId } from '@server/lib/iana-timezone.js';
 import {
   addPrayerListMember,
   createPrayerList,
@@ -23,6 +25,7 @@ import {
   readPrayerLists,
   readPrayerPartner,
   readPrayerPartnerNotes,
+  readPrayerInsights,
   readPrayerPartners,
   readPrayerSessions,
   removePrayerList,
@@ -33,6 +36,7 @@ import {
   updatePrayerList,
   updatePrayerPartner,
   updatePrayerPartnerNote,
+  upsertPrayerReminderSettings,
 } from '@server/services/prayer-service.js';
 
 const includeArchivedQuerySchema = z.object({
@@ -146,6 +150,42 @@ const createPrayerPartnerNoteBodySchema = z.object({
 
 const updatePrayerPartnerNoteBodySchema = z.object({
   note: z.string().trim().min(1).max(4000),
+});
+
+const patchPrayerReminderSettingsBodySchema = z
+  .object({
+    reminderEnabled: z.boolean().optional(),
+    reminderHour: z.number().int().min(0).max(23).optional(),
+    reminderMinute: z.number().int().min(0).max(59).optional(),
+    reminderTimezone: z.string().trim().max(64).nullable().optional(),
+  })
+  .refine((body) => Object.keys(body).length > 0, {
+    message: 'at least one field must be provided',
+  })
+  .superRefine((body, ctx) => {
+    const tz = body.reminderTimezone;
+    if (tz != null && tz !== '' && !isValidIanaTimeZoneId(tz)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'reminderTimezone must be a valid IANA time zone identifier',
+        path: ['reminderTimezone'],
+      });
+    }
+  });
+
+export const getPrayerInsights = asyncHandler(async (req, res) => {
+  const ownerUserId = requireSessionUserId(req);
+  const payload = await readPrayerInsights(ownerUserId);
+  sendSuccess(res, payload);
+});
+
+export const patchPrayerReminderSettings = asyncHandler(async (req, res) => {
+  const ownerUserId = requireSessionUserId(req);
+  const body = patchPrayerReminderSettingsBodySchema.parse(
+    req.body,
+  ) as UpdatePrayerReminderSettingsRequest;
+  const payload = await upsertPrayerReminderSettings(ownerUserId, body);
+  sendSuccess(res, payload);
 });
 
 export const getPrayerPartners = asyncHandler(async (req, res) => {

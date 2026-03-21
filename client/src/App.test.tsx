@@ -603,4 +603,56 @@ describe('App', () => {
     await user.click(screen.getAllByRole('button', { name: /save note/i })[0]);
     expect(await screen.findByText(/note saved/i)).toBeInTheDocument();
   });
+
+  it('renders prayer partners hub when signed in', async () => {
+    server.use(
+      http.get('/api/auth/me', () =>
+        HttpResponse.json({
+          data: {
+            isAuthenticated: true,
+            userId: 'user-msw-test-1',
+            role: 'user',
+            displayName: 'MSW Test User',
+            avatarUrl: null,
+            enabledSocialProviders: ['google'],
+          },
+        }),
+      ),
+    );
+    renderApp(['/prayer-partners']);
+    expect(
+      await screen.findByRole('heading', { name: 'Prayer Partners' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/0-day streak/i)).toBeInTheDocument();
+  });
+
+  it('opens prayer lists filters modal when signed in', async () => {
+    server.use(
+      http.get('/api/auth/me', () =>
+        HttpResponse.json({
+          data: {
+            isAuthenticated: true,
+            userId: 'user-msw-test-1',
+            role: 'user',
+            displayName: 'MSW Test User',
+            avatarUrl: null,
+            enabledSocialProviders: ['google'],
+          },
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp(['/prayer-lists']);
+    expect(
+      await screen.findByRole('heading', { name: 'Prayer Lists' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Filter lists' }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(
+      screen.queryByRole('heading', { name: 'Filter lists' }),
+    ).not.toBeInTheDocument();
+  });
 });

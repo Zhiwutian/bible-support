@@ -127,6 +127,13 @@
       "when": 1774010000000,
       "tag": "0017_prayer_partners_lists_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774100000000,
+      "tag": "0018_user_prayer_settings",
+      "breakpoints": true
     }
   ]
 }

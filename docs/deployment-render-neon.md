@@ -91,6 +91,7 @@ This verifies:
 
 - app page load (`/`)
 - API liveness (`/api/health`)
+- prayer insights require auth (`GET /api/prayer/insights` → `401` without a session cookie)
 - emotion list + scripture flow (`/api/emotions`, `/api/emotions/:slug/scriptures`)
 - scripture context lookup (`/api/scripture-context?scriptureId=...`)
 

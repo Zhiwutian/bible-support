@@ -60,6 +60,8 @@ These files are local source-of-truth templates. Hosted environments still need 
 For split-host auth cookies in production, use:
 
 - `SESSION_COOKIE_SAME_SITE=none`
+- Optional auth callback tuning:
+  - `AUTH_LOGIN_STATE_TTL_SECONDS` controls short-lived OIDC state-cookie lifetime (default `600`, min `60`, max `3600`).
 
 ## Safety Notes
 

@@ -20,6 +20,7 @@ import {
   updatePrayerList,
   type PrayerListMemberWithPartner,
 } from '@/features/prayer-lists/prayer-lists-api';
+import { dispatchPrayerInsightsInvalidate } from '@/features/prayer/prayer-insights-events';
 import { readPrayerPartners } from '@/features/prayer-partners/prayer-partners-api';
 
 export function PrayerListDetailPage() {
@@ -173,6 +174,7 @@ export function PrayerListDetailPage() {
       });
       setPrayerNote('');
       await loadDetail();
+      dispatchPrayerInsightsInvalidate();
       showToast({ title: 'Prayer session logged', variant: 'success' });
     } catch (err) {
       showToast({
