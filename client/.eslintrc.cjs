@@ -9,6 +9,20 @@ module.exports = {
   ignorePatterns: ['dist', '.eslintrc.cjs'],
   parser: '@typescript-eslint/parser',
   plugins: ['react-refresh'],
+  overrides: [
+    {
+      files: ['*.mdx'],
+      extends: ['plugin:mdx/recommended'],
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
+      rules: {
+        '@typescript-eslint/no-unused-vars': 'off',
+      },
+    },
+  ],
   rules: {
     'react-refresh/only-export-components': [
       'warn',

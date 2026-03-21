@@ -39,6 +39,47 @@ Current Reader decomposition references:
 - Use `client/src/state` Context + reducer for app-wide UI settings only.
 - Keep server-loaded data request-driven through feature API modules.
 
+### Session route snapshots (guest-friendly)
+
+- Use `client/src/lib/route-session-state.ts` to persist **non-sensitive** UI state
+  for a tab session (search form fields, list scroll, hub filters) via
+  `sessionStorage` with Zod validation. Wrap reads/writes in `try/catch`; corrupt
+  keys are cleared automatically.
+- Prefer **form + scroll** over large blobs (for example avoid caching full search
+  result lists unless product explicitly requires offline replay).
+- This is separate from **authenticated reader state** on the server
+  (`readReaderState` / `updateReaderState`): session snapshots are device/tab
+  scoped and work for guests.
+
+### Reader last location + scroll
+
+- Last book/chapter/translation (and optional URL `verse`) live in
+  `client/src/features/reader/last-reader-location.ts` and hydrate when the user
+  opens `/reader` without a complete query string.
+- Use `ReaderNavLinkButton` or `getLastReaderTo()` for menu/CTAs so navigation
+  does not drop reader context.
+- Chapter scroll within the reader content pane is stored per
+  `book|chapter|translation`. **Do not** restore session scroll when a **verse
+  jump** or **bookmark jump** runs for the same load (see `BibleReaderPage`).
+- On **bfcache** restore (`pageshow` + `persisted`), reader scroll is re-applied
+  from session storage.
+
+### React Router scroll restoration
+
+- The reader uses a **dedicated scroll container** (not `window`). If you add
+  React Router `ScrollRestoration`, ensure it does not fight the reader pane’s
+  manual scroll persistence.
+
+### Tutorial content (MDX)
+
+- Tutorial body: `client/src/content/tutorial/*.mdx`, shell:
+  `client/src/pages/TutorialPage.tsx`.
+- Use thin wrappers in `client/src/components/tutorial/*` (`TutorialProse`,
+  `TutorialFigure`, `TutorialStep`, `TutorialCallout`, `TutorialReaderLink`) for
+  consistent layout and accessibility.
+- Put images in `client/public/tutorial/` (prefer WebP). **Alt text is required**
+  on every figure. Do not put secrets or env values in MDX.
+
 ## API Pattern
 
 - Use `fetchJson`/`fetchNoContent` from `client/src/lib/api-client.ts`.

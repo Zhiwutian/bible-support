@@ -1,5 +1,5 @@
 import type { PrayerPartner } from '@shared/prayer-contracts';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useToast } from '@/components/app/toast-context';
 import {
@@ -20,6 +20,14 @@ import {
   readPrayerPartners,
   updatePrayerPartner,
 } from '@/features/prayer-partners/prayer-partners-api';
+import {
+  prayerPartnersRouteStateSchema,
+  readRouteState,
+  writeRouteState,
+  type PrayerPartnersRouteState,
+} from '@/lib/route-session-state';
+
+const PRAYER_PARTNERS_ROUTE_PATH = '/prayer-partners';
 
 function normalizePartnerImageUrl(rawValue: string): {
   value: string | null;
@@ -68,16 +76,37 @@ type PartnerFiltersDraft = {
 
 export function PrayerPartnersPage() {
   const { showToast } = useToast();
+  const prayerRouteInitialRef = useRef<PrayerPartnersRouteState | null>(null);
+  if (prayerRouteInitialRef.current === null && typeof window !== 'undefined') {
+    prayerRouteInitialRef.current = readRouteState(
+      PRAYER_PARTNERS_ROUTE_PATH,
+      prayerPartnersRouteStateSchema,
+    );
+  }
+  const prInitial = prayerRouteInitialRef.current;
+
   const [partners, setPartners] = useState<PrayerPartner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
-  const [includeArchived, setIncludeArchived] = useState(false);
-  const [needsUpdateOnly, setNeedsUpdateOnly] = useState(false);
-  const [needsUpdateDays, setNeedsUpdateDays] = useState('14');
-  const [imageFilter, setImageFilter] = useState<'all' | 'has' | 'none'>('all');
-  const [notesFilter, setNotesFilter] = useState<'all' | 'has' | 'none'>('all');
-  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'oldest'>('recent');
+  const [includeArchived, setIncludeArchived] = useState(
+    () => prInitial?.includeArchived ?? false,
+  );
+  const [needsUpdateOnly, setNeedsUpdateOnly] = useState(
+    () => prInitial?.needsUpdateOnly ?? false,
+  );
+  const [needsUpdateDays, setNeedsUpdateDays] = useState(
+    () => prInitial?.needsUpdateDays ?? '14',
+  );
+  const [imageFilter, setImageFilter] = useState<'all' | 'has' | 'none'>(
+    () => prInitial?.imageFilter ?? 'all',
+  );
+  const [notesFilter, setNotesFilter] = useState<'all' | 'has' | 'none'>(
+    () => prInitial?.notesFilter ?? 'all',
+  );
+  const [sortBy, setSortBy] = useState<'recent' | 'name' | 'oldest'>(
+    () => prInitial?.sortBy ?? 'recent',
+  );
   const [name, setName] = useState('');
   const [prayerFocus, setPrayerFocus] = useState('');
   const [imageUrl, setImageUrl] = useState('');
@@ -85,15 +114,66 @@ export function PrayerPartnersPage() {
     usePrayerPageInsights();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<PartnerFiltersDraft>(() => ({
-    includeArchived: false,
-    needsUpdateOnly: false,
-    needsUpdateDays: '14',
-    imageFilter: 'all',
-    notesFilter: 'all',
-    sortBy: 'recent',
+    includeArchived: prInitial?.includeArchived ?? false,
+    needsUpdateOnly: prInitial?.needsUpdateOnly ?? false,
+    needsUpdateDays: prInitial?.needsUpdateDays ?? '14',
+    imageFilter: prInitial?.imageFilter ?? 'all',
+    notesFilter: prInitial?.notesFilter ?? 'all',
+    sortBy: prInitial?.sortBy ?? 'recent',
   }));
 
   usePrayerReminder(insights);
+
+  useEffect(() => {
+    const y = prInitial?.scrollY;
+    if (y == null) return;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+    });
+  }, [prInitial?.scrollY]);
+
+  const persistPrayerPartnersRoute = useCallback(() => {
+    writeRouteState(PRAYER_PARTNERS_ROUTE_PATH, {
+      version: 1,
+      includeArchived,
+      needsUpdateOnly,
+      needsUpdateDays,
+      imageFilter,
+      notesFilter,
+      sortBy,
+      scrollY: Math.max(0, window.scrollY),
+    });
+  }, [
+    includeArchived,
+    needsUpdateOnly,
+    needsUpdateDays,
+    imageFilter,
+    notesFilter,
+    sortBy,
+  ]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      persistPrayerPartnersRoute();
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [persistPrayerPartnersRoute]);
+
+  useEffect(() => {
+    let timeoutId: number | undefined;
+    function onScroll() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        persistPrayerPartnersRoute();
+      }, 200);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [persistPrayerPartnersRoute]);
 
   const loadPartners = useCallback(async () => {
     setIsLoading(true);

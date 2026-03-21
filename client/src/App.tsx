@@ -1,4 +1,5 @@
 import { NavLinkButton } from '@/components/app/NavLinkButton';
+import { ReaderNavLinkButton } from '@/components/app/ReaderNavLinkButton';
 import { BrandLockup } from '@/components/app/BrandLockup';
 import { MenuHeader } from '@/components/app/MenuHeader';
 import { useToast } from '@/components/app/toast-context';
@@ -471,12 +472,11 @@ export default function App() {
                       onClick={() => setIsMobileMenuOpen(false)}>
                       Prayer Lists
                     </NavLinkButton>
-                    <NavLinkButton
-                      to="/reader"
+                    <ReaderNavLinkButton
                       className="justify-start text-base font-semibold"
                       onClick={() => setIsMobileMenuOpen(false)}>
                       Reader
-                    </NavLinkButton>
+                    </ReaderNavLinkButton>
                     <NavLinkButton
                       to="/tutorial"
                       className="justify-start text-base font-semibold"

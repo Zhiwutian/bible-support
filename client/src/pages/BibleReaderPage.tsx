@@ -26,6 +26,11 @@ import { ReaderNoteModal } from '@/features/reader/ReaderNoteModal';
 import { ReaderOptionsModal } from '@/features/reader/ReaderOptionsModal';
 import { ReaderStatusBar } from '@/features/reader/ReaderStatusBar';
 import { ReaderVerseActionsModal } from '@/features/reader/ReaderVerseActionsModal';
+import {
+  loadReaderScrollPosition,
+  saveLastReaderLocation,
+  saveReaderScrollPosition,
+} from '@/features/reader/last-reader-location';
 import { useReaderChapterRouteState } from '@/features/reader/useReaderChapterRouteState';
 import { useReaderVerseActions } from '@/features/reader/useReaderVerseActions';
 import {
@@ -93,13 +98,12 @@ export function BibleReaderPage() {
   const pendingJumpBookmarkRef = useRef<ReaderBookmark | null>(null);
   const pendingVerseFromUrlRef = useRef<number | null>(null);
   const hasRestoredInitialBookmarkRef = useRef(false);
+  const suppressSessionScrollRef = useRef(false);
+  const sessionScrollRestoredKeyRef = useRef<string | null>(null);
   const fromEmotion = searchParams.get('fromEmotion')?.trim() ?? '';
   const fromScriptureId = Number(searchParams.get('fromScriptureId') ?? '');
   const fromTranslation = searchParams.get('fromTranslation')?.toUpperCase();
   const canReturnToSupportVerse = fromEmotion.length > 0;
-  const initialBook = searchParams.get('book');
-  const initialChapter = Number(searchParams.get('chapter') ?? '');
-  const initialTranslation = searchParams.get('translation')?.toUpperCase();
   const initialVerse = Number(searchParams.get('verse') ?? '');
   const {
     book,
@@ -114,9 +118,6 @@ export function BibleReaderPage() {
     updateChapterFromInput,
     clampChapterInputOnBlur,
   } = useReaderChapterRouteState({
-    initialBookParam: initialBook,
-    initialChapterParam: initialChapter,
-    initialTranslationParam: initialTranslation,
     searchParams,
     setSearchParams,
   });
@@ -174,6 +175,22 @@ export function BibleReaderPage() {
       setReaderPreferences,
       setBookmark,
     });
+
+  useEffect(() => {
+    const verseRaw = searchParams.get('verse');
+    const v = verseRaw ? Number(verseRaw) : NaN;
+    saveLastReaderLocation({
+      book,
+      chapter,
+      translation,
+      ...(Number.isInteger(v) && v > 0 ? { verse: v } : {}),
+    });
+  }, [book, chapter, translation, searchParams]);
+
+  useEffect(() => {
+    suppressSessionScrollRef.current = false;
+    sessionScrollRestoredKeyRef.current = null;
+  }, [book, chapter, translation]);
 
   useEffect(() => {
     if (
@@ -243,15 +260,27 @@ export function BibleReaderPage() {
         ? bookmark
         : null);
     if (!target) return;
-    if (!readerContainerRef.current) return;
-    requestAnimationFrame(() => {
-      if (!readerContainerRef.current) return;
-      readerContainerRef.current.scrollTop = target.scrollOffset;
-    });
-    if (pending) {
-      pendingJumpBookmarkRef.current = null;
+    const scrollTarget = target;
+    suppressSessionScrollRef.current = true;
+    let attempts = 0;
+    function tryApplyBookmarkScroll() {
+      const el = readerContainerRef.current;
+      if (el) {
+        el.scrollTop = scrollTarget.scrollOffset;
+        if (pending) {
+          pendingJumpBookmarkRef.current = null;
+        }
+        hasRestoredInitialBookmarkRef.current = true;
+        return;
+      }
+      attempts += 1;
+      if (attempts < 120) {
+        requestAnimationFrame(tryApplyBookmarkScroll);
+      }
+      // If the scroll container is unmounted (e.g. chapter loading), keep
+      // pendingJumpBookmarkRef until a later effect run when the ref exists.
     }
-    hasRestoredInitialBookmarkRef.current = true;
+    requestAnimationFrame(tryApplyBookmarkScroll);
   }, [bookmark, payload]);
 
   useEffect(() => {
@@ -276,9 +305,74 @@ export function BibleReaderPage() {
         : false;
     });
     if (!match) return;
+    suppressSessionScrollRef.current = true;
     match.scrollIntoView({ block: 'center' });
     pendingVerseFromUrlRef.current = null;
   }, [payload, readerPreferences.readingStyle]);
+
+  useEffect(() => {
+    if (!payload || !readerContainerRef.current) return;
+    const key = `${book}|${chapter}|${translation}`;
+    if (sessionScrollRestoredKeyRef.current === key) return;
+    if (suppressSessionScrollRef.current) {
+      sessionScrollRestoredKeyRef.current = key;
+      return;
+    }
+    const saved = loadReaderScrollPosition(book, chapter, translation);
+    if (saved == null) {
+      sessionScrollRestoredKeyRef.current = key;
+      return;
+    }
+    requestAnimationFrame(() => {
+      if (!readerContainerRef.current) return;
+      readerContainerRef.current.scrollTop = saved;
+    });
+    sessionScrollRestoredKeyRef.current = key;
+  }, [payload, book, chapter, translation]);
+
+  useEffect(() => {
+    const el = readerContainerRef.current;
+    if (!el || !payload) return;
+    let timeoutId: number | undefined;
+    function flushScrollSave() {
+      const node = readerContainerRef.current;
+      if (!node) return;
+      saveReaderScrollPosition(book, chapter, translation, node.scrollTop);
+    }
+    function onScroll() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        flushScrollSave();
+      }, 150);
+    }
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') {
+        flushScrollSave();
+      }
+    }
+    el.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [book, chapter, translation, payload]);
+
+  useEffect(() => {
+    function onPageShow(ev: PageTransitionEvent) {
+      if (!ev.persisted) return;
+      const el = readerContainerRef.current;
+      if (!el) return;
+      const saved = loadReaderScrollPosition(book, chapter, translation);
+      if (saved != null) {
+        el.scrollTop = saved;
+      }
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [book, chapter, translation]);
 
   useEffect(() => {
     if (!verseActionTarget && !noteModalTarget && !isOptionsModalOpen) return;
@@ -420,7 +514,6 @@ export function BibleReaderPage() {
     setBookmarkStatus(
       `Jumping to ${bookmark.book} ${bookmark.chapter}:${bookmark.verse}...`,
     );
-    setIsLoading(true);
     setError('');
     setBook(bookmark.book);
     setChapter(bookmark.chapter);

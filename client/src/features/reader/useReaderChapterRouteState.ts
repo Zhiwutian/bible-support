@@ -4,11 +4,9 @@ import { BIBLE_BOOKS } from '@shared/bible-books';
 import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
 import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
+import { getInitialReaderChapterState } from '@/features/reader/last-reader-location';
 
 type UseReaderChapterRouteStateArgs = {
-  initialBookParam: string | null;
-  initialChapterParam: number;
-  initialTranslationParam?: string;
   searchParams: URLSearchParams;
   setSearchParams: SetURLSearchParams;
 };
@@ -17,38 +15,44 @@ type UseReaderChapterRouteStateArgs = {
  * Manage reader book/chapter/translation state and URL synchronization.
  */
 export function useReaderChapterRouteState({
-  initialBookParam,
-  initialChapterParam,
-  initialTranslationParam,
   searchParams,
   setSearchParams,
 }: UseReaderChapterRouteStateArgs) {
-  const initialCanonicalBook =
-    initialBookParam &&
-    BIBLE_BOOKS.some((bookName) => bookName === initialBookParam)
-      ? initialBookParam
-      : BIBLE_BOOKS[0];
-  const initialChapterValue =
-    Number.isInteger(initialChapterParam) && initialChapterParam > 0
-      ? initialChapterParam
-      : 1;
-  const initialChapterClamped = Math.min(
-    initialChapterValue,
-    getMaxChaptersForBook(initialCanonicalBook),
+  const [book, setBook] = useState(
+    () => getInitialReaderChapterState(searchParams).book,
   );
-
-  const [book, setBook] = useState(initialCanonicalBook);
-  const [chapter, setChapter] = useState(initialChapterClamped);
-  const [chapterInputValue, setChapterInputValue] = useState(
-    String(initialChapterClamped),
+  const [chapter, setChapter] = useState(
+    () => getInitialReaderChapterState(searchParams).chapter,
+  );
+  const [chapterInputValue, setChapterInputValue] = useState(() =>
+    String(getInitialReaderChapterState(searchParams).chapter),
   );
   const [translation, setTranslation] = useState<ScriptureTranslationCode>(
-    SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
-      initialTranslationParam as ScriptureTranslationCode,
-    )
-      ? (initialTranslationParam as ScriptureTranslationCode)
-      : 'KJV',
+    () => getInitialReaderChapterState(searchParams).translation,
   );
+
+  useEffect(() => {
+    const urlBook = searchParams.get('book');
+    const urlChapter = Number(searchParams.get('chapter') ?? '');
+    const urlTrans = searchParams.get('translation')?.toUpperCase() ?? '';
+    if (
+      !urlBook ||
+      !BIBLE_BOOKS.some((name) => name === urlBook) ||
+      !Number.isInteger(urlChapter) ||
+      urlChapter < 1 ||
+      !urlTrans ||
+      !SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
+        urlTrans as ScriptureTranslationCode,
+      )
+    ) {
+      return;
+    }
+    const t = urlTrans as ScriptureTranslationCode;
+    const clampedChapter = Math.min(urlChapter, getMaxChaptersForBook(urlBook));
+    if (urlBook !== book) setBook(urlBook);
+    if (clampedChapter !== chapter) setChapter(clampedChapter);
+    if (t !== translation) setTranslation(t);
+  }, [searchParams, book, chapter, translation]);
 
   const maxChapterForBook = useMemo(() => getMaxChaptersForBook(book), [book]);
 

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
 import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
@@ -29,6 +29,13 @@ import {
   searchScriptures,
   toSavePayload,
 } from '@/features/search/scripture-search-api';
+import {
+  readRouteState,
+  searchPageRouteStateSchema,
+  writeRouteState,
+} from '@/lib/route-session-state';
+
+const SEARCH_ROUTE_PATH = '/search';
 
 /** Render a three-mode scripture search experience with save actions. */
 export function SearchPage() {
@@ -55,6 +62,7 @@ export function SearchPage() {
     title: string;
     description: string;
   } | null>(null);
+  const [searchRouteHydrated, setSearchRouteHydrated] = useState(false);
 
   const savedKeySet = useMemo(
     () =>
@@ -94,6 +102,83 @@ export function SearchPage() {
         // Keep search functional even if saved collection endpoint is unavailable.
       });
   }, []);
+
+  useEffect(() => {
+    const saved = readRouteState(SEARCH_ROUTE_PATH, searchPageRouteStateSchema);
+    if (saved) {
+      setMode(saved.mode);
+      const tr = SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
+        saved.translation as ScriptureTranslationCode,
+      )
+        ? (saved.translation as ScriptureTranslationCode)
+        : 'KJV';
+      setTranslation(tr);
+      if (BIBLE_BOOKS.includes(saved.book as (typeof BIBLE_BOOKS)[number])) {
+        setBook(saved.book as (typeof BIBLE_BOOKS)[number]);
+      }
+      setChapter(saved.chapter === null ? '' : saved.chapter);
+      setVerseStart(saved.verseStart === null ? '' : saved.verseStart);
+      setVerseEnd(saved.verseEnd === null ? '' : saved.verseEnd);
+      setQueryText(saved.queryText);
+      setSource(saved.source);
+      setSelectedVerseKeys(saved.selectedVerseKeys);
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: saved.scrollY, left: 0, behavior: 'auto' });
+      });
+    }
+    setSearchRouteHydrated(true);
+  }, []);
+
+  const persistSearchRouteState = useCallback(() => {
+    writeRouteState(SEARCH_ROUTE_PATH, {
+      version: 1,
+      mode,
+      translation,
+      book,
+      chapter: chapter === '' ? null : chapter,
+      verseStart: verseStart === '' ? null : verseStart,
+      verseEnd: verseEnd === '' ? null : verseEnd,
+      queryText,
+      source,
+      selectedVerseKeys,
+      scrollY: Math.max(0, window.scrollY),
+    });
+  }, [
+    mode,
+    translation,
+    book,
+    chapter,
+    verseStart,
+    verseEnd,
+    queryText,
+    source,
+    selectedVerseKeys,
+  ]);
+
+  useEffect(() => {
+    if (!searchRouteHydrated) return;
+    const handle = window.setTimeout(() => {
+      persistSearchRouteState();
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [searchRouteHydrated, persistSearchRouteState]);
+
+  useEffect(() => {
+    if (!searchRouteHydrated) return;
+    let timeoutId: number | undefined;
+    function onScroll() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        persistSearchRouteState();
+      }, 200);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
+  }, [searchRouteHydrated, persistSearchRouteState]);
 
   async function handleSearch(event: FormEvent) {
     event.preventDefault();

@@ -8,6 +8,7 @@ import {
   EmptyState,
   SectionHeader,
 } from '@/components/ui';
+import { getLastReaderTo } from '@/features/reader/last-reader-location';
 import { searchScriptures } from '@/features/search/scripture-search-api';
 import { appCopy } from '@/lib/copy';
 import { trackEvent } from '@/lib/telemetry';
@@ -173,7 +174,7 @@ export function VerseDetailPage() {
       <Button
         variant="ghost"
         className="min-h-11"
-        onClick={() => navigate('/reader')}>
+        onClick={() => navigate(getLastReaderTo())}>
         {appCopy.actions.openReader}
       </Button>
       <Button

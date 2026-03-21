@@ -98,10 +98,16 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Tutorial' }),
     ).toBeInTheDocument();
-    expect(await screen.findByText(/getting started/i)).toBeInTheDocument();
-    expect(await screen.findByText(/troubleshooting/i)).toBeInTheDocument();
     expect(
-      await screen.findByText(/recommended next steps/i),
+      await screen.findByRole('heading', { name: /^Getting started$/i }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /^Troubleshooting$/i }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: /^Recommended next steps$/i,
+      }),
     ).toBeInTheDocument();
   });
 
