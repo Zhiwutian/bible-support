@@ -253,6 +253,8 @@ Prayer pages include activity-driven filters and sorting:
   - `Not prayed recently` (no prayer session in X days)
   - Archived toggle
 - Default sort favors recent activity, with optional alphabetical/oldest sorts.
+- Prayer streaks are based on UTC calendar days from prayer list sessions.
+- Daily reminders are in-app while a user has the app open; optional browser notifications require user permission.
 
 ## CI and Deployment
 

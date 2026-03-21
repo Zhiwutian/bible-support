@@ -29,8 +29,15 @@ type PrayerListWithActivity = PrayerListRow & {
   sessionCount: number;
   lastSessionAt: Date | null;
 };
+type PrayerStreakInsight = PrayerInsightsResponse['streak'];
 type PrayerDb = ReturnType<typeof requireDb>;
 type PrayerTx = Parameters<Parameters<PrayerDb['transaction']>[0]>[0];
+
+const PRAYER_STREAK_CACHE_TTL_MS = 60_000;
+const prayerStreakCache = new Map<
+  string,
+  { expiresAt: number; value: PrayerStreakInsight }
+>();
 
 function normalizeOptionalText(
   value: string | null | undefined,
@@ -117,22 +124,22 @@ async function applyMemberOrder(
     );
   }
 
+  const positionCaseBranches = partnerIdsInOrder.map(
+    (partnerId, idx) =>
+      sql`when ${prayerListMembers.partnerId} = ${partnerId} then ${idx + 1}`,
+  );
+
   await tx
     .update(prayerListMembers)
-    .set({ position: sql`${prayerListMembers.position} + 100000` })
-    .where(eq(prayerListMembers.listId, listId));
-
-  for (let idx = 0; idx < partnerIdsInOrder.length; idx += 1) {
-    await tx
-      .update(prayerListMembers)
-      .set({ position: idx + 1 })
-      .where(
-        and(
-          eq(prayerListMembers.listId, listId),
-          eq(prayerListMembers.partnerId, partnerIdsInOrder[idx]),
-        ),
-      );
-  }
+    .set({
+      position: sql`case ${sql.join(positionCaseBranches, sql` `)} else ${prayerListMembers.position} end`,
+    })
+    .where(
+      and(
+        eq(prayerListMembers.listId, listId),
+        inArray(prayerListMembers.partnerId, partnerIdsInOrder),
+      ),
+    );
 }
 
 function partnerActivityDate(partner: PrayerPartnerWithActivity): number {
@@ -787,6 +794,7 @@ export async function createPrayerSession(input: {
   if (!created) {
     throw new ClientError(500, 'failed to create prayer session');
   }
+  prayerStreakCache.delete(input.ownerUserId);
   return created;
 }
 
@@ -852,9 +860,22 @@ export async function computePrayerStreakInsight(ownerUserId: string): Promise<{
   longestDays: number;
   lastPrayedDate: string | null;
 }> {
+  const cached = prayerStreakCache.get(ownerUserId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
   const daysDesc = await readPrayerSessionDaysUtc(ownerUserId);
   if (daysDesc.length === 0) {
-    return { currentDays: 0, longestDays: 0, lastPrayedDate: null };
+    const emptyInsight = {
+      currentDays: 0,
+      longestDays: 0,
+      lastPrayedDate: null,
+    };
+    prayerStreakCache.set(ownerUserId, {
+      expiresAt: Date.now() + PRAYER_STREAK_CACHE_TTL_MS,
+      value: emptyInsight,
+    });
+    return emptyInsight;
   }
   const set = new Set(daysDesc);
   const todayUtc = utcTodayString();
@@ -862,7 +883,12 @@ export async function computePrayerStreakInsight(ownerUserId: string): Promise<{
   const sortedAsc = [...set].sort();
   const longestDays = computeLongestStreakUtc(sortedAsc);
   const lastPrayedDate = daysDesc[0] ?? null;
-  return { currentDays, longestDays, lastPrayedDate };
+  const computedInsight = { currentDays, longestDays, lastPrayedDate };
+  prayerStreakCache.set(ownerUserId, {
+    expiresAt: Date.now() + PRAYER_STREAK_CACHE_TTL_MS,
+    value: computedInsight,
+  });
+  return computedInsight;
 }
 
 function toPrayerReminderDto(

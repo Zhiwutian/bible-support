@@ -5,12 +5,19 @@ import { useToast } from '@/components/app/toast-context';
 const STORAGE_PREFIX = 'prayer-reminder-fired';
 
 function dateInTimeZone(timeZone: string, d = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', {
+  const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(d);
+  }).formatToParts(d);
+  const year = parts.find((p) => p.type === 'year')?.value;
+  const month = parts.find((p) => p.type === 'month')?.value;
+  const day = parts.find((p) => p.type === 'day')?.value;
+  if (!year || !month || !day) {
+    return new Date(d).toISOString().slice(0, 10);
+  }
+  return `${year}-${month}-${day}`;
 }
 
 function clockInTimeZone(
