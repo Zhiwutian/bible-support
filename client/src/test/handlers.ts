@@ -117,6 +117,20 @@ export function resetApiMockState() {
   );
 }
 
+const defaultPrayerInsights = {
+  streak: {
+    currentDays: 0,
+    longestDays: 0,
+    lastPrayedDate: null as string | null,
+  },
+  reminder: {
+    enabled: false,
+    hour: null as number | null,
+    minute: null as number | null,
+    timezone: null as string | null,
+  },
+};
+
 export const handlers = [
   http.get('/api/auth/me', () => {
     return HttpResponse.json({
@@ -129,6 +143,15 @@ export const handlers = [
         enabledSocialProviders: ['google'],
       },
     });
+  }),
+  http.get('/api/prayer/insights', () => {
+    return HttpResponse.json({ data: defaultPrayerInsights });
+  }),
+  http.get('/api/prayer-partners', () => {
+    return HttpResponse.json({ data: [] });
+  }),
+  http.get('/api/prayer-lists', () => {
+    return HttpResponse.json({ data: [] });
   }),
   http.get('/api/emotions', () => {
     return HttpResponse.json({ data: emotions });
