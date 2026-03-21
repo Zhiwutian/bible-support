@@ -101,6 +101,15 @@ pnpm run db:migrate
 pnpm run db:seed
 ```
 
+Full-bible text for Reader, Search, and `scripture_verses` lives in public-domain JSON under `server/data/bible/` (`kjv.json`, `asv.json`, `web.json`). Refresh copies from the network and import all three into Postgres:
+
+```sh
+pnpm run db:sync:bible-sources
+pnpm run db:import:bible-translations
+```
+
+The API can still serve Reader chapters from those files when the database has no corpus (or `DATABASE_URL` is unset). See `server/data/bible/README.md`.
+
 ### 5) Start local development
 
 Make sure PostgreSQL is running before starting the app:
@@ -159,7 +168,7 @@ Responses use an API envelope:
 - `GET /api/auth/logout` - browser logout endpoint (clears session cookie and redirects to configured frontend logout URI)
 - `GET /api/auth/me` - returns auth session/profile state (`isAuthenticated`, `userId`, `role`, `displayName`, `avatarUrl`, `enabledSocialProviders`)
 - `PATCH /api/auth/me` - updates authenticated profile metadata (`displayName`, `avatarUrl`)
-- `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness (admin bearer token required)
+- `GET /api/admin/scripture-sources` - diagnostics for DB/local scripture-source readiness + Reader bundled-json fallback fields (`readerChapterBundledFallback`; admin bearer token required)
 - `GET /api/admin/users` - paginated user list for admin sessions
 - `PATCH /api/admin/users/:userId/role` - admin role update with required reason + last-admin safeguards
 - `GET /api/admin/auth-events` - paginated recent authentication/admin-role audit events

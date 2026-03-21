@@ -2,7 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
 import type { SavedScriptureGroup } from '@shared/saved-scripture-contracts';
-import { Button, Card, EmptyState, SectionHeader } from '@/components/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
+} from '@/components/ui';
 import { readSavedScriptureGroups } from '@/features/search/scripture-search-api';
 import { appCopy } from '@/lib/copy';
 import {
@@ -27,6 +34,10 @@ export function SavedScripturesPage() {
   const [groups, setGroups] = useState<SavedScriptureGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   useEffect(() => {
     const saved = readRouteState(
       SAVED_INDEX_ROUTE_PATH,
@@ -111,6 +122,18 @@ export function SavedScripturesPage() {
       <SectionHeader
         title="Saved Scriptures"
         description="Your saved verses are grouped by book so you can quickly review, edit, and reopen them."
+        metadata={
+          <SettingHelpButton
+            settingLabel="Saved scriptures index"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Saved Scriptures',
+                description:
+                  'Each card is a Bible book that contains at least one saved verse; the count shows how many verses you saved there. Open a book to edit notes, change translation where offered, remove entries, or open a verse in Reader. Scroll position on this list and on each book page is restored when you return in the same browser tab.',
+              })
+            }
+          />
+        }
       />
 
       {isLoading && (
@@ -155,6 +178,11 @@ export function SavedScripturesPage() {
           ))}
         </div>
       )}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="saved-index-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </>
   );
 }

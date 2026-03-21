@@ -125,7 +125,8 @@ pnpm run db:import:bible-translations
 Create a web service from this repository root:
 
 - Build command: `corepack enable && pnpm install --frozen-lockfile && pnpm run build`
-- Pre-deploy command: `corepack enable && pnpm run db:migrate && pnpm run db:seed`
+- Pre-deploy command: `corepack enable && pnpm run db:migrate && pnpm run db:seed && pnpm run db:import:bible-translations`
+  - Imports **KJV / ASV / WEB** from committed `server/data/bible/*.json` into `scripture_verses`. Ensure those JSON files are in the deployed artifact (they ship with this repo). For a one-off corpus refresh from upstream, run `pnpm run db:sync:bible-sources` in a trusted environment, commit updated JSON if desired, then redeploy with the import step above.
 - Start command: `corepack enable && pnpm run start`
 - Health check path: `/api/health`
 - Node version: `22`
@@ -160,7 +161,7 @@ This project already includes `client/vercel.json` for SPA route rewrites.
 ### 4) Verify
 
 - API health: `https://<render-host>/api/health`
-- Scripture diagnostics (authorized): `https://<render-host>/api/admin/scripture-sources`
+- Scripture diagnostics (authorized): `https://<render-host>/api/admin/scripture-sources` — check `database.translationCounts`, `fallbackReadiness`, and **`readerChapterBundledFallback`** (`allTrackedPresent` + `availableTranslations`) for Reader bundled-json fallback readiness
 - Admin users API (authenticated admin session): `https://<render-host>/api/admin/users`
 - Auth bootstrap: `https://<render-host>/api/auth/login` should not return `auth_not_enabled` or generic `server_error`
 - Frontend route load: `https://<vercel-host>/`

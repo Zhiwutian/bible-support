@@ -439,6 +439,10 @@ describe('scripture search + saved routes', () => {
       database: { status: 'ok', translationCounts: [] },
       localFiles: { directory: 'server/data/bible', translations: [] },
       fallbackReadiness: 'ready',
+      readerChapterBundledFallback: {
+        availableTranslations: [],
+        allTrackedPresent: false,
+      },
     });
 
     const res = await request(app)
@@ -448,6 +452,9 @@ describe('scripture search + saved routes', () => {
     expect(res.body.data).toEqual(
       expect.objectContaining({
         fallbackReadiness: 'ready',
+        readerChapterBundledFallback: expect.objectContaining({
+          allTrackedPresent: false,
+        }),
       }),
     );
   });

@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/app/toast-context';
-import { Button, Card, EmptyState, SectionHeader } from '@/components/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
+} from '@/components/ui';
 import { appCopy } from '@/lib/copy';
 import {
   readScriptureContext,
@@ -32,6 +39,10 @@ export function FullContextPage() {
   const [context, setContext] = useState<ScriptureContext | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   const chapterReference =
     context?.chapterReference || toChapterReference(reference);
 
@@ -94,6 +105,18 @@ export function FullContextPage() {
       <SectionHeader
         title="Full Context"
         description={`Reference: ${reference}${translation ? ` (${translation})` : ''}.`}
+        metadata={
+          <SettingHelpButton
+            settingLabel="Full context page"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Full Context',
+                description:
+                  'This page loads a longer explanation for the passage (summary and extended text) with source attribution. Back to scripture returns to the Support verse list. Read full chapter opens BibleGateway in a new tab for the whole chapter—handy when you want external chapter reading. This is separate from in-app Reader, which you can open from Support or Search for bookmarks and verse actions.',
+              })
+            }
+          />
+        }
       />
 
       <div className="mb-6 flex items-center gap-2">
@@ -151,6 +174,11 @@ export function FullContextPage() {
           </p>
         </Card>
       )}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="full-context-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </div>
   );
 }

@@ -114,6 +114,7 @@ Current Reader decomposition references:
 - Prefer `client/src/components/ui` primitives over one-off ad-hoc markup.
 - Keep global style concerns in `client/src/index.css` only when shared broadly.
 - For inline setting explainers (`?`), use shared `SettingHelpModal` instead of duplicating per-page `ModalShell` blocks.
+- For destructive or irreversible actions, use shared `ConfirmModal` (`client/src/components/ui/ConfirmModal.tsx`) instead of `window.confirm`; pass `confirmPendingLabel` when the default busy text (“Removing…”) does not fit (e.g. “Deleting…”).
 - Keep utility intent explicit: avoid mixing project-wide remapped utility names (for example `text-base`) on elements that need fixed, exception typography.
 - Use arbitrary utility values for one-off exceptions; if repeated in 2+ places, promote to tokenized utility or shared primitive.
 - For shell-level branding/layout clusters repeated across header/menu/modal, extract a small shared presentational component.

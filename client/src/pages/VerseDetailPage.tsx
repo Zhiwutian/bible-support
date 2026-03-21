@@ -7,6 +7,8 @@ import {
   Card,
   EmptyState,
   SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import { getLastReaderTo } from '@/features/reader/last-reader-location';
 import { searchScriptures } from '@/features/search/scripture-search-api';
@@ -34,6 +36,10 @@ export function VerseDetailPage() {
     error: '',
   });
   const [shareStatus, setShareStatus] = useState('');
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   const params = useMemo(
     () => parseVerseShareParams(searchParams),
     [searchParams],
@@ -197,6 +203,18 @@ export function VerseDetailPage() {
       <SectionHeader
         title="Shared Verse"
         description="Review this verse, then open Reader or navigate to other routes."
+        metadata={
+          <SettingHelpButton
+            settingLabel="Shared verse page"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Shared verse link',
+                description:
+                  'This page opens from a shareable URL with book, chapter, verse, and translation. When the verse loads, you can open it in Reader, jump to Search, copy the link, or use your device share sheet. If the link is incomplete or the verse is missing in that translation, use the recovery buttons. Some routes may ask for guest entry if you are not signed in.',
+              })
+            }
+          />
+        }
       />
       {!params && (
         <EmptyState
@@ -282,6 +300,11 @@ export function VerseDetailPage() {
           </p>
         </Card>
       )}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="verse-detail-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </>
   );
 }

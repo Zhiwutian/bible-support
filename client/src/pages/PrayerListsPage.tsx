@@ -5,10 +5,13 @@ import { useToast } from '@/components/app/toast-context';
 import {
   Button,
   Card,
+  ConfirmModal,
   EmptyState,
   Input,
   SectionHeader,
   Select,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import { PrayerFilterModalShell } from '@/features/prayer/PrayerFilterModalShell';
 import { PrayerHubInsightsBar } from '@/features/prayer/PrayerHubInsightsBar';
@@ -42,6 +45,14 @@ export function PrayerListsPage() {
   const { insights, insightsLoading, insightsError, setInsights } =
     usePrayerPageInsights();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const [pendingDeleteList, setPendingDeleteList] = useState<PrayerList | null>(
+    null,
+  );
+  const [isDeletingList, setIsDeletingList] = useState(false);
   const [draft, setDraft] = useState<ListFiltersDraft>(() => ({
     includeArchived: false,
     notPrayedRecentlyOnly: false,
@@ -139,10 +150,12 @@ export function PrayerListsPage() {
     }
   }
 
-  async function onDeleteList(list: PrayerList) {
-    if (!window.confirm(`Delete ${list.name}? This cannot be undone.`)) return;
+  async function confirmDeleteList() {
+    if (!pendingDeleteList) return;
+    setIsDeletingList(true);
     try {
-      await deletePrayerList(list.listId);
+      await deletePrayerList(pendingDeleteList.listId);
+      setPendingDeleteList(null);
       await loadLists();
       showToast({ title: 'List deleted', variant: 'success' });
     } catch (err) {
@@ -151,6 +164,8 @@ export function PrayerListsPage() {
         description: err instanceof Error ? err.message : 'Please try again.',
         variant: 'error',
       });
+    } finally {
+      setIsDeletingList(false);
     }
   }
 
@@ -189,6 +204,18 @@ export function PrayerListsPage() {
       <SectionHeader
         title="Prayer Lists"
         description="Create focused lists and group your prayer partners for intentional prayer sessions."
+        metadata={
+          <SettingHelpButton
+            settingLabel="Prayer lists hub"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Prayer Lists hub',
+                description:
+                  'Create lists to group partners (e.g. family, church). Open a list to edit details, add or remove members, reorder, and log a “Pray now” session with an optional note. Use Filters for archived lists, “not prayed recently,” day threshold, and sort. Archive hides a list; Delete removes it permanently.',
+              })
+            }
+          />
+        }
       />
 
       <PrayerHubInsightsBar
@@ -352,13 +379,36 @@ export function PrayerListsPage() {
                 <Button
                   variant="ghost"
                   className="min-h-11 w-full sm:w-auto"
-                  onClick={() => void onDeleteList(list)}>
+                  onClick={() => setPendingDeleteList(list)}>
                   Delete
                 </Button>
               </div>
             </Card>
           ))}
         </div>
+      ) : null}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="prayer-lists-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
+      {pendingDeleteList ? (
+        <ConfirmModal
+          title="Delete prayer list?"
+          titleId="prayer-list-delete-confirm-title"
+          description="This removes the list and its membership data. It cannot be undone."
+          confirmLabel="Delete list"
+          confirmPendingLabel="Deleting..."
+          cancelLabel="Cancel"
+          onCancel={() => setPendingDeleteList(null)}
+          onConfirm={() => void confirmDeleteList()}
+          isConfirming={isDeletingList}>
+          <p className="text-sm text-slate-700">
+            <span className="font-semibold text-slate-900">
+              {pendingDeleteList.name}
+            </span>
+          </p>
+        </ConfirmModal>
       ) : null}
     </div>
   );

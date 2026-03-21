@@ -47,6 +47,21 @@ describe('App', () => {
     expect(await screen.findByText('I Am Feeling Guilty')).toBeInTheDocument();
   });
 
+  it('shows tutorial link on support home', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await continueAsGuest(user);
+
+    const tutorialLink = await screen.findByRole('link', {
+      name: /^tutorial$/i,
+    });
+    expect(tutorialLink).toHaveAttribute('href', '/tutorial');
+    await user.click(tutorialLink);
+    expect(
+      await screen.findByRole('heading', { name: 'Tutorial' }),
+    ).toBeInTheDocument();
+  });
+
   it('navigates to emotion scripture viewer and back', async () => {
     const user = userEvent.setup();
     renderApp();
@@ -88,6 +103,27 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'About This Website' }),
     ).toBeInTheDocument();
+  });
+
+  it('saved index opens setting help modal', async () => {
+    const user = userEvent.setup();
+    renderApp(['/saved']);
+    await continueAsGuest(user);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Saved Scriptures' }),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole('button', { name: /open setting help/i }),
+    );
+    expect(
+      await screen.findByRole('dialog', { name: 'Saved Scriptures' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/each card is a bible book/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(
+      screen.queryByRole('dialog', { name: 'Saved Scriptures' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders tutorial page route', async () => {
@@ -630,6 +666,105 @@ describe('App', () => {
       await screen.findByRole('heading', { name: 'Prayer Partners' }),
     ).toBeInTheDocument();
     expect(await screen.findByText(/0-day streak/i)).toBeInTheDocument();
+  });
+
+  it('confirms prayer partner delete in a modal', async () => {
+    const partner = {
+      partnerId: 42,
+      ownerUserId: 'user-msw-test-1',
+      name: 'Modal Delete Partner',
+      prayerFocus: 'Testing delete flow',
+      imageUrl: null,
+      isArchived: false,
+      noteCount: 0,
+      lastNoteAt: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+    };
+    let deleteCalled = false;
+    server.use(
+      http.get('/api/auth/me', () =>
+        HttpResponse.json({
+          data: {
+            isAuthenticated: true,
+            userId: 'user-msw-test-1',
+            role: 'user',
+            displayName: 'MSW Test User',
+            avatarUrl: null,
+            enabledSocialProviders: ['google'],
+          },
+        }),
+      ),
+      http.get('/api/prayer-partners', () =>
+        HttpResponse.json({ data: [partner] }),
+      ),
+      http.delete('/api/prayer-partners/42', () => {
+        deleteCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderApp(['/prayer-partners']);
+    expect(
+      await screen.findByRole('heading', { name: 'Prayer Partners' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Modal Delete Partner')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+    expect(
+      await screen.findByRole('heading', { name: /delete prayer partner/i }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^delete partner$/i }));
+    await screen.findByText(/partner deleted/i);
+    expect(deleteCalled).toBe(true);
+  });
+
+  it('confirms prayer list delete in a modal', async () => {
+    const list = {
+      listId: 77,
+      ownerUserId: 'user-msw-test-1',
+      name: 'Modal Delete List',
+      description: 'For delete confirm test',
+      isArchived: false,
+      sessionCount: 0,
+      lastSessionAt: null,
+      createdAt: '2025-01-01T00:00:00.000Z',
+      updatedAt: '2025-01-01T00:00:00.000Z',
+    };
+    let deleteCalled = false;
+    server.use(
+      http.get('/api/auth/me', () =>
+        HttpResponse.json({
+          data: {
+            isAuthenticated: true,
+            userId: 'user-msw-test-1',
+            role: 'user',
+            displayName: 'MSW Test User',
+            avatarUrl: null,
+            enabledSocialProviders: ['google'],
+          },
+        }),
+      ),
+      http.get('/api/prayer-lists', () => HttpResponse.json({ data: [list] })),
+      http.delete('/api/prayer-lists/77', () => {
+        deleteCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderApp(['/prayer-lists']);
+    expect(
+      await screen.findByRole('heading', { name: 'Prayer Lists' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Modal Delete List')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^delete$/i }));
+    expect(
+      await screen.findByRole('heading', { name: /delete prayer list/i }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^delete list$/i }));
+    await screen.findByText(/list deleted/i);
+    expect(deleteCalled).toBe(true);
   });
 
   it('opens prayer lists filters modal when signed in', async () => {

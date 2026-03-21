@@ -5,10 +5,13 @@ import { useToast } from '@/components/app/toast-context';
 import {
   Button,
   Card,
+  ConfirmModal,
   EmptyState,
   Input,
   SectionHeader,
   Select,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import { PrayerFilterModalShell } from '@/features/prayer/PrayerFilterModalShell';
 import { PrayerHubInsightsBar } from '@/features/prayer/PrayerHubInsightsBar';
@@ -113,6 +116,13 @@ export function PrayerPartnersPage() {
   const { insights, insightsLoading, insightsError, setInsights } =
     usePrayerPageInsights();
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const [pendingDeletePartner, setPendingDeletePartner] =
+    useState<PrayerPartner | null>(null);
+  const [isDeletingPartner, setIsDeletingPartner] = useState(false);
   const [draft, setDraft] = useState<PartnerFiltersDraft>(() => ({
     includeArchived: prInitial?.includeArchived ?? false,
     needsUpdateOnly: prInitial?.needsUpdateOnly ?? false,
@@ -297,15 +307,16 @@ export function PrayerPartnersPage() {
     }
   }
 
-  async function onDeletePartner(partner: PrayerPartner) {
-    if (!window.confirm(`Delete ${partner.name}? This cannot be undone.`))
-      return;
+  async function confirmDeletePartner() {
+    if (!pendingDeletePartner) return;
+    setIsDeletingPartner(true);
     try {
-      await deletePrayerPartner(partner.partnerId);
+      await deletePrayerPartner(pendingDeletePartner.partnerId);
       showToast({
         title: 'Partner deleted',
         variant: 'success',
       });
+      setPendingDeletePartner(null);
       await loadPartners();
     } catch (err) {
       showToast({
@@ -313,6 +324,8 @@ export function PrayerPartnersPage() {
         description: err instanceof Error ? err.message : 'Please try again.',
         variant: 'error',
       });
+    } finally {
+      setIsDeletingPartner(false);
     }
   }
 
@@ -364,6 +377,18 @@ export function PrayerPartnersPage() {
       <SectionHeader
         title="Prayer Partners"
         description="Add people you are praying for, record what they need, and track updates over time."
+        metadata={
+          <SettingHelpButton
+            settingLabel="Prayer partners hub"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Prayer Partners hub',
+                description:
+                  'Add partners with name, focus, and an optional hosted image URL (http/https only). Open a card for notes and history. Use Filters on the insights bar for archived roster, “needs update” windows, image/notes filters, and sort. The bar also shows list-based streaks and optional daily reminders (timezone-aware). Archive hides a partner; Delete removes them permanently.',
+              })
+            }
+          />
+        }
       />
 
       <PrayerHubInsightsBar
@@ -577,13 +602,36 @@ export function PrayerPartnersPage() {
                 <Button
                   variant="ghost"
                   className="min-h-11 w-full sm:w-auto"
-                  onClick={() => void onDeletePartner(partner)}>
+                  onClick={() => setPendingDeletePartner(partner)}>
                   Delete
                 </Button>
               </div>
             </Card>
           ))}
         </div>
+      ) : null}
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="prayer-partners-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
+      {pendingDeletePartner ? (
+        <ConfirmModal
+          title="Delete prayer partner?"
+          titleId="prayer-partner-delete-confirm-title"
+          description="This removes them from your roster and cannot be undone."
+          confirmLabel="Delete partner"
+          confirmPendingLabel="Deleting..."
+          cancelLabel="Cancel"
+          onCancel={() => setPendingDeletePartner(null)}
+          onConfirm={() => void confirmDeletePartner()}
+          isConfirming={isDeletingPartner}>
+          <p className="text-sm text-slate-700">
+            <span className="font-semibold text-slate-900">
+              {pendingDeletePartner.name}
+            </span>
+          </p>
+        </ConfirmModal>
       ) : null}
     </div>
   );

@@ -1,27 +1,28 @@
 import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
 import { BIBLE_BOOKS } from '@shared/bible-books.js';
 import type { ReaderChapterResponse } from '@shared/scripture-search-contracts.js';
+import type { DbClient } from '@server/db/drizzle.js';
+import { getDrizzleDb } from '@server/db/drizzle.js';
 import { scriptureVerses } from '@server/db/schema.js';
 import { ClientError } from '@server/lib/client-error.js';
+import { readReaderChapterFromLocalBibleJson } from '@server/lib/local-bible-reader-chapter.js';
 import {
   canonicalizeBibleBookName,
   normalizeScriptureTranslationCode,
 } from '@server/lib/scripture-normalization.js';
 import { mapScriptureVerseRow } from '@server/lib/scripture-verse-row.js';
-import { requireDb } from './require-db.js';
 
-/** Read one canonical chapter for reader route with navigation metadata. */
-export async function readReaderChapter(input: {
+type ReaderChapterParams = {
+  translation: ReturnType<typeof normalizeScriptureTranslationCode>;
   book: string;
   chapter: number;
-  translation: string;
-}): Promise<ReaderChapterResponse> {
-  const db = requireDb();
-  const translation = normalizeScriptureTranslationCode(input.translation);
-  const canonicalBook = canonicalizeBibleBookName(input.book);
-  if (!canonicalBook) {
-    throw new ClientError(400, 'book must be a valid Bible book');
-  }
+};
+
+async function readReaderChapterFromDb(
+  db: DbClient,
+  input: ReaderChapterParams,
+): Promise<ReaderChapterResponse> {
+  const { translation, book: canonicalBook, chapter } = input;
 
   const [bookStats] = await db
     .select({
@@ -38,7 +39,7 @@ export async function readReaderChapter(input: {
   if (!maxChapter) {
     throw new ClientError(404, 'no chapters found for the selected book');
   }
-  if (input.chapter > maxChapter) {
+  if (chapter > maxChapter) {
     throw new ClientError(
       400,
       `chapter must be between 1 and ${maxChapter} for ${canonicalBook}`,
@@ -59,7 +60,7 @@ export async function readReaderChapter(input: {
       and(
         eq(scriptureVerses.translation, translation),
         eq(scriptureVerses.book, canonicalBook),
-        eq(scriptureVerses.chapter, input.chapter),
+        eq(scriptureVerses.chapter, chapter),
       ),
     )
     .orderBy(asc(scriptureVerses.verse));
@@ -76,7 +77,7 @@ export async function readReaderChapter(input: {
       and(
         eq(scriptureVerses.translation, translation),
         eq(scriptureVerses.book, canonicalBook),
-        lt(scriptureVerses.chapter, input.chapter),
+        lt(scriptureVerses.chapter, chapter),
       ),
     )
     .orderBy(desc(scriptureVerses.chapter))
@@ -123,7 +124,7 @@ export async function readReaderChapter(input: {
       and(
         eq(scriptureVerses.translation, translation),
         eq(scriptureVerses.book, canonicalBook),
-        gt(scriptureVerses.chapter, input.chapter),
+        gt(scriptureVerses.chapter, chapter),
       ),
     )
     .orderBy(asc(scriptureVerses.chapter))
@@ -168,7 +169,7 @@ export async function readReaderChapter(input: {
   return {
     translation,
     book: canonicalBook,
-    chapter: input.chapter,
+    chapter,
     verses: verses.map((row) => mapScriptureVerseRow(row)),
     displayText: verses
       .map((row) => `${row.reference} ${row.verseText.trim()}`)
@@ -178,4 +179,60 @@ export async function readReaderChapter(input: {
     previousChapter,
     nextChapter,
   };
+}
+
+/**
+ * Read one canonical chapter for reader route with navigation metadata.
+ * Uses `scripture_verses` when the DB is available; falls back to bundled JSON
+ * under `server/data/bible/{kjv,asv,web}.json` when the DB has no corpus or is
+ * not configured.
+ */
+export async function readReaderChapter(input: {
+  book: string;
+  chapter: number;
+  translation: string;
+}): Promise<ReaderChapterResponse> {
+  const translation = normalizeScriptureTranslationCode(input.translation);
+  const canonicalBook = canonicalizeBibleBookName(input.book);
+  if (!canonicalBook) {
+    throw new ClientError(400, 'book must be a valid Bible book');
+  }
+
+  const params: ReaderChapterParams = {
+    translation,
+    book: canonicalBook,
+    chapter: input.chapter,
+  };
+
+  const db = getDrizzleDb();
+  let dbChapterNotFound: ClientError | null = null;
+
+  if (db) {
+    try {
+      return await readReaderChapterFromDb(db, params);
+    } catch (err) {
+      if (err instanceof ClientError && err.status === 404) {
+        dbChapterNotFound = err;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  const fromLocal = await readReaderChapterFromLocalBibleJson(params);
+  if (fromLocal) {
+    return fromLocal;
+  }
+
+  if (!db) {
+    throw new ClientError(
+      503,
+      'database is not configured and no local bible JSON was found for this translation. set DATABASE_URL or place files under server/data/bible/ (run pnpm -C server db:sync:bible-sources).',
+    );
+  }
+
+  throw (
+    dbChapterNotFound ??
+    new ClientError(404, 'no chapters found for the selected book')
+  );
 }

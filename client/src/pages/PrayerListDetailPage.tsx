@@ -8,6 +8,8 @@ import {
   EmptyState,
   Input,
   SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import {
   addPrayerListMember,
@@ -63,6 +65,10 @@ export function PrayerListDetailPage() {
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
 
   const loadDetail = useCallback(async () => {
     if (!Number.isFinite(parsedListId) || parsedListId <= 0) {
@@ -274,6 +280,18 @@ export function PrayerListDetailPage() {
       <SectionHeader
         title={list.name}
         description="Manage list members, keep an intentional order, and log each prayer session."
+        metadata={
+          <SettingHelpButton
+            settingLabel="Prayer list detail"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'List detail',
+                description:
+                  'Save list name and description. Add partners from your roster with Add; use Up/Down to set prayer order and Remove to drop someone from this list only. “Pray now (log session)” records that you prayed for the group—add an optional note. Past sessions appear below with timestamps.',
+              })
+            }
+          />
+        }
       />
 
       <Card className="mb-4 space-y-3 border p-4">
@@ -410,6 +428,11 @@ export function PrayerListDetailPage() {
           </div>
         )}
       </Card>
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="prayer-list-detail-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
     </>
   );
 }

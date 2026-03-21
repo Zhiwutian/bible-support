@@ -13,6 +13,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:sync:bible-sources": "tsx scripts/sync-bible-sources.ts",
     "db:import:bible-json": "tsx scripts/import-bible-json.ts",
+    "db:import:bible-translations": "tsx scripts/import-bible-translations.ts",
     "test": "AUTH_ENABLED=false vitest run",
     "test:watch": "AUTH_ENABLED=false vitest",
     "test:coverage": "AUTH_ENABLED=false vitest run --coverage"

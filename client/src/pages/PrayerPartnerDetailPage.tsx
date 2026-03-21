@@ -8,9 +8,12 @@ import { useToast } from '@/components/app/toast-context';
 import {
   Button,
   Card,
+  ConfirmModal,
   EmptyState,
   Input,
   SectionHeader,
+  SettingHelpButton,
+  SettingHelpModal,
 } from '@/components/ui';
 import {
   createPrayerPartnerNote,
@@ -77,6 +80,14 @@ export function PrayerPartnerDetailPage() {
   const [newNote, setNewNote] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editingNoteValue, setEditingNoteValue] = useState('');
+  const [settingsHelp, setSettingsHelp] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
+  const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState<number | null>(
+    null,
+  );
+  const [isDeletingNote, setIsDeletingNote] = useState(false);
 
   const partnerDetailRoutePath = useMemo(() => {
     if (!partnerId) return '';
@@ -217,11 +228,12 @@ export function PrayerPartnerDetailPage() {
     }
   }
 
-  async function onDeleteNote(noteId: number) {
-    if (!partner) return;
-    if (!window.confirm('Delete this note?')) return;
+  async function confirmDeleteNote() {
+    if (!partner || pendingDeleteNoteId == null) return;
+    setIsDeletingNote(true);
     try {
-      await deletePrayerPartnerNote(partner.partnerId, noteId);
+      await deletePrayerPartnerNote(partner.partnerId, pendingDeleteNoteId);
+      setPendingDeleteNoteId(null);
       await loadDetail();
       showToast({ title: 'Note deleted', variant: 'success' });
     } catch (err) {
@@ -230,6 +242,8 @@ export function PrayerPartnerDetailPage() {
         description: err instanceof Error ? err.message : 'Please try again.',
         variant: 'error',
       });
+    } finally {
+      setIsDeletingNote(false);
     }
   }
 
@@ -256,6 +270,18 @@ export function PrayerPartnerDetailPage() {
       <SectionHeader
         title={partner.name}
         description="Track prayer needs and progress updates for this person."
+        metadata={
+          <SettingHelpButton
+            settingLabel="Prayer partner detail"
+            onClick={() =>
+              setSettingsHelp({
+                title: 'Partner detail',
+                description:
+                  'Update name, prayer focus, and an optional image URL (must be a normal http or https link to a hosted image—base64 data URLs are not allowed). Save changes before leaving if you edited fields. Progress notes are dated: add updates, edit, or delete individual notes. Use Back to return to the roster; archive or delete the partner from the hub card if you need to remove them from rotation.',
+              })
+            }
+          />
+        }
       />
 
       <Card className="mb-4 space-y-3 border p-4">
@@ -372,7 +398,7 @@ export function PrayerPartnerDetailPage() {
                       <Button
                         variant="ghost"
                         onClick={() =>
-                          void onDeleteNote(note.prayerPartnerNoteId)
+                          setPendingDeleteNoteId(note.prayerPartnerNoteId)
                         }>
                         Delete
                       </Button>
@@ -384,6 +410,24 @@ export function PrayerPartnerDetailPage() {
           </div>
         )}
       </Card>
+      <SettingHelpModal
+        help={settingsHelp}
+        titleId="prayer-partner-detail-settings-help-title"
+        onClose={() => setSettingsHelp(null)}
+      />
+      {pendingDeleteNoteId != null ? (
+        <ConfirmModal
+          title="Delete this note?"
+          titleId="prayer-partner-note-delete-confirm-title"
+          description="This removes the note from this partner’s timeline. It cannot be undone."
+          confirmLabel="Delete note"
+          confirmPendingLabel="Deleting..."
+          cancelLabel="Cancel"
+          onCancel={() => setPendingDeleteNoteId(null)}
+          onConfirm={() => void confirmDeleteNote()}
+          isConfirming={isDeletingNote}
+        />
+      ) : null}
     </>
   );
 }
