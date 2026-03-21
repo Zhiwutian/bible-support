@@ -1,0 +1,76 @@
+import { Card } from '@/components/ui';
+import { TutorialCallout } from '@/components/tutorial/TutorialCallout';
+import { TutorialFigure } from '@/components/tutorial/TutorialFigure';
+import { TutorialProse } from '@/components/tutorial/TutorialProse';
+import { TutorialStep } from '@/components/tutorial/TutorialStep';
+
+<TutorialProse>
+
+## In this tutorial
+
+- Getting started — orientation and first session goals
+- Support (home) — emotion-led verses
+- Learn context — study summary and full chapter (from Support)
+- Search — guided, reference, and keyword flows
+- Saved scriptures — book list, verse notes, Reader
+- Reader — bookmarks, comfort options, sharing
+- Display settings — text size, dark mode, high contrast
+- Prayer partners & lists — signed-in prayer hub (filters, streaks, sessions)
+- Shared verse links — public verse pages
+- Profile, About, and Admin
+- Troubleshooting
+- Recommended next steps
+
+<TutorialCallout>
+  **Guest vs signed in:** You can explore as a guest. Sign in when you want
+  profile details and account-linked sync for reader preferences and saved data
+  (where the app supports it).
+</TutorialCallout>
+
+## Getting started
+
+<TutorialStep title="1. Ground yourself in Support">
+  Open Support from the menu and pick the feeling that best matches your
+  moment. Curated verses appear quickly—use them for prayer, journaling, or
+  simply reading aloud.
+</TutorialStep>
+
+<TutorialStep title="2. Search with confidence">
+  When you know a reference or a topic phrase, use Search. Switch between
+  Guided, Reference, and Keyword modes depending on what you remember.
+</TutorialStep>
+
+<TutorialStep title="3. Save and organize">
+  Save verses from Support or Search, then open **Saved** to review by book,
+  edit notes, or reopen passages in Reader.
+</TutorialStep>
+
+<TutorialStep title="4. Read chapters with comfort options">
+  Reader keeps book, chapter, and translation in sync with the address bar. Use
+  **Options** to tune theme, typography, spacing, and width for longer reading
+  sessions.
+</TutorialStep>
+
+<Card className="border p-4">
+  <h2 className="text-lg font-semibold text-slate-900">At a glance</h2>
+  <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-slate-700">
+    <li>Support → emotion-led verses and quick actions.</li>
+    <li>Search → find references or keywords, then save or open in Reader.</li>
+    <li>Saved → verses grouped by book with notes.</li>
+    <li>Reader → chapter reading, bookmarks, verse actions, share links.</li>
+  </ol>
+</Card>
+
+## Screenshots
+
+Add **WebP** (preferred) or PNG files under `public/tutorial/`. The figure below
+tries **`reader-options.webp`** first; if that file is not in the repo yet, a
+placeholder SVG is shown automatically.
+
+<TutorialFigure
+  src="/tutorial/reader-options.webp"
+  alt="Reader Options panel showing theme, font, and layout settings"
+  caption="Export this screen from the running app as `public/tutorial/reader-options.webp` (or add your own filename and update this MDX)."
+/>
+
+</TutorialProse>

@@ -40,8 +40,8 @@
 - If a new/changed query pattern is introduced, evaluate indexes and note index decisions in the PR.
 - Apply migrations with `pnpm run db:migrate`.
 - Seed starter app data with `pnpm run db:seed` (transactional + upsert-based; safe to rerun and can repair partial seed state).
-- Sync local public-domain translation JSON files with `pnpm run db:sync:bible-sources`.
-- Import canonical scripture corpus translations with `pnpm run db:import:bible-translations`.
+- Sync local public-domain translation JSON files with `pnpm run db:sync:bible-sources` (writes `server/data/bible/{kjv,asv,web}.json`).
+- Import those three translations into `scripture_verses` with `pnpm run db:import:bible-translations` (requires synced JSON files first).
 - Optionally add/update sample data in `database/data.sql`.
 - Rebuild local DB state with:
 
@@ -154,7 +154,7 @@ This pushes `main` to `pub`, triggering `/.github/workflows/main.yml`.
 Hosted DB safety:
 
 - Use `pnpm run db:migrate` and `pnpm run db:seed` in hosted environments for schema + starter app data.
-- Run `pnpm run db:import:bible-translations` when corpus translations need initial load/refresh.
+- Run `pnpm run db:sync:bible-sources` then `pnpm run db:import:bible-translations` when corpus translations need initial load/refresh.
 - Do not run `pnpm run db:import` on shared/staging/production databases.
 
 ### Backend operations snapshot

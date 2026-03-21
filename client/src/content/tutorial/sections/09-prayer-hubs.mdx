@@ -1,0 +1,52 @@
+import { Link } from 'react-router-dom';
+import { TutorialCallout } from '@/components/tutorial/TutorialCallout';
+import { TutorialProse } from '@/components/tutorial/TutorialProse';
+
+<TutorialProse>
+
+## Prayer partners & lists (signed in)
+
+Prayer features require **sign in**. Use the menu to open **Prayer Partners**
+or **Prayer Lists**.
+
+<TutorialCallout>
+  Use the **?** help button on those pages for quick reminders about filters,
+  streaks, and reminders without leaving the screen.
+</TutorialCallout>
+
+### Prayer Partners
+
+- **Add a partner** with name, prayer focus, and an optional **image URL**
+  (must be a normal `http` or `https` link to a hosted image—not pasted
+  base64).
+- Open a partner to **edit details**, add **dated notes**, and see history.
+- **Archive** or **delete** from the roster when appropriate (delete is
+  permanent).
+- **Filters** (roster): include archived, “needs update” windows, image/notes
+  filters, and sort order.
+- **Streaks & reminders** (hub card): list-based prayer streaks and optional
+  daily reminder settings (timezone-aware).
+
+### Prayer Lists
+
+- **Create lists** to group partners for focused prayer (e.g. family, church,
+  work).
+- Open a list to **edit name/description**, **add or remove members**,
+  **reorder** members, and **log a prayer session** with an optional note.
+- **Filters** work like the partners hub: archived lists, “not prayed
+  recently,” and sort.
+
+<div className="flex flex-wrap gap-4">
+  <Link
+    to="/prayer-partners"
+    className="font-semibold text-indigo-700 hover:text-indigo-600">
+    Prayer Partners
+  </Link>
+  <Link
+    to="/prayer-lists"
+    className="font-semibold text-indigo-700 hover:text-indigo-600">
+    Prayer Lists
+  </Link>
+</div>
+
+</TutorialProse>

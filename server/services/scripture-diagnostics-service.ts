@@ -113,6 +113,10 @@ export async function readScriptureSourcesDiagnostics(): Promise<ScriptureSource
     ? 'ready'
     : 'missing_local_files';
 
+  const availableTranslations = localStatuses
+    .filter((status) => status.present)
+    .map((status) => status.translation);
+
   return {
     checkedAt: new Date().toISOString(),
     database,
@@ -121,5 +125,9 @@ export async function readScriptureSourcesDiagnostics(): Promise<ScriptureSource
       translations: localStatuses,
     },
     fallbackReadiness,
+    readerChapterBundledFallback: {
+      availableTranslations,
+      allTrackedPresent: localStatuses.every((status) => status.present),
+    },
   };
 }

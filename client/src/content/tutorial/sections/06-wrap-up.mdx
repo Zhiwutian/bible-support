@@ -1,0 +1,68 @@
+import { Link } from 'react-router-dom';
+import { TutorialProse } from '@/components/tutorial/TutorialProse';
+
+<TutorialProse>
+
+## Display settings (reminder)
+
+Open the **menu → Display settings** for app-wide **dark mode**, **high contrast**,
+and **text size**. Reader still has its own **Options** inside the reader for the
+reading pane. See the **Display settings** section earlier in this tutorial for
+detail.
+
+## Prayer partners & lists (reminder)
+
+Signed-in users can open **Prayer Partners** and **Prayer Lists** from the menu
+to track people, notes, filters, streaks, and prayer sessions. Use the **?** help
+on those pages for a quick refresher, or revisit the **Prayer partners & lists**
+section above.
+
+## Shared verse links
+
+Recipients open a focused **Shared Verse** page with shortcuts to Reader,
+Search, or Support. If system share is unavailable, **Copy Link** still works.
+
+<Link
+  to="/verse?book=John&chapter=3&verse=16&translation=KJV"
+  className="font-semibold text-indigo-700 hover:text-indigo-600">
+  Open example shared verse
+</Link>
+
+## Profile, About, and Admin
+
+- **About** — FAQs and high-level route guidance.
+- **Profile** — display name and avatar for signed-in users.
+- **Admin** — visible only to admin accounts.
+
+<div className="flex flex-wrap gap-4">
+  <Link
+    to="/about"
+    className="font-semibold text-indigo-700 hover:text-indigo-600">
+    About
+  </Link>
+  <Link
+    to="/profile"
+    className="font-semibold text-indigo-700 hover:text-indigo-600">
+    Profile
+  </Link>
+  <Link
+    to="/admin"
+    className="font-semibold text-indigo-700 hover:text-indigo-600">
+    Admin
+  </Link>
+</div>
+
+## Troubleshooting
+
+- If a page fails to load, use **Try again** and stay on the same route.
+- If saving fails, check the network and retry once.
+- If share does not open on your device, use **Copy Link**.
+- If Reader looks wrong, open **Options** and reset reader settings.
+
+## Recommended next steps
+
+1. Save one verse from Support and one from Search.
+2. Add a short note in Saved.
+3. Share one verse from Reader and open the shared page in a new tab.
+
+</TutorialProse>

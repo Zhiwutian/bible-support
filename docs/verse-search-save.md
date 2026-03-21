@@ -52,7 +52,7 @@ This document describes the implemented search/save expansion for fast scripture
 - `PATCH /api/reader/state`
 - `DELETE /api/reader/state`
 - `GET /api/admin/scripture-sources`
-  - Operational diagnostics for scripture source readiness (DB counts + local JSON file status); requires admin bearer token.
+  - Operational diagnostics for scripture source readiness (DB counts + local JSON file status); requires admin bearer token. Response includes **`readerChapterBundledFallback`** (`availableTranslations`, `allTrackedPresent`) so ops can confirm Reader can fall back to `server/data/bible/*.json` when the DB has no `scripture_verses` rows for a translation.
 
 All endpoints use the existing API envelope contract, except delete routes that intentionally return `204 No Content`.
 

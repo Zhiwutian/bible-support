@@ -27,6 +27,12 @@ afterEach(() => {
   cleanup();
   server.resetHandlers();
   resetApiMockState();
+  try {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+  } catch {
+    // ignore
+  }
 });
 
 afterAll(() => {

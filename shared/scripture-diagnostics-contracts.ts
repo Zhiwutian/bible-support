@@ -22,6 +22,14 @@ export type LocalTranslationStatus = {
   fileSizeBytes: number | null;
 };
 
+/** Reader `GET /api/reader/chapter` can use bundled JSON when DB has no `scripture_verses` rows. */
+export type ReaderChapterBundledFallback = {
+  /** Translation codes with a present `server/data/bible/<code>.json` file. */
+  availableTranslations: ScriptureTranslationCode[];
+  /** All of `KJV` / `ASV` / `WEB` have local files (full offline Reader coverage for supported codes). */
+  allTrackedPresent: boolean;
+};
+
 export type ScriptureSourcesDiagnostics = {
   checkedAt: string;
   database: {
@@ -33,4 +41,5 @@ export type ScriptureSourcesDiagnostics = {
     translations: LocalTranslationStatus[];
   };
   fallbackReadiness: ScriptureDiagnosticsFallbackReadiness;
+  readerChapterBundledFallback: ReaderChapterBundledFallback;
 };

@@ -26,6 +26,12 @@ import {
   updateSavedScriptureTranslation,
   updateSavedScriptureNote,
 } from '@/features/search/scripture-search-api';
+import {
+  readRouteState,
+  savedBookDetailRoutePath,
+  savedBookDetailRouteStateSchema,
+  writeRouteState,
+} from '@/lib/route-session-state';
 
 /** Render saved verses for one selected Bible book. */
 export function SavedBookScripturesPage() {
@@ -109,6 +115,50 @@ export function SavedBookScripturesPage() {
       isCancelled = true;
     };
   }, [refreshSavedGroups]);
+
+  const savedDetailRoutePath = useMemo(() => {
+    if (!decodedBook) return '';
+    return savedBookDetailRoutePath(encodeURIComponent(decodedBook));
+  }, [decodedBook]);
+
+  useEffect(() => {
+    if (!savedDetailRoutePath) return;
+    const saved = readRouteState(
+      savedDetailRoutePath,
+      savedBookDetailRouteStateSchema,
+    );
+    if (saved) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: saved.scrollY, left: 0, behavior: 'auto' });
+      });
+    }
+  }, [savedDetailRoutePath]);
+
+  const persistSavedBookScroll = useCallback(() => {
+    if (!savedDetailRoutePath) return;
+    writeRouteState(savedDetailRoutePath, {
+      version: 1,
+      scrollY: Math.max(0, window.scrollY),
+    });
+  }, [savedDetailRoutePath]);
+
+  useEffect(() => {
+    if (!savedDetailRoutePath || isLoading) return;
+    let timeoutId: number | undefined;
+    function onScroll() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        persistSavedBookScroll();
+      }, 200);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      persistSavedBookScroll();
+    };
+  }, [savedDetailRoutePath, isLoading, persistSavedBookScroll]);
 
   const bookGroups = useMemo(
     () =>

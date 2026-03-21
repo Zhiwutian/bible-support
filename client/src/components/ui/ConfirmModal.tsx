@@ -6,11 +6,14 @@ type Props = {
   title: string;
   description: string;
   confirmLabel?: string;
+  /** Shown on the confirm button while `isConfirming` is true (default: "Removing…"). */
+  confirmPendingLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
   isConfirming?: boolean;
   children?: ReactNode;
+  titleId?: string;
 };
 
 /** Accessible confirmation modal used for destructive actions. */
@@ -18,14 +21,20 @@ export function ConfirmModal({
   title,
   description,
   confirmLabel = 'Confirm',
+  confirmPendingLabel = 'Removing...',
   cancelLabel = 'Cancel',
   onConfirm,
   onCancel,
   isConfirming = false,
   children,
+  titleId = 'confirm-modal-title',
 }: Props) {
   return (
-    <ModalShell title={title} onClose={onCancel} className="items-center">
+    <ModalShell
+      title={title}
+      titleId={titleId}
+      onClose={onCancel}
+      className="items-center">
       <p id="confirm-modal-description" className="mt-2 text-sm text-slate-700">
         {description}
       </p>
@@ -35,7 +44,7 @@ export function ConfirmModal({
           {cancelLabel}
         </Button>
         <Button onClick={onConfirm} disabled={isConfirming}>
-          {isConfirming ? 'Removing...' : confirmLabel}
+          {isConfirming ? confirmPendingLabel : confirmLabel}
         </Button>
       </div>
     </ModalShell>

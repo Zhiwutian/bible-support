@@ -39,6 +39,57 @@ Current Reader decomposition references:
 - Use `client/src/state` Context + reducer for app-wide UI settings only.
 - Keep server-loaded data request-driven through feature API modules.
 
+### Session route snapshots (guest-friendly)
+
+- Use `client/src/lib/route-session-state.ts` to persist **non-sensitive** UI state
+  for a tab session (search form fields, list scroll, hub filters) via
+  `sessionStorage` with Zod validation. Wrap reads/writes in `try/catch`; corrupt
+  keys are cleared automatically.
+- Prefer **form + scroll** over large blobs (for example avoid caching full search
+  result lists unless product explicitly requires offline replay).
+- Dynamic routes use the real path as the key, e.g.
+  `savedBookDetailRoutePath(encodeURIComponent(bookName))`,
+  `prayerPartnerDetailRoutePath(partnerId)`,
+  `prayerListDetailRoutePath(listId)`. Prayer list detail also persists
+  **selected partner** for the add-member control and the **prayer note** draft
+  (session-only; device-local).
+- This is separate from **authenticated reader state** on the server
+  (`readReaderState` / `updateReaderState`): session snapshots are device/tab
+  scoped and work for guests.
+
+### Reader last location + scroll
+
+- Last book/chapter/translation (and optional URL `verse`) live in
+  `client/src/features/reader/last-reader-location.ts` and hydrate when the user
+  opens `/reader` without a complete query string.
+- Use `ReaderNavLinkButton` or `getLastReaderTo()` for menu/CTAs so navigation
+  does not drop reader context.
+- **Cross-tab:** `saveLastReaderLocation` writes both `sessionStorage` and
+  `localStorage` (`LAST_READER_LOCATION_LS_KEY`). New tabs read from
+  `localStorage` when the session entry is empty so the menu Reader link can
+  open the last place without visiting Reader in that tab first.
+- Chapter scroll within the reader content pane is stored per
+  `book|chapter|translation`. **Do not** restore session scroll when a **verse
+  jump** or **bookmark jump** runs for the same load (see `BibleReaderPage`).
+- On **bfcache** restore (`pageshow` + `persisted`), reader scroll is re-applied
+  from session storage.
+
+### React Router scroll restoration
+
+- The reader uses a **dedicated scroll container** (not `window`). If you add
+  React Router `ScrollRestoration`, ensure it does not fight the reader pane’s
+  manual scroll persistence.
+
+### Tutorial content (MDX)
+
+- Tutorial body: `client/src/content/tutorial/sections/*.mdx` (composed in
+  `client/src/pages/TutorialPage.tsx`).
+- Use thin wrappers in `client/src/components/tutorial/*` (`TutorialProse`,
+  `TutorialFigure`, `TutorialStep`, `TutorialCallout`, `TutorialReaderLink`) for
+  consistent layout and accessibility.
+- Put images in `client/public/tutorial/` (prefer WebP). **Alt text is required**
+  on every figure. Do not put secrets or env values in MDX.
+
 ## API Pattern
 
 - Use `fetchJson`/`fetchNoContent` from `client/src/lib/api-client.ts`.
@@ -63,6 +114,7 @@ Current Reader decomposition references:
 - Prefer `client/src/components/ui` primitives over one-off ad-hoc markup.
 - Keep global style concerns in `client/src/index.css` only when shared broadly.
 - For inline setting explainers (`?`), use shared `SettingHelpModal` instead of duplicating per-page `ModalShell` blocks.
+- For destructive or irreversible actions, use shared `ConfirmModal` (`client/src/components/ui/ConfirmModal.tsx`) instead of `window.confirm`; pass `confirmPendingLabel` when the default busy text (“Removing…”) does not fit (e.g. “Deleting…”).
 - Keep utility intent explicit: avoid mixing project-wide remapped utility names (for example `text-base`) on elements that need fixed, exception typography.
 - Use arbitrary utility values for one-off exceptions; if repeated in 2+ places, promote to tokenized utility or shared primitive.
 - For shell-level branding/layout clusters repeated across header/menu/modal, extract a small shared presentational component.

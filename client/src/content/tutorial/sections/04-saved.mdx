@@ -1,0 +1,30 @@
+import { Link } from 'react-router-dom';
+import { TutorialProse } from '@/components/tutorial/TutorialProse';
+
+<TutorialProse>
+
+## Saved scriptures
+
+**Step 1 — Book list:** Open **Saved** from the menu. You’ll see one card per
+Bible book that contains saved verses; counts show how many verses are saved in
+each book.
+
+**Step 2 — Book detail:** Tap a book to see every saved verse for that book.
+From here you can:
+
+- Change **translation** for an entry (where the UI offers it).
+- Edit your personal **note** per saved verse and save.
+- **Remove** a verse from your collection when you no longer need it.
+- Use **Open in Reader** to continue in chapter context at the right verse.
+
+**Session restore:** Scroll position on the **Saved** list and on each **book
+detail** page is restored for the browser tab session when you navigate away
+and come back.
+
+<Link
+  to="/saved"
+  className="font-semibold text-indigo-700 hover:text-indigo-600">
+  Open Saved
+</Link>
+
+</TutorialProse>

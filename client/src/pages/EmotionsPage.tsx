@@ -96,6 +96,15 @@ export function EmotionsPage() {
         title="Scriptural Support"
         description="Choose how you feel, then follow a calm scripture path with practical next steps."
       />
+      <p className="mb-6 text-sm text-slate-600">
+        New here? Open the{' '}
+        <Link
+          to="/tutorial"
+          className="font-semibold text-indigo-700 underline-offset-2 hover:text-indigo-600 hover:underline">
+          Tutorial
+        </Link>{' '}
+        from the menu anytime for a full walkthrough.
+      </p>
 
       {isLoading && (
         <p className="text-sm text-slate-600">{appCopy.loading.emotions}</p>
