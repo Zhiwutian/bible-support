@@ -8,6 +8,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Client: after logging a prayer list session, dispatch `app:prayer-insights-invalidate` so hub pages refresh streak/insights data (`prayer-insights-events.ts`, `usePrayerPageInsights`).
 - UI: prayer insights load-error line uses `prayer-insights-inline-status` for dark mode + high contrast in `client/src/index.css`.
 - Client: track `client/src/features/prayer/*` (insights API, hooks, hub bar, filter modal shell, reminder modal) used by prayer hub pages.
 - UI: shared labeled `Select` primitive (`client/src/components/ui/Select.tsx`) for prayer filter modals; styleguide note under Form and Selector Consistency.

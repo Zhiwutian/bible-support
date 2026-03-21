@@ -2,6 +2,7 @@ import type { PrayerInsightsResponse } from '@shared/prayer-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '@/components/app/toast-context';
 import { readPrayerInsights } from '@/features/prayer/prayer-insights-api';
+import { PRAYER_INSIGHTS_INVALIDATE_EVENT } from '@/features/prayer/prayer-insights-events';
 
 /**
  * Load prayer streak/reminder insights for hub pages; surfaces failures like other feature loads.
@@ -48,6 +49,18 @@ export function usePrayerPageInsights(): {
 
   useEffect(() => {
     void reloadInsights();
+  }, [reloadInsights]);
+
+  useEffect(() => {
+    function onInvalidate() {
+      void reloadInsights();
+    }
+    window.addEventListener(PRAYER_INSIGHTS_INVALIDATE_EVENT, onInvalidate);
+    return () =>
+      window.removeEventListener(
+        PRAYER_INSIGHTS_INVALIDATE_EVENT,
+        onInvalidate,
+      );
   }, [reloadInsights]);
 
   return {

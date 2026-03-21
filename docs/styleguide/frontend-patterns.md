@@ -54,7 +54,7 @@ Current Reader decomposition references:
   - use reader chapter API with URL-synced query state (`readReaderChapter`)
   - for authenticated reader-state sync, use reader state endpoints (`readReaderState`, `updateReaderState`, `clearReaderState`) with local fallback
   - keep reader comfort preferences out of URL params (store locally with schema versioned preferences)
-  - prayer hub pages: use `client/src/features/prayer/*` (`prayer-insights-api.ts`, `use-prayer-page-insights`, `use-prayer-reminder`, `PrayerHubInsightsBar`, `PrayerReminderSettingsModal`, `PrayerFilterModalShell`); call `GET /api/prayer/insights` and `PATCH /api/prayer/settings`; show toast + inline status when insights fail to load (same spirit as emotion list failures)
+  - prayer hub pages: use `client/src/features/prayer/*` (`prayer-insights-api.ts`, `use-prayer-page-insights`, `use-prayer-reminder`, `PrayerHubInsightsBar`, `PrayerReminderSettingsModal`, `PrayerFilterModalShell`); call `GET /api/prayer/insights` and `PATCH /api/prayer/settings`; show toast + inline status when insights fail to load (same spirit as emotion list failures); after logging a list session, dispatch `app:prayer-insights-invalidate` via `dispatchPrayerInsightsInvalidate()` so open hub pages refetch streaks without a full navigation
 
 ## Styling Pattern
 
