@@ -8,6 +8,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- UI: prayer insights load-error line uses `prayer-insights-inline-status` for dark mode + high contrast in `client/src/index.css`.
 - Client: track `client/src/features/prayer/*` (insights API, hooks, hub bar, filter modal shell, reminder modal) used by prayer hub pages.
 - UI: shared labeled `Select` primitive (`client/src/components/ui/Select.tsx`) for prayer filter modals; styleguide note under Form and Selector Consistency.
 - Prayer hub hardening: IANA timezone validation for reminders (`server/lib/iana-timezone.ts`, Zod `superRefine` + service defense-in-depth; explicit `UTC`/`GMT` aliases because Node may omit them from `Intl.supportedValuesOf`); shared `usePrayerPageInsights` + `PrayerFilterModalShell`; toast + `role="status"` when insights fail; `trackEvent('prayer_reminder_settings_saved')`; deploy smoke check for `GET /api/prayer/insights` without session; route tests for auth/validation edges; styleguide/database docs updated.

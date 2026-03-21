@@ -78,6 +78,7 @@ Current Reader decomposition references:
 - For note indicators/action menus, provide explicit `aria-label` text by verse reference and restore focus to invoking controls when menus/modals close.
 - Preserve Escape/outside-click modal behavior consistency.
 - Validate high-contrast and text-scale behavior for changed views.
+- Prayer hub: inline insights failure copy uses `prayer-insights-inline-status` in `index.css` for dark-mode and high-contrast readability (see `PrayerHubInsightsBar`).
 - Keep landing and auth-entry actions operable with keyboard and large text scales.
 - Treat app-wide high-contrast overrides as a controlled global layer; avoid adding new `!important` rules outside accessibility scope.
 - For reader-longform surfaces, validate reduced-motion and high-contrast combinations together.

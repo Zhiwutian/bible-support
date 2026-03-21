@@ -34,7 +34,9 @@ export function PrayerHubInsightsBar({
             {isLoading ? (
               <p className="text-sm text-slate-500">Loading insights…</p>
             ) : loadError ? (
-              <p className="text-sm text-slate-600" role="status">
+              <p
+                className="prayer-insights-inline-status text-sm text-slate-600"
+                role="status">
                 Couldn&apos;t load streaks or reminder settings. You can still
                 use filters and your roster; try refreshing the page.
               </p>

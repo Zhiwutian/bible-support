@@ -494,6 +494,15 @@ body {
   color: #e5e7eb !important;
 }
 
+/* Softer secondary copy on prayer insights card (global dark rule above is very bright). */
+.app-dark-mode .prayer-insights-inline-status {
+  color: #94a3b8 !important;
+}
+
+.app-high-contrast .prayer-insights-inline-status {
+  color: #000 !important;
+}
+
 .app-dark-mode [class*='bg-slate-'],
 .app-dark-mode [class*='bg-sky-'],
 .app-dark-mode .bg-white {
