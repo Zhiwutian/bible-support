@@ -8,11 +8,15 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- UI: shared labeled `Select` primitive (`client/src/components/ui/Select.tsx`) for prayer filter modals; styleguide note under Form and Selector Consistency.
+- Prayer hub hardening: IANA timezone validation for reminders (`server/lib/iana-timezone.ts`, Zod `superRefine` + service defense-in-depth; explicit `UTC`/`GMT` aliases because Node may omit them from `Intl.supportedValuesOf`); shared `usePrayerPageInsights` + `PrayerFilterModalShell`; toast + `role="status"` when insights fail; `trackEvent('prayer_reminder_settings_saved')`; deploy smoke check for `GET /api/prayer/insights` without session; route tests for auth/validation edges; styleguide/database docs updated.
+- Prayer Partners and Prayer Lists pages: roster/list filters moved into a **Filters** modal; added a shared **Streaks & reminders** card (UTC-day streaks from list sessions, in-app daily reminder settings); improved mobile stacking and touch targets for actions.
 - Cursor rules: added examples to `honest-feedback-on-ideas`; clarified scope, cross-links, and doc pointers across pre-commit, release, secrets, auth, API, DB, and frontend rules; added rule-relationship map to `docs/rules-registry.md`.
 - Cursor rules: aligned with current stack (reader/CSS guardrails, `features/` layout, `asyncHandler`/validation, MSW handlers, auth-audit contracts, NOT VALID/VALIDATE, VITE rollout, audit workflow).
 
 ### Added
 
+- Prayer insights and reminders: migration `0018_user_prayer_settings.sql` + `user_prayer_settings` table (Drizzle + `database/schema.sql` parity); `GET /api/prayer/insights` and `PATCH /api/prayer/settings`; shared contracts in `shared/prayer-contracts.ts`; client modules under `client/src/features/prayer/` (insights API, reminder hook, modals, hub bar); route tests in `server/routes/prayer-api.test.ts`.
 - Prayer List feature foundation:
   - shared contracts in `shared/prayer-contracts.ts`
   - schema + SQL parity updates for `prayer_partners`, `prayer_lists`, `prayer_list_members`, `prayer_sessions`, and `prayer_partner_notes`
@@ -39,8 +43,14 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Added `server/lib/validation/device-id.ts` (optional `x-device-id` parsing) for reuse across device-scoped APIs.
 - Added optional `PG_POOL_MAX` env (default 10) and explicit pool `idle` / `connection` timeouts in `server/db/pool.ts`.
 
+### Changed
+
+- `docs/development-workflow.md`: troubleshooting for local `db:migrate` when Drizzle re-runs early migrations (`already exists` / journal out of sync).
+
 ### Fixed
 
+- Local Auth0 + default Vite dev: documented and startup-warned when `AUTH_REDIRECT_URI` uses `:8080` but `CORS_ORIGIN` is `:5173` — the OIDC state cookie is stored for the SPA origin during proxied `/api/auth/login`, so the callback URL must match that origin (typically `http://localhost:5173/api/auth/callback`) unless the client uses `VITE_API_BASE_URL` pointed at `:8080`.
+- Local OIDC callback: build the code-exchange callback URL from `AUTH_REDIRECT_URI` (not `req.protocol`) and only enable Express `trust proxy` in production, avoiding wrong `https` detection from forwarded headers that could break Auth0 token exchange.
 - Prayer partner image validation now rejects base64/data URLs with explicit guidance to use hosted `http(s)` URLs, and frontend prayer partner forms now block unsupported image inputs before submit.
 - Saved scripture batch/note error logging no longer referenced a removed helper (could surface as 500 on some error paths).
 

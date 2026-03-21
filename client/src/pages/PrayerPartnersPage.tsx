@@ -1,6 +1,6 @@
+import type { PrayerPartner } from '@shared/prayer-contracts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { PrayerPartner } from '@shared/prayer-contracts';
 import { useToast } from '@/components/app/toast-context';
 import {
   Button,
@@ -8,7 +8,12 @@ import {
   EmptyState,
   Input,
   SectionHeader,
+  Select,
 } from '@/components/ui';
+import { PrayerFilterModalShell } from '@/features/prayer/PrayerFilterModalShell';
+import { PrayerHubInsightsBar } from '@/features/prayer/PrayerHubInsightsBar';
+import { usePrayerPageInsights } from '@/features/prayer/use-prayer-page-insights';
+import { usePrayerReminder } from '@/features/prayer/use-prayer-reminder';
 import {
   createPrayerPartner,
   deletePrayerPartner,
@@ -52,6 +57,15 @@ function normalizePartnerImageUrl(rawValue: string): {
   return { value: trimmed, error: null };
 }
 
+type PartnerFiltersDraft = {
+  includeArchived: boolean;
+  needsUpdateOnly: boolean;
+  needsUpdateDays: string;
+  imageFilter: 'all' | 'has' | 'none';
+  notesFilter: 'all' | 'has' | 'none';
+  sortBy: 'recent' | 'name' | 'oldest';
+};
+
 export function PrayerPartnersPage() {
   const { showToast } = useToast();
   const [partners, setPartners] = useState<PrayerPartner[]>([]);
@@ -67,6 +81,19 @@ export function PrayerPartnersPage() {
   const [name, setName] = useState('');
   const [prayerFocus, setPrayerFocus] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const { insights, insightsLoading, insightsError, setInsights } =
+    usePrayerPageInsights();
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draft, setDraft] = useState<PartnerFiltersDraft>(() => ({
+    includeArchived: false,
+    needsUpdateOnly: false,
+    needsUpdateDays: '14',
+    imageFilter: 'all',
+    notesFilter: 'all',
+    sortBy: 'recent',
+  }));
+
+  usePrayerReminder(insights);
 
   const loadPartners = useCallback(async () => {
     setIsLoading(true);
@@ -84,6 +111,54 @@ export function PrayerPartnersPage() {
   useEffect(() => {
     void loadPartners();
   }, [loadPartners]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    setDraft({
+      includeArchived,
+      needsUpdateOnly,
+      needsUpdateDays,
+      imageFilter,
+      notesFilter,
+      sortBy,
+    });
+  }, [
+    filtersOpen,
+    includeArchived,
+    needsUpdateOnly,
+    needsUpdateDays,
+    imageFilter,
+    notesFilter,
+    sortBy,
+  ]);
+
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (includeArchived) n += 1;
+    if (needsUpdateOnly) n += 1;
+    if (needsUpdateDays !== '14') n += 1;
+    if (imageFilter !== 'all') n += 1;
+    if (notesFilter !== 'all') n += 1;
+    if (sortBy !== 'recent') n += 1;
+    return n;
+  }, [
+    includeArchived,
+    imageFilter,
+    needsUpdateDays,
+    needsUpdateOnly,
+    notesFilter,
+    sortBy,
+  ]);
+
+  function applyFiltersFromDraft() {
+    setIncludeArchived(draft.includeArchived);
+    setNeedsUpdateOnly(draft.needsUpdateOnly);
+    setNeedsUpdateDays(draft.needsUpdateDays);
+    setImageFilter(draft.imageFilter);
+    setNotesFilter(draft.notesFilter);
+    setSortBy(draft.sortBy);
+    setFiltersOpen(false);
+  }
 
   async function onCreatePartner(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -205,13 +280,113 @@ export function PrayerPartnersPage() {
   ]);
 
   return (
-    <>
+    <div className="space-y-4 sm:space-y-6">
       <SectionHeader
         title="Prayer Partners"
         description="Add people you are praying for, record what they need, and track updates over time."
       />
 
-      <Card className="mb-4 space-y-3 border p-4">
+      <PrayerHubInsightsBar
+        insights={insights}
+        isLoading={insightsLoading}
+        loadError={insightsError}
+        onInsightsUpdated={setInsights}
+        onOpenFilters={() => setFiltersOpen(true)}
+        activeFilterCount={activeFilterCount}
+      />
+
+      <PrayerFilterModalShell
+        title="Filter roster"
+        titleId="prayer-partners-filters-title"
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onApply={applyFiltersFromDraft}>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={draft.includeArchived}
+            onChange={(event) =>
+              setDraft((d) => ({
+                ...d,
+                includeArchived: event.target.checked,
+              }))
+            }
+          />
+          Show archived
+        </label>
+        <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={draft.needsUpdateOnly}
+            onChange={(event) =>
+              setDraft((d) => ({
+                ...d,
+                needsUpdateOnly: event.target.checked,
+              }))
+            }
+          />
+          Needs update only
+        </label>
+        <label className="block text-sm text-slate-700">
+          Needs update days
+          <Input
+            type="number"
+            min={1}
+            max={365}
+            className="mt-1 min-h-11"
+            value={draft.needsUpdateDays}
+            onChange={(event) =>
+              setDraft((d) => ({
+                ...d,
+                needsUpdateDays: event.target.value,
+              }))
+            }
+          />
+        </label>
+        <Select
+          label="Sort"
+          value={draft.sortBy}
+          onChange={(event) =>
+            setDraft((d) => ({
+              ...d,
+              sortBy: event.target.value as PartnerFiltersDraft['sortBy'],
+            }))
+          }>
+          <option value="recent">Recent activity</option>
+          <option value="name">Alphabetical</option>
+          <option value="oldest">Oldest first</option>
+        </Select>
+        <Select
+          label="Image filter"
+          value={draft.imageFilter}
+          onChange={(event) =>
+            setDraft((d) => ({
+              ...d,
+              imageFilter: event.target
+                .value as PartnerFiltersDraft['imageFilter'],
+            }))
+          }>
+          <option value="all">All</option>
+          <option value="has">Has image</option>
+          <option value="none">No image</option>
+        </Select>
+        <Select
+          label="Notes filter"
+          value={draft.notesFilter}
+          onChange={(event) =>
+            setDraft((d) => ({
+              ...d,
+              notesFilter: event.target
+                .value as PartnerFiltersDraft['notesFilter'],
+            }))
+          }>
+          <option value="all">All</option>
+          <option value="has">Has notes</option>
+          <option value="none">No notes</option>
+        </Select>
+      </PrayerFilterModalShell>
+
+      <Card className="space-y-3 border p-4 sm:p-5">
         <h2 className="text-base font-semibold text-slate-800">
           Add prayer partner
         </h2>
@@ -224,7 +399,7 @@ export function PrayerPartnersPage() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Jane Doe"
-              className="mt-1"
+              className="mt-1 min-h-11"
             />
           </label>
           <label className="block text-sm font-medium text-slate-700">
@@ -243,7 +418,7 @@ export function PrayerPartnersPage() {
               value={imageUrl}
               onChange={(event) => setImageUrl(event.target.value)}
               placeholder="https://..."
-              className="mt-1"
+              className="mt-1 min-h-11"
             />
             <span className="mt-1 block text-xs font-normal text-slate-500">
               Use a hosted http(s) image link. Base64 data URLs are not
@@ -256,76 +431,8 @@ export function PrayerPartnersPage() {
         </form>
       </Card>
 
-      <div className="mb-4 space-y-3">
+      <div className="space-y-3">
         <h2 className="text-base font-semibold text-slate-800">Your roster</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={includeArchived}
-              onChange={(event) => setIncludeArchived(event.target.checked)}
-            />
-            Show archived
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={needsUpdateOnly}
-              onChange={(event) => setNeedsUpdateOnly(event.target.checked)}
-            />
-            Needs update only
-          </label>
-          <label className="block text-sm text-slate-700">
-            Needs update days
-            <Input
-              type="number"
-              min={1}
-              max={365}
-              className="mt-1"
-              value={needsUpdateDays}
-              onChange={(event) => setNeedsUpdateDays(event.target.value)}
-            />
-          </label>
-          <label className="block text-sm text-slate-700">
-            Sort
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              value={sortBy}
-              onChange={(event) =>
-                setSortBy(event.target.value as 'recent' | 'name' | 'oldest')
-              }>
-              <option value="recent">Recent activity</option>
-              <option value="name">Alphabetical</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </label>
-          <label className="block text-sm text-slate-700">
-            Image filter
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              value={imageFilter}
-              onChange={(event) =>
-                setImageFilter(event.target.value as 'all' | 'has' | 'none')
-              }>
-              <option value="all">All</option>
-              <option value="has">Has image</option>
-              <option value="none">No image</option>
-            </select>
-          </label>
-          <label className="block text-sm text-slate-700">
-            Notes filter
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-              value={notesFilter}
-              onChange={(event) =>
-                setNotesFilter(event.target.value as 'all' | 'has' | 'none')
-              }>
-              <option value="all">All</option>
-              <option value="has">Has notes</option>
-              <option value="none">No notes</option>
-            </select>
-          </label>
-        </div>
       </div>
 
       {isLoading ? (
@@ -346,9 +453,11 @@ export function PrayerPartnersPage() {
       {!isLoading && !error && filteredPartners.length > 0 ? (
         <div className="space-y-3">
           {filteredPartners.map((partner) => (
-            <Card key={partner.partnerId} className="space-y-3 border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+            <Card
+              key={partner.partnerId}
+              className="space-y-3 border p-4 sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-base font-semibold text-slate-800">
                     {partner.name}
                     {partner.isArchived ? ' (Archived)' : ''}
@@ -367,21 +476,27 @@ export function PrayerPartnersPage() {
                   <img
                     src={partner.imageUrl}
                     alt={`${partner.name} avatar`}
-                    className="size-12 rounded-full border border-slate-200 object-cover"
+                    className="mx-auto size-14 shrink-0 rounded-full border border-slate-200 object-cover sm:mx-0 sm:size-12"
                   />
                 ) : null}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Link to={`/prayer-partners/${partner.partnerId}`}>
-                  <Button variant="ghost">Open details</Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <Link
+                  to={`/prayer-partners/${partner.partnerId}`}
+                  className="w-full sm:w-auto">
+                  <Button variant="ghost" className="min-h-11 w-full sm:w-auto">
+                    Open details
+                  </Button>
                 </Link>
                 <Button
                   variant="ghost"
+                  className="min-h-11 w-full sm:w-auto"
                   onClick={() => void onToggleArchived(partner)}>
                   {partner.isArchived ? 'Unarchive' : 'Archive'}
                 </Button>
                 <Button
                   variant="ghost"
+                  className="min-h-11 w-full sm:w-auto"
                   onClick={() => void onDeletePartner(partner)}>
                   Delete
                 </Button>
@@ -390,6 +505,6 @@ export function PrayerPartnersPage() {
           ))}
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

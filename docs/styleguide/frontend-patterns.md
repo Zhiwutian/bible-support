@@ -54,6 +54,7 @@ Current Reader decomposition references:
   - use reader chapter API with URL-synced query state (`readReaderChapter`)
   - for authenticated reader-state sync, use reader state endpoints (`readReaderState`, `updateReaderState`, `clearReaderState`) with local fallback
   - keep reader comfort preferences out of URL params (store locally with schema versioned preferences)
+  - prayer hub pages: use `client/src/features/prayer/*` (`prayer-insights-api.ts`, `use-prayer-page-insights`, `use-prayer-reminder`, `PrayerHubInsightsBar`, `PrayerReminderSettingsModal`, `PrayerFilterModalShell`); call `GET /api/prayer/insights` and `PATCH /api/prayer/settings`; show toast + inline status when insights fail to load (same spirit as emotion list failures)
 
 ## Styling Pattern
 
@@ -104,12 +105,14 @@ Current Reader decomposition references:
   - profile save success/failure
   - reader comfort settings changed/reset/dismiss interactions
   - reader style changes, bookmark set, and state sync/clear interactions
-- Reader telemetry payloads must stay privacy-safe:
+  - prayer reminder settings saved (`prayer_reminder_settings_saved`, payload: `{ enabled: boolean }` only)
+  - Reader telemetry payloads must stay privacy-safe:
   - include only setting keys/values and interaction type
   - exclude verse text, note text, and identifying user content
 
 ## Form and Selector Consistency
 
+- Prefer the shared **`Select`** primitive (`client/src/components/ui/Select.tsx`) for labeled filter-style dropdowns so spacing, borders, and mobile `16px` select rules stay consistent.
 - Prefer select inputs when users are choosing one mode from a small predefined list (for example `Search Type`).
 - Keep labels explicit and task-oriented (`Search Type`, `Display settings`, `Support`).
 - Use component-level casing (`capitalize` utility on actionable controls) instead of global `button { text-transform: ... }` rules so content buttons (for example scripture text) stay semantically accurate.
