@@ -86,3 +86,45 @@ export const prayerPartnersRouteStateSchema = z.object({
 export type PrayerPartnersRouteState = z.infer<
   typeof prayerPartnersRouteStateSchema
 >;
+
+/** Session key for `/saved/:book` (use `encodeURIComponent` for `:book`). */
+export function savedBookDetailRoutePath(encodedBook: string): string {
+  return `/saved/${encodedBook}`;
+}
+
+export const savedBookDetailRouteStateSchema = z.object({
+  version: z.literal(1),
+  scrollY: z.number().min(0),
+});
+
+export type SavedBookDetailRouteState = z.infer<
+  typeof savedBookDetailRouteStateSchema
+>;
+
+export function prayerPartnerDetailRoutePath(partnerId: string): string {
+  return `/prayer-partners/${partnerId}`;
+}
+
+export const prayerPartnerDetailRouteStateSchema = z.object({
+  version: z.literal(1),
+  scrollY: z.number().min(0),
+});
+
+export type PrayerPartnerDetailRouteState = z.infer<
+  typeof prayerPartnerDetailRouteStateSchema
+>;
+
+export function prayerListDetailRoutePath(listId: string): string {
+  return `/prayer-lists/${listId}`;
+}
+
+export const prayerListDetailRouteStateSchema = z.object({
+  version: z.literal(1),
+  scrollY: z.number().min(0),
+  selectedPartnerId: z.number().int(),
+  prayerNote: z.string(),
+});
+
+export type PrayerListDetailRouteState = z.infer<
+  typeof prayerListDetailRouteStateSchema
+>;

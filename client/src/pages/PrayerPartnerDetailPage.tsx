@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import type {
   PrayerPartner,
@@ -20,6 +20,12 @@ import {
   updatePrayerPartner,
   updatePrayerPartnerNote,
 } from '@/features/prayer-partners/prayer-partners-api';
+import {
+  prayerPartnerDetailRoutePath,
+  prayerPartnerDetailRouteStateSchema,
+  readRouteState,
+  writeRouteState,
+} from '@/lib/route-session-state';
 
 function normalizePartnerImageUrl(rawValue: string): {
   value: string | null;
@@ -71,6 +77,50 @@ export function PrayerPartnerDetailPage() {
   const [newNote, setNewNote] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [editingNoteValue, setEditingNoteValue] = useState('');
+
+  const partnerDetailRoutePath = useMemo(() => {
+    if (!partnerId) return '';
+    return prayerPartnerDetailRoutePath(partnerId);
+  }, [partnerId]);
+
+  useEffect(() => {
+    if (!partnerDetailRoutePath) return;
+    const saved = readRouteState(
+      partnerDetailRoutePath,
+      prayerPartnerDetailRouteStateSchema,
+    );
+    if (saved) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: saved.scrollY, left: 0, behavior: 'auto' });
+      });
+    }
+  }, [partnerDetailRoutePath]);
+
+  const persistPartnerDetailScroll = useCallback(() => {
+    if (!partnerDetailRoutePath) return;
+    writeRouteState(partnerDetailRoutePath, {
+      version: 1,
+      scrollY: Math.max(0, window.scrollY),
+    });
+  }, [partnerDetailRoutePath]);
+
+  useEffect(() => {
+    if (!partnerDetailRoutePath || isLoading) return;
+    let timeoutId: number | undefined;
+    function onScroll() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        persistPartnerDetailScroll();
+      }, 200);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      persistPartnerDetailScroll();
+    };
+  }, [partnerDetailRoutePath, isLoading, persistPartnerDetailScroll]);
 
   const loadDetail = useCallback(async () => {
     if (!Number.isFinite(parsedPartnerId) || parsedPartnerId <= 0) {

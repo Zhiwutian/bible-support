@@ -6,6 +6,9 @@ import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contr
 
 export const LAST_READER_LOCATION_KEY = 'reader:last-location:v1';
 
+/** Same JSON shape as session; used so new tabs can open the last reader place. */
+export const LAST_READER_LOCATION_LS_KEY = 'reader:last-location:v1:crossTab';
+
 const lastReaderLocationSchema = z.object({
   book: z.string(),
   chapter: z.number().int().positive(),
@@ -35,39 +38,8 @@ function clampChapterForBook(book: string, chapter: number): number {
   return Math.min(Math.max(1, chapter), getMaxChaptersForBook(book));
 }
 
-/**
- * Persist last reader book/chapter/translation (optional verse) for session restore.
- */
-export function saveLastReaderLocation(input: LastReaderLocation): void {
-  if (typeof window === 'undefined') return;
+function parseStoredLastReader(raw: string): LastReaderLocation | null {
   try {
-    const parsed = lastReaderLocationSchema.parse(input);
-    if (!isValidBook(parsed.book)) return;
-    if (!isValidTranslation(parsed.translation)) return;
-    const chapter = Math.min(
-      Math.max(1, parsed.chapter),
-      getMaxChaptersForBook(parsed.book),
-    );
-    const payload: LastReaderLocation = {
-      book: parsed.book,
-      chapter,
-      translation: parsed.translation,
-      verse: parsed.verse,
-    };
-    window.sessionStorage.setItem(
-      LAST_READER_LOCATION_KEY,
-      JSON.stringify(payload),
-    );
-  } catch {
-    // Quota, private mode, or disabled storage — ignore.
-  }
-}
-
-export function loadLastReaderLocation(): LastReaderLocation | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.sessionStorage.getItem(LAST_READER_LOCATION_KEY);
-    if (!raw) return null;
     const data = JSON.parse(raw) as unknown;
     const parsed = lastReaderLocationSchema.safeParse(data);
     if (!parsed.success) return null;
@@ -86,6 +58,65 @@ export function loadLastReaderLocation(): LastReaderLocation | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Persist last reader book/chapter/translation (optional verse) for restore.
+ * Writes **sessionStorage** (current tab) and **localStorage** (cross-tab / new tab).
+ */
+export function saveLastReaderLocation(input: LastReaderLocation): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const parsed = lastReaderLocationSchema.parse(input);
+    if (!isValidBook(parsed.book)) return;
+    if (!isValidTranslation(parsed.translation)) return;
+    const chapter = Math.min(
+      Math.max(1, parsed.chapter),
+      getMaxChaptersForBook(parsed.book),
+    );
+    const payload: LastReaderLocation = {
+      book: parsed.book,
+      chapter,
+      translation: parsed.translation,
+      verse: parsed.verse,
+    };
+    const json = JSON.stringify(payload);
+    try {
+      window.sessionStorage.setItem(LAST_READER_LOCATION_KEY, json);
+    } catch {
+      // ignore
+    }
+    try {
+      window.localStorage.setItem(LAST_READER_LOCATION_LS_KEY, json);
+    } catch {
+      // ignore
+    }
+  } catch {
+    // Quota, private mode, or disabled storage — ignore.
+  }
+}
+
+/** Prefer session (tab), then localStorage (cross-tab). */
+export function loadLastReaderLocation(): LastReaderLocation | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const sessionRaw = window.sessionStorage.getItem(LAST_READER_LOCATION_KEY);
+    if (sessionRaw) {
+      const fromSession = parseStoredLastReader(sessionRaw);
+      if (fromSession) return fromSession;
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    const localRaw = window.localStorage.getItem(LAST_READER_LOCATION_LS_KEY);
+    if (localRaw) {
+      return parseStoredLastReader(localRaw);
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 /**

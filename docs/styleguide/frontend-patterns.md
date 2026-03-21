@@ -47,6 +47,12 @@ Current Reader decomposition references:
   keys are cleared automatically.
 - Prefer **form + scroll** over large blobs (for example avoid caching full search
   result lists unless product explicitly requires offline replay).
+- Dynamic routes use the real path as the key, e.g.
+  `savedBookDetailRoutePath(encodeURIComponent(bookName))`,
+  `prayerPartnerDetailRoutePath(partnerId)`,
+  `prayerListDetailRoutePath(listId)`. Prayer list detail also persists
+  **selected partner** for the add-member control and the **prayer note** draft
+  (session-only; device-local).
 - This is separate from **authenticated reader state** on the server
   (`readReaderState` / `updateReaderState`): session snapshots are device/tab
   scoped and work for guests.
@@ -58,6 +64,10 @@ Current Reader decomposition references:
   opens `/reader` without a complete query string.
 - Use `ReaderNavLinkButton` or `getLastReaderTo()` for menu/CTAs so navigation
   does not drop reader context.
+- **Cross-tab:** `saveLastReaderLocation` writes both `sessionStorage` and
+  `localStorage` (`LAST_READER_LOCATION_LS_KEY`). New tabs read from
+  `localStorage` when the session entry is empty so the menu Reader link can
+  open the last place without visiting Reader in that tab first.
 - Chapter scroll within the reader content pane is stored per
   `book|chapter|translation`. **Do not** restore session scroll when a **verse
   jump** or **bookmark jump** runs for the same load (see `BibleReaderPage`).
@@ -72,8 +82,8 @@ Current Reader decomposition references:
 
 ### Tutorial content (MDX)
 
-- Tutorial body: `client/src/content/tutorial/*.mdx`, shell:
-  `client/src/pages/TutorialPage.tsx`.
+- Tutorial body: `client/src/content/tutorial/sections/*.mdx` (composed in
+  `client/src/pages/TutorialPage.tsx`).
 - Use thin wrappers in `client/src/components/tutorial/*` (`TutorialProse`,
   `TutorialFigure`, `TutorialStep`, `TutorialCallout`, `TutorialReaderLink`) for
   consistent layout and accessibility.

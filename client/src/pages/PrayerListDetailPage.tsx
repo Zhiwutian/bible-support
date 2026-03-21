@@ -22,19 +22,43 @@ import {
 } from '@/features/prayer-lists/prayer-lists-api';
 import { dispatchPrayerInsightsInvalidate } from '@/features/prayer/prayer-insights-events';
 import { readPrayerPartners } from '@/features/prayer-partners/prayer-partners-api';
+import {
+  prayerListDetailRoutePath,
+  prayerListDetailRouteStateSchema,
+  readRouteState,
+  writeRouteState,
+} from '@/lib/route-session-state';
 
 export function PrayerListDetailPage() {
   const { listId } = useParams();
   const { showToast } = useToast();
   const parsedListId = Number(listId);
+
+  const listDetailRoutePath = useMemo(() => {
+    if (!listId) return '';
+    return prayerListDetailRoutePath(listId);
+  }, [listId]);
+
+  const [listDetailInit] = useState(() => {
+    if (typeof window === 'undefined' || !listId) return null;
+    return readRouteState(
+      prayerListDetailRoutePath(listId),
+      prayerListDetailRouteStateSchema,
+    );
+  });
+
   const [list, setList] = useState<PrayerList | null>(null);
   const [members, setMembers] = useState<PrayerListMemberWithPartner[]>([]);
   const [sessions, setSessions] = useState<
     Array<{ prayerSessionId: number; note: string | null; createdAt: string }>
   >([]);
   const [partners, setPartners] = useState<PrayerPartner[]>([]);
-  const [selectedPartnerId, setSelectedPartnerId] = useState<number>(0);
-  const [prayerNote, setPrayerNote] = useState('');
+  const [selectedPartnerId, setSelectedPartnerId] = useState(
+    () => listDetailInit?.selectedPartnerId ?? 0,
+  );
+  const [prayerNote, setPrayerNote] = useState(
+    () => listDetailInit?.prayerNote ?? '',
+  );
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
@@ -80,6 +104,49 @@ export function PrayerListDetailPage() {
   useEffect(() => {
     void loadDetail();
   }, [loadDetail]);
+
+  useEffect(() => {
+    const y = listDetailInit?.scrollY;
+    if (y == null || !listDetailRoutePath) return;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: y, left: 0, behavior: 'auto' });
+    });
+  }, [listDetailInit?.scrollY, listDetailRoutePath]);
+
+  const persistListDetailRoute = useCallback(() => {
+    if (!listDetailRoutePath) return;
+    writeRouteState(listDetailRoutePath, {
+      version: 1,
+      scrollY: Math.max(0, window.scrollY),
+      selectedPartnerId,
+      prayerNote,
+    });
+  }, [listDetailRoutePath, selectedPartnerId, prayerNote]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      persistListDetailRoute();
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [persistListDetailRoute]);
+
+  useEffect(() => {
+    if (!listDetailRoutePath || isLoading) return;
+    let timeoutId: number | undefined;
+    function onScroll() {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        timeoutId = undefined;
+        persistListDetailRoute();
+      }, 200);
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      persistListDetailRoute();
+    };
+  }, [listDetailRoutePath, isLoading, persistListDetailRoute]);
 
   const selectablePartners = useMemo(() => {
     const inList = new Set(members.map((member) => member.partnerId));

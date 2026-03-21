@@ -19,7 +19,8 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
-- Client: session `sessionStorage` route snapshots for Search, Saved index, and Prayer Partners (`client/src/lib/route-session-state.ts`); reader last location + chapter scroll persistence (`last-reader-location.ts`, `ReaderNavLinkButton`, `BibleReaderPage`); tutorials as MDX with thin components (`client/src/content/tutorial/index.mdx`, `client/src/components/tutorial/*`, `@mdx-js/rollup` + `eslint-plugin-mdx`); `public/tutorial/` placeholder + README for screenshots.
+- Client: session `sessionStorage` route snapshots for Search, Saved index, and Prayer Partners (`client/src/lib/route-session-state.ts`); reader last location + chapter scroll persistence (`last-reader-location.ts`, `ReaderNavLinkButton`, `BibleReaderPage`); tutorials as MDX with thin components (`client/src/content/tutorial/sections/*.mdx`, `client/src/components/tutorial/*`, `@mdx-js/rollup` + `eslint-plugin-mdx`); `public/tutorial/` placeholder + README for screenshots.
+- Client: route snapshots for **Saved book detail**, **Prayer partner detail**, **Prayer list detail** (scroll; list detail also restores add-member selection + prayer note draft); **cross-tab** last reader via `localStorage`; tutorial MDX split into numbered sections + `TutorialFigure` WebP-first with SVG fallback; tests for `route-session-state`, `ReaderNavLinkButton`, and last-reader localStorage.
 - Prayer insights and reminders: migration `0018_user_prayer_settings.sql` + `user_prayer_settings` table (Drizzle + `database/schema.sql` parity); `GET /api/prayer/insights` and `PATCH /api/prayer/settings`; shared contracts in `shared/prayer-contracts.ts`; client modules under `client/src/features/prayer/` (insights API, reminder hook, modals, hub bar); route tests in `server/routes/prayer-api.test.ts`.
 - Prayer List feature foundation:
   - shared contracts in `shared/prayer-contracts.ts`
