@@ -339,7 +339,7 @@ export function SavedBookScripturesPage() {
                 {group.items.length > 1 ? 'Saved together' : 'Saved verse'} |{' '}
                 {new Date(group.createdAt).toLocaleString()}
               </p>
-              <ReaderSurface className="min-w-0 max-w-full border-slate-200/90">
+              <ReaderSurface className="min-w-0 max-w-full">
                 <div className="whitespace-pre-wrap break-words text-base leading-relaxed">
                   {group.displayText}
                 </div>

@@ -14,6 +14,12 @@ import {
 import { LandingPage } from '@/pages/LandingPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { trackEvent } from '@/lib/telemetry';
+import {
+  loadReaderPreferences,
+  saveReaderPreferences,
+  type ReaderTheme,
+} from '@/features/reader/reader-preferences';
+import { useReaderPreferencesLive } from '@/features/reader/useReaderPreferencesLive';
 import type {
   AuthFailureReason,
   AuthRedirectOutcome,
@@ -110,6 +116,9 @@ export default function App() {
   >('md');
   const [initialHighContrast, setInitialHighContrast] = useState(false);
   const [initialDarkMode, setInitialDarkMode] = useState(false);
+  const [initialReaderTheme, setInitialReaderTheme] =
+    useState<ReaderTheme>('sepia');
+  const readerPreferencesLive = useReaderPreferencesLive();
   const [settingsHelp, setSettingsHelp] = useState<{
     title: string;
     description: string;
@@ -166,6 +175,7 @@ export default function App() {
     setInitialTextScale(state.textScale);
     setInitialHighContrast(state.highContrast);
     setInitialDarkMode(state.darkMode);
+    setInitialReaderTheme(loadReaderPreferences().theme);
     setPreviewTextScale(state.textScale);
     setIsTextSizeModalOpen(true);
   }, [state.darkMode, state.highContrast, state.textScale]);
@@ -183,8 +193,18 @@ export default function App() {
       type: 'darkMode/set',
       payload: initialDarkMode,
     });
+    saveReaderPreferences({
+      ...loadReaderPreferences(),
+      theme: initialReaderTheme,
+    });
     setIsTextSizeModalOpen(false);
-  }, [dispatch, initialDarkMode, initialHighContrast, initialTextScale]);
+  }, [
+    dispatch,
+    initialDarkMode,
+    initialHighContrast,
+    initialReaderTheme,
+    initialTextScale,
+  ]);
 
   const applyDisplaySettingsModal = useCallback(() => {
     setIsTextSizeModalOpen(false);
@@ -693,6 +713,51 @@ export default function App() {
                       })
                     }
                   />
+                </div>
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <label className="flex flex-col gap-2 text-base font-semibold text-slate-800">
+                    <span className="flex items-center gap-2">
+                      Reading colors
+                      <SettingHelpButton
+                        settingLabel="Reading colors"
+                        onClick={() =>
+                          setSettingsHelp({
+                            title: 'Reading colors',
+                            description:
+                              'Light, Sepia, or Dark for Bible Reader, Support scriptures, and Saved verses. Same setting as Reader → Options → Theme. App dark mode above only changes menus and surrounding pages.',
+                          })
+                        }
+                      />
+                    </span>
+                    <p className="text-sm font-normal text-slate-600">
+                      Same as Reader → Options → Theme. Applies to Reader,
+                      Support, and Saved verse blocks—not the app menus.
+                    </p>
+                    <select
+                      aria-label="Reading colors"
+                      className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-base font-medium text-slate-800"
+                      value={readerPreferencesLive.theme}
+                      onChange={(event) =>
+                        saveReaderPreferences({
+                          ...loadReaderPreferences(),
+                          theme: event.target.value as ReaderTheme,
+                        })
+                      }>
+                      <option value="light">Light</option>
+                      <option value="sepia">Sepia</option>
+                      <option value="dark">Dark</option>
+                    </select>
+                  </label>
+                  <Button
+                    variant="ghost"
+                    className="mt-3 min-h-11 w-full justify-center text-sm font-medium text-indigo-700"
+                    onClick={() => {
+                      setIsTextSizeModalOpen(false);
+                      setIsMobileMenuOpen(false);
+                      navigate('/reader');
+                    }}>
+                    More reader settings (font, spacing, break reminder)…
+                  </Button>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-base font-medium text-slate-800">
                   <span>Text size</span>

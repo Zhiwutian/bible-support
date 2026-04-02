@@ -519,6 +519,16 @@ body {
   background-color: #1e293b !important;
 }
 
+/*
+ * Embedded reader (Support / Saved): Tailwind `border-slate-*` on the same node
+ * must not override reader theme borders after merge; keep sepia/light/dark surfaces.
+ */
+.app-dark-mode .reader-root.reader-content,
+.app-high-contrast .reader-root.reader-content {
+  background-color: var(--reader-bg) !important;
+  border-color: var(--reader-border) !important;
+}
+
 .app-dark-mode .ui-modal-panel {
   background-color: #111827 !important;
   border-color: #334155 !important;
@@ -539,6 +549,12 @@ body {
   background-color: #0f172a !important;
   color: #e5e7eb !important;
   border-color: #475569 !important;
+}
+
+/* Slate text utilities inside embedded reader should follow reader ink, not shell gray. */
+.app-dark-mode .reader-root .reader-chapter-text [class*='text-slate-'],
+.app-high-contrast .reader-root .reader-chapter-text [class*='text-slate-'] {
+  color: var(--reader-text) !important;
 }
 
 /* Keep reader verse containers from inheriting dark shell utility overrides. */
