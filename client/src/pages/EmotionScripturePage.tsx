@@ -400,7 +400,7 @@ export function EmotionScripturePage() {
               {currentScripture.translation} instead.
             </p>
           ) : null}
-          <ReaderSurface className="mt-1 border-slate-200/90">
+          <ReaderSurface className="mt-1">
             <p className="text-xl leading-9 md:text-2xl">
               {currentScripture.verseText}
             </p>

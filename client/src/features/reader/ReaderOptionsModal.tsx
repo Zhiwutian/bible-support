@@ -93,7 +93,7 @@ export function ReaderOptionsModal({
                 onOpenHelp({
                   title: 'Theme',
                   description:
-                    'Choose chapter colors (Light, Sepia, or Dark). This setting is separate from app-level dark mode.',
+                    'Choose chapter colors (Light, Sepia, or Dark). Same as Menu → Display settings → Reading colors. Separate from app-level dark mode.',
                 })
               }
             />

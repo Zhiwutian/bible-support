@@ -18,7 +18,8 @@ export function ReaderSurface({ children, className }: ReaderSurfaceProps) {
     <div
       className={cn(
         readerPreferencesClassNames(preferences),
-        'rounded-md border border-slate-200/80 bg-transparent px-2 py-3 sm:px-3',
+        /* reader-content: theme bg + border so light/sepia text stays on parchment in app dark mode */
+        'reader-content rounded-md border px-2 py-3 sm:px-3',
         className,
       )}>
       <div className="reader-chapter-text max-w-none">{children}</div>

@@ -593,6 +593,34 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('mirrors reader theme in Display settings; Cancel restores theme', async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await continueAsGuest(user);
+
+    await user.click(screen.getByRole('button', { name: 'Open menu' }));
+    await user.click(
+      await screen.findByRole('button', { name: /display settings/i }),
+    );
+
+    const readingColors = await screen.findByRole('combobox', {
+      name: 'Reading colors',
+    });
+    expect(readingColors).toHaveValue('sepia');
+
+    await user.selectOptions(readingColors, 'dark');
+    const stored = JSON.parse(
+      window.localStorage.getItem('reader-preferences')!,
+    ) as { preferences: { theme: string } };
+    expect(stored.preferences.theme).toBe('dark');
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    const afterCancel = JSON.parse(
+      window.localStorage.getItem('reader-preferences')!,
+    ) as { preferences: { theme: string } };
+    expect(afterCancel.preferences.theme).toBe('sepia');
+  });
+
   it('supports batch save flow and note save on saved verse', async () => {
     const user = userEvent.setup();
     renderApp(['/search']);
