@@ -21,6 +21,20 @@ function renderApp(initialEntries: string[] = ['/']) {
   );
 }
 
+async function continueAsGuest(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    await screen.findByRole('button', { name: /continue as guest/i }),
+  );
+}
+
+async function expectNoSeriousOrCriticalViolations(container: HTMLElement) {
+  const result = await axe(container);
+  const severe = result.violations.filter(
+    (v) => v.impact === 'serious' || v.impact === 'critical',
+  );
+  expect(severe).toEqual([]);
+}
+
 describe('accessibility (axe)', () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -30,30 +44,42 @@ describe('accessibility (axe)', () => {
   it('Support home has no serious or critical axe violations after guest entry', async () => {
     const user = userEvent.setup();
     const { container } = renderApp();
-    await user.click(
-      await screen.findByRole('button', { name: /continue as guest/i }),
-    );
+    await continueAsGuest(user);
     await screen.findByRole('heading', { name: /scriptural support/i });
 
-    const result = await axe(container);
-    const severe = result.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-    expect(severe).toEqual([]);
+    await expectNoSeriousOrCriticalViolations(container);
   });
 
   it('Search route has no serious or critical axe violations', async () => {
     const user = userEvent.setup();
     const { container } = renderApp(['/search']);
-    await user.click(
-      await screen.findByRole('button', { name: /continue as guest/i }),
-    );
+    await continueAsGuest(user);
     await screen.findByRole('heading', { name: /bible search/i });
 
-    const result = await axe(container);
-    const severe = result.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-    expect(severe).toEqual([]);
+    await expectNoSeriousOrCriticalViolations(container);
+  });
+
+  it('Reader route has no serious or critical axe violations', async () => {
+    const user = userEvent.setup();
+    const { container } = renderApp([
+      '/reader?book=John&chapter=3&translation=KJV',
+    ]);
+    await continueAsGuest(user);
+    await screen.findByRole('heading', { name: 'Bible Reader' });
+    await screen.findByRole('button', {
+      name: /for god so loved the world/i,
+    });
+
+    await expectNoSeriousOrCriticalViolations(container);
+  });
+
+  it('Tutorial route has no serious or critical axe violations', async () => {
+    const user = userEvent.setup();
+    const { container } = renderApp(['/tutorial']);
+    await continueAsGuest(user);
+    await screen.findByRole('heading', { name: 'Tutorial' });
+    await screen.findByRole('heading', { name: /^Getting started$/i });
+
+    await expectNoSeriousOrCriticalViolations(container);
   });
 });

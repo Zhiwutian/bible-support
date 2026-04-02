@@ -186,7 +186,7 @@ All other routes rely on **controller-level** checks (see below).
 - **Shared modal:** [`ModalShell`](../../client/src/components/ui/ModalShell.tsx) uses `role="dialog"`, `aria-modal="true"`, `aria-labelledby`; verse actions / note flows restore focus via refs in [`useReaderVerseActions`](../../client/src/features/reader/useReaderVerseActions.ts).
 - **Reader comfort:** `prefers-reduced-motion` drives `reader-reduced-motion` class ([`reader-preferences.ts`](../../client/src/features/reader/reader-preferences.ts), [`index.css`](../../client/src/index.css)); covered in [`App.test.tsx`](../../client/src/App.test.tsx).
 - **Labeled controls:** examples include reader options (`aria-label` on selects), mobile menu (`aria-expanded` / `aria-controls`), chapter controls, prayer insights `role="status"` (see changelog / styleguide).
-- **Coverage:** **`client/src/app-a11y.test.tsx`** (Support + Search after guest). Reader/tutorial not in axe smoke yet — extend as needed (**F7** closed baseline).
+- **Coverage:** **`client/src/app-a11y.test.tsx`** — Support, Search, Reader (John 3 / KJV), and Tutorial after guest (**F7**).
 
 ### i18n (debt only)
 
@@ -274,8 +274,8 @@ All other routes rely on **controller-level** checks (see below).
 ### EC2 / `pub` deploy ([`.github/workflows/main.yml`](../../.github/workflows/main.yml))
 
 - **Trigger:** push to **`pub`** or **workflow_dispatch**.
-- **Steps:** checkout → **`pnpm install --frozen-lockfile`** → **`pnpm run build`** → rsync → SSH **`db:migrate`**, **`db:seed`**, **pm2** start.
-- **Gap:** workflow does **not** run **`lint`**, **`tsc`**, or **`test`** — it assumes artifacts built from a tree that was already validated (e.g. merged via PR CI). Runbook: **`docs/development-workflow.md`** → _GitHub: EC2 / `pub` deploy workflow_ (**F9** closed in docs; optional workflow hardening remains an implementation follow-up).
+- **Steps:** checkout → install → **lint → tsc → test → build** → rsync → SSH **`db:migrate`**, **`db:seed`**, **pm2** start.
+- **Quality gates:** same as PR CI before rsync. Runbook: **`docs/development-workflow.md`** → _GitHub: EC2 / `pub` deploy workflow_ (**F9**).
 
 ### Render / Vercel / Neon (docs)
 
@@ -297,8 +297,8 @@ All other routes rely on **controller-level** checks (see below).
 | F4  | P3  | Performance | `readEmotionScripturesBySlug` uses **N parallel verse resolutions** (potential N DB round-trips per emotion). OK for small editorial N; batch fetch if Support latency grows.                         | Closed — **batched primary-translation** query in **`emotion-service`**; per-row fallback unchanged.                                                                            |
 | F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                                   | Closed — **grouped `max`/`min` chapter by book** + bible order walk in **`reader-service`**.                                                                                    |
 | F6  | P4  | Bundle      | Tutorial route is lazy, but **`TutorialPage` imports all MDX sections statically** — first visit loads full tutorial JS. Consider per-section dynamic import if the guide grows large.                | Closed — **`React.lazy`** per MDX section + **`Suspense`** on **`TutorialPage`** (separate chunks in build).                                                                    |
-| F7  | P4  | A11y / test | No **axe** or Playwright a11y suite in this app repo; reliance on patterns, markuplint, and RTL. Optional: add `@axe-core/playwright` or vitest-axe smoke for Support + Reader shell.                 | Closed — **`jest-axe`** smoke (**`client/src/app-a11y.test.tsx`**) for Support home + Search (serious/critical only; contrast rules limited in jsdom per jest-axe docs).        |
+| F7  | P4  | A11y / test | No **axe** or Playwright a11y suite in this app repo; reliance on patterns, markuplint, and RTL. Optional: add `@axe-core/playwright` or vitest-axe smoke for Support + Reader shell.                 | Closed — **`jest-axe`** in **`app-a11y.test.tsx`**: Support, Search, Reader, Tutorial (serious/critical; contrast limited in jsdom per jest-axe).                               |
 | F8  | P3  | CI          | **`ci.yml`** runs on **`pull_request`** only — not on **`push`** to **`main`**. If direct pushes are allowed, enforce **branch protection** + required status checks so every merge is PR-tested.     | Closed — runbook **`docs/development-workflow.md`** → _GitHub: branch protection (`main`)_.                                                                                     |
-| F9  | P4  | Release     | **`main.yml`** ( **`pub`** deploy) runs **build** only on the runner — not **lint/tsc/test**. Safe if **`pub`** only receives merges that already passed PR CI; risky for ad-hoc pushes to **`pub`**. | Closed — runbook **`docs/development-workflow.md`** → _GitHub: EC2 / `pub` deploy workflow_; optional: add quality steps to `main.yml`.                                         |
+| F9  | P4  | Release     | **`main.yml`** ( **`pub`** deploy) runs **build** only on the runner — not **lint/tsc/test**. Safe if **`pub`** only receives merges that already passed PR CI; risky for ad-hoc pushes to **`pub`**. | Closed — **`main.yml`** runs **lint / tsc / test / build** before rsync; runbook **`docs/development-workflow.md`**.                                                            |
 
 _Add rows as review proceeds._

@@ -179,11 +179,9 @@ Adjust names if workflows are renamed; confirm exact check names under the **Act
 
 **Workflow:** [`.github/workflows/main.yml`](../../.github/workflows/main.yml) — trigger: push to **`pub`** or manual dispatch.
 
-**What it runs on GitHub:** `pnpm install --frozen-lockfile` and **`pnpm run build`** only. It does **not** run **`lint`**, **`tsc`**, or **`test`** on the runner.
+**What it runs on GitHub:** `pnpm install --frozen-lockfile`, **`pnpm run lint`**, **`pnpm run tsc`**, **`pnpm run test`**, then **`pnpm run build`** — same quality sequence as PR CI before rsync to EC2.
 
-**Safe usage:** Treat **`pub`** as a **release branch** fed only from **`main`** after PRs have passed CI (for example `pnpm run deploy` pushes `main` → `pub`). Avoid **`git push` to `pub`** from unreviewed local commits.
-
-**If you need deploy-time quality gates:** extend `main.yml` (or add a required **merge queue** / separate workflow) to run the same commands as local/PR CI — that is an implementation change, not required for the documented happy path above.
+**Safe usage:** Treat **`pub`** as a **release branch** fed from **`main`** after PRs are green (for example `pnpm run deploy` pushes `main` → `pub`). Avoid **`git push` to `pub`** from unreviewed local commits so deploy failures stay rare.
 
 Hosted DB safety:
 

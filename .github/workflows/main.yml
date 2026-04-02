@@ -28,10 +28,20 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Build project
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm run build
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run tsc
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build client
+        run: pnpm run build
 
       - name: Copy project to EC2
         uses: burnett01/rsync-deployments@7.0.1
