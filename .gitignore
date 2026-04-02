@@ -11,3 +11,7 @@ client/.env.*.local
 coverage
 client/coverage
 server/coverage
+
+# Nested / local clones — not part of this application (keep untracked)
+workout-tracker/
+workout-tracker-mini/
