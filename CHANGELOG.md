@@ -16,6 +16,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Plans: **`docs/plans/full-app-review-2026.md`** — review progress tracker (Slice 1: SPA routes, API/client parity, journey matrix, initial finding on admin scripture-sources); **`docs/plans/backend-db-review-inventory.md`** updated with prayer API rows, admin role patch, and SPA client list.
 - Plans: **Slice 2** (security / authz / IDOR) recorded in **`docs/plans/full-app-review-2026.md`** — session vs router middleware, API access classes, saved/prayer/reader ownership notes, findings **F2** (dual admin auth: Bearer vs session admin) and **F3** (device id threat model for guest saves).
 - Plans: **Slice 3** (backend queries / transactions / indexes) in **`docs/plans/full-app-review-2026.md`** — transaction inventory (saved scriptures, prayer, admin role), alignment with **`docs/styleguide/database-constraints.md`**, reader vs emotion query notes; findings **F4** (emotion list N parallel verse fetches), **F5** (reader cross-book scan, P4).
+- Plans: **Slice 4** (frontend abstractions / perf) in **`docs/plans/full-app-review-2026.md`** — lazy routes vs eager shell, centralized `api-client`, reader URL sync + Search sessionStorage, Reader abort/cancel patterns vs ad hoc effects; finding **F6** (tutorial static MDX imports, P4).
 
 ### Changed
 

@@ -142,7 +142,35 @@ All other routes rely on **controller-level** checks (see below).
 
 ---
 
-## Slice 4 — Frontend abstractions / perf (pending)
+## Slice 4 — Frontend abstractions / perf (complete)
+
+**Completed:** audited route code-splitting, API client layering, URL/session patterns, and data-loading / cancellation habits (no behavior changes in this slice).
+
+### Routing and bundle
+
+- **`App.tsx`** lazy-loads authenticated feature pages (`React.lazy` + `Suspense`) — Search, Reader, Saved, Prayer, Admin, Tutorial, About, etc.
+- **`LandingPage`** and **`ProfilePage`** stay **eager** in the shell (small, always-needed for auth entry and profile).
+- **`TutorialPage`** is a lazy **route**, but it **statically imports every MDX section** — the first open of `/tutorial` pulls one chunk containing all sections. Acceptable today; see **F6** if tutorial grows further.
+
+### API and network
+
+- Central **`fetchJson` / `fetchNoContent`** ([`client/src/lib/api-client.ts`](../../client/src/lib/api-client.ts)): `credentials: 'include'`, **`x-device-id`**, JSON envelope parsing, shared error text via [`api-error`](../../client/src/lib/api-error.ts).
+- Feature modules ([`emotion-api`](../../client/src/features/emotions/emotion-api.ts), [`scripture-search-api`](../../client/src/features/search/scripture-search-api.ts), prayer/admin/auth APIs) are thin typed wrappers — **no duplicate fetch stacks**.
+
+### State: URL vs local vs session
+
+- Reader: [`useReaderChapterRouteState`](../../client/src/features/reader/useReaderChapterRouteState.ts) — URL is source of truth for deep links / back-forward; functional updates avoid sync loops (recent hardening).
+- Search: [`route-session-state.ts`](../../client/src/lib/route-session-state.ts) + Zod schema for **sessionStorage** restore of mode/fields.
+
+### Data loading and races
+
+- No repo-wide **`useAbortableAsyncEffect`** helper (proposal text is aspirational). Pages use ad hoc **`useEffect` + async** patterns.
+- **Reader** ([`BibleReaderPage`](../../client/src/pages/BibleReaderPage.tsx)): chapter `fetch` uses an **`isCancelled`** flag on unmount/param change; **saved-chapter** metadata uses **`AbortController`** + `signal` passed into `readSavedScripturesForChapter`. Good reference if extending cancellation elsewhere.
+- Most other list/detail pages rely on **replace-on-complete** updates; low risk for typical navigation speed; optional future pass to align on `AbortController` where double-fetches cause visible flicker.
+
+### Rendering / virtualization
+
+- No list virtualization in tree; saved/prayer/admin lists are **bounded** by user data size. **No `useMemo` / `memo` audit** in this slice — defer until profiling.
 
 ---
 
@@ -158,7 +186,7 @@ All other routes rely on **controller-level** checks (see below).
 
 ---
 
-## Findings log (P0–P3)
+## Findings log (P0–P4)
 
 | ID  | Sev | Area        | Finding                                                                                                                                                                                | Status |
 | --- | --- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
@@ -167,5 +195,6 @@ All other routes rely on **controller-level** checks (see below).
 | F3  | P3  | Saved / UX  | Device-scoped saves rely on **secret `x-device-id`**; document threat model (lost device header ≈ access to guest saves).                                                              | Open   |
 | F4  | P3  | Performance | `readEmotionScripturesBySlug` uses **N parallel verse resolutions** (potential N DB round-trips per emotion). OK for small editorial N; batch fetch if Support latency grows.          | Open   |
 | F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                    | Open   |
+| F6  | P4  | Bundle      | Tutorial route is lazy, but **`TutorialPage` imports all MDX sections statically** — first visit loads full tutorial JS. Consider per-section dynamic import if the guide grows large. | Open   |
 
 _Add rows as review proceeds._
