@@ -69,9 +69,46 @@ Cross-cutting: slow/offline network, concurrent tabs, large JSON payloads.
 
 ---
 
-## Slice 2 — Security / authz / IDOR (pending)
+## Slice 2 — Security / authz / IDOR (complete)
 
-_Placeholder: route-by-route auth matrix, cookie/OIDC notes, XSS/telemetry inventory per proposal §8._
+**Completed:** documented global session model, per-route access class, IDOR-relevant services, and follow-up findings.
+
+### Global request model
+
+- **`attachUserSession`** ([`server/lib/user-session-middleware.ts`](../../server/lib/user-session-middleware.ts)): runs on all `/api/*` traffic; sets `req.authUserId` from **session cookie** when present (no-op for anonymous).
+- **Rate limits** ([`server/app.ts`](../../server/app.ts)): read/write limiters; key prefers `user:`, then `x-session-id`, then `x-device-id`, then IP.
+- **Router-level middleware** ([`server/routes/api.ts`](../../server/routes/api.ts)):
+  - `authMiddleware` (Bearer JWT, **401** if missing): only **`GET /api/admin/scripture-sources`**.
+  - `requireAdminSession` (session user + DB role `admin`): **`GET/PATCH` admin users**, auth-events, role patch.
+
+All other routes rely on **controller-level** checks (see below).
+
+### API access class (summary)
+
+| Class                     | Routes (representative)                                                                                                  | Enforcement                                                                                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Public read**           | `GET /emotions*`, `GET /scripture-context`, `GET /scriptures/search`, `GET /reader/chapter`                              | No session required; scripture content only.                                                                                                                                                                          |
+| **Auth redirects**        | `GET /auth/login`, `GET /auth/callback`, `GET\|POST /auth/logout`                                                        | OAuth/session flow; see `auth-controller`.                                                                                                                                                                            |
+| **Session user**          | `GET\|PATCH /auth/me`, **`GET\|PATCH\|DELETE /reader/state`**, **all `/prayer/*`**, **admin** (except scripture-sources) | `requireSessionUserId` or `requireAdminSession`.                                                                                                                                                                      |
+| **Session and/or device** | **Saved scriptures** (`/api/saved-scriptures*`)                                                                          | `getSessionUserId` + `readOptionalDeviceId`; **400** if neither; migrations merge device → user when both present ([`saved-scripture-controller`](../../server/controllers/scripture/saved-scripture-controller.ts)). |
+| **Bearer admin (JWT)**    | `GET /api/admin/scripture-sources`                                                                                       | `authMiddleware`; distinct from session admin.                                                                                                                                                                        |
+
+### IDOR and ownership
+
+| Domain               | Assessment                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Saved scriptures** | Deletes/updates use `ownerScopeWhere(scope)` with `savedId` ([`saved-scripture-service`](../../server/services/saved-scripture-service.ts)) → **404** if id not in scope. Cross-user IDOR blocked for same scope type. **Guest/device:** anyone who knows a `x-device-id` can access that device’s rows — intentional; treat device id as a **secret** (document in client/threat model). |
+| **Reader state**     | Keyed by **session user id** only; no device fallback ([`reader-state-controller`](../../server/controllers/scripture/reader-state-controller.ts)).                                                                                                                                                                                                                                       |
+| **Prayer**           | `requireOwnedPartner` / `requireOwnedList` on nested ids ([`prayer-service`](../../server/services/prayer-service.ts)); controllers always pass `requireSessionUserId`.                                                                                                                                                                                                                   |
+
+### XSS / HTML injection (spot check)
+
+- No `dangerouslySetInnerHTML` in client feature code from path grep; tutorial uses MDX from repo-controlled sources.
+- Saved **notes** are user text — confirm rendering path stays escaped (React default text nodes); flag if any rich-text path is added later.
+
+### Cookies / OIDC (pointer)
+
+- Session and OIDC behavior: [`docs/deployment/auth0-setup.md`](../deployment/auth0-setup.md), [`docs/configuration.md`](../configuration.md). No code change in this slice.
 
 ---
 
@@ -97,8 +134,10 @@ _Placeholder: route-by-route auth matrix, cookie/OIDC notes, XSS/telemetry inven
 
 ## Findings log (P0–P3)
 
-| ID  | Sev | Area        | Finding                                              | Status |
-| --- | --- | ----------- | ---------------------------------------------------- | ------ |
-| F1  | P3  | Admin / API | `GET /api/admin/scripture-sources` not used from SPA | Open   |
+| ID  | Sev | Area        | Finding                                                                                                                                                                                | Status |
+| --- | --- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| F1  | P3  | Admin / API | `GET /api/admin/scripture-sources` not used from SPA                                                                                                                                   | Open   |
+| F2  | P3  | Admin / API | Scripture diagnostics uses **Bearer JWT** (`authMiddleware`); other admin routes use **session + admin role**. Document for operators; align future admin UI or unify auth if desired. | Open   |
+| F3  | P3  | Saved / UX  | Device-scoped saves rely on **secret `x-device-id`**; document threat model (lost device header ≈ access to guest saves).                                                              | Open   |
 
 _Add rows as review proceeds._
