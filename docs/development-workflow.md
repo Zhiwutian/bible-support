@@ -160,6 +160,31 @@ pnpm run deploy
 
 This pushes `main` to `pub`, triggering `/.github/workflows/main.yml`.
 
+### GitHub: branch protection (`main`)
+
+**Why:** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on **`pull_request`** and **`workflow_dispatch`** only. A **direct push to `main`** does **not** run that workflow, so bad commits could land untested.
+
+**Recommended (GitHub → Settings → Branches → Branch protection rules → `main`):**
+
+- Require a **pull request** before merging (no direct pushes, or restrict who can bypass).
+- Require **status checks** to pass before merge. Add the CI jobs from `ci.yml`, for example:
+  - **`docs-policy`**
+  - **`db-migration-policy`**
+  - **`quality`**
+- Optional: require branches to be **up to date** before merge.
+
+Adjust names if workflows are renamed; confirm exact check names under the **Actions** tab after a PR run.
+
+### GitHub: EC2 / `pub` deploy workflow
+
+**Workflow:** [`.github/workflows/main.yml`](../../.github/workflows/main.yml) — trigger: push to **`pub`** or manual dispatch.
+
+**What it runs on GitHub:** `pnpm install --frozen-lockfile` and **`pnpm run build`** only. It does **not** run **`lint`**, **`tsc`**, or **`test`** on the runner.
+
+**Safe usage:** Treat **`pub`** as a **release branch** fed only from **`main`** after PRs have passed CI (for example `pnpm run deploy` pushes `main` → `pub`). Avoid **`git push` to `pub`** from unreviewed local commits.
+
+**If you need deploy-time quality gates:** extend `main.yml` (or add a required **merge queue** / separate workflow) to run the same commands as local/PR CI — that is an implementation change, not required for the documented happy path above.
+
 Hosted DB safety:
 
 - Use `pnpm run db:migrate` and `pnpm run db:seed` in hosted environments for schema + starter app data.

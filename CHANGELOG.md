@@ -8,12 +8,13 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Documentation
 
+- **`docs/development-workflow.md`** — _GitHub: branch protection (`main`)_ and _GitHub: EC2 / `pub` deploy workflow_ (PR-only CI, required job names, `pub` build-only deploy train); diagnostics `curl` still references deployment guide for Bearer token.
+- **`docs/README.md`** — index note for branch protection + `pub` deploy.
+- Plans: **`docs/plans/full-app-review-2026.md`** — findings **F8**, **F9** closed with pointers; **F1–F3** previously closed in docs.
 - Deployment / security docs: **`docs/deployment/README.md`** — _Admin API authentication_ (scripture diagnostics **Bearer `TOKEN_SECRET` JWT**, ops-only / not SPA; session **admin** for users/events/role); example token + `curl`.
 - Saved scriptures: **`docs/verse-search-save.md`** — guest **`x-device-id`** threat model; endpoint note points to deployment auth section.
 - **`docs/configuration.md`** — safety note linking guest saves + device id to verse-search-save.
 - **`docs/styleguide/backend-observability-security.md`** — admin route auth split (scripture-sources vs `requireAdminSession`).
-- **`docs/development-workflow.md`** — diagnostics `curl` references minting token in deployment guide.
-- Plans: **`docs/plans/full-app-review-2026.md`** — findings **F1–F3** closed with doc pointers.
 
 ### Fixed
 
@@ -28,7 +29,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Plans: **Slice 4** (frontend abstractions / perf) in **`docs/plans/full-app-review-2026.md`** — lazy routes vs eager shell, centralized `api-client`, reader URL sync + Search sessionStorage, Reader abort/cancel patterns vs ad hoc effects; finding **F6** (tutorial static MDX imports, P4).
 - Plans: **Slice 5** (a11y / telemetry / deps) in **`docs/plans/full-app-review-2026.md`** — modal/focus/reduced-motion patterns, full `trackEvent` inventory vs styleguide + reader comfort tests, `pnpm audit` workflow + `onlyBuiltDependencies`; finding **F7** (no axe/Playwright a11y automation, P4).
 - Plans: **Slice 6** (code + docs cleanup) in **`docs/plans/full-app-review-2026.md`** — TODO/FIXME absent in app sources, eslint-disable triage, large-page pointers; **README** + **`docs/configuration.md`** aligned with actual **`install:env`** / **`postinstall`** (removed nonexistent **`setup:env`** / **`validate:env`**); **`docs/architecture.md`** route summary + **`docs/README.md`** testing section.
-- Plans: **Slice 7** (CI / release hygiene) in **`docs/plans/full-app-review-2026.md`** — **`ci.yml`** jobs vs local parity, advisory audit workflow, **`main.yml`** EC2 **`pub`** path vs quality gates; findings **F8** (PR-only CI, branch protection), **F9** (deploy workflow skips lint/test).
+- Plans: **Slice 7** (CI / release hygiene) in **`docs/plans/full-app-review-2026.md`** — **`ci.yml`** jobs vs local parity, advisory audit workflow, **`main.yml`** EC2 **`pub`** path vs quality gates; findings **F8** / **F9** closed in **`docs/development-workflow.md`** runbook sections.
 
 ### Changed
 

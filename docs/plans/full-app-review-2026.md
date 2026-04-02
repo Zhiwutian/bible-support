@@ -264,7 +264,7 @@ All other routes rely on **controller-level** checks (see below).
 | **`db-migration-policy`** | On **pull_request** only: **`server/db/schema.ts`** or **`database/schema.sql`** change → requires **`database/migrations/**`\*\* updates.          |
 | **`quality`**             | After both policies pass: **`pnpm install --frozen-lockfile`**, **`lint`**, **`tsc`**, **`test`**, **`build`**.                                     |
 
-- **Triggers:** `pull_request`, `workflow_dispatch` — there is **no `push` trigger** on `main`. Merged PRs are covered because checks ran on the PR; a **direct push to `main`** (if allowed) would **not** re-run this workflow. Prefer **branch protection** requiring PR + green checks (see **F8**).
+- **Triggers:** `pull_request`, `workflow_dispatch` — there is **no `push` trigger** on `main`. Merged PRs are covered because checks ran on the PR; a **direct push to `main`** (if allowed) would **not** re-run this workflow. **Branch protection** steps: **`docs/development-workflow.md`** → _GitHub: branch protection (`main`)_ (**F8** closed in docs).
 - **Parity:** Matches [development-workflow.md § CI parity](../development-workflow.md#ci-parity-local-vs-github).
 
 ### Advisory audit ([`.github/workflows/audit-scheduled.yml`](../../.github/workflows/audit-scheduled.yml))
@@ -275,7 +275,7 @@ All other routes rely on **controller-level** checks (see below).
 
 - **Trigger:** push to **`pub`** or **workflow_dispatch**.
 - **Steps:** checkout → **`pnpm install --frozen-lockfile`** → **`pnpm run build`** → rsync → SSH **`db:migrate`**, **`db:seed`**, **pm2** start.
-- **Gap:** workflow does **not** run **`lint`**, **`tsc`**, or **`test`** — it assumes artifacts built from a tree that was already validated (e.g. merged via PR CI). Avoid pushing to **`pub`** from unreviewed commits (see **F9**).
+- **Gap:** workflow does **not** run **`lint`**, **`tsc`**, or **`test`** — it assumes artifacts built from a tree that was already validated (e.g. merged via PR CI). Runbook: **`docs/development-workflow.md`** → _GitHub: EC2 / `pub` deploy workflow_ (**F9** closed in docs; optional workflow hardening remains an implementation follow-up).
 
 ### Render / Vercel / Neon (docs)
 
@@ -298,7 +298,7 @@ All other routes rely on **controller-level** checks (see below).
 | F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                                   | Open                                                                                                                                                                            |
 | F6  | P4  | Bundle      | Tutorial route is lazy, but **`TutorialPage` imports all MDX sections statically** — first visit loads full tutorial JS. Consider per-section dynamic import if the guide grows large.                | Open                                                                                                                                                                            |
 | F7  | P4  | A11y / test | No **axe** or Playwright a11y suite in this app repo; reliance on patterns, markuplint, and RTL. Optional: add `@axe-core/playwright` or vitest-axe smoke for Support + Reader shell.                 | Open                                                                                                                                                                            |
-| F8  | P3  | CI          | **`ci.yml`** runs on **`pull_request`** only — not on **`push`** to **`main`**. If direct pushes are allowed, enforce **branch protection** + required status checks so every merge is PR-tested.     | Open                                                                                                                                                                            |
-| F9  | P4  | Release     | **`main.yml`** ( **`pub`** deploy) runs **build** only on the runner — not **lint/tsc/test**. Safe if **`pub`** only receives merges that already passed PR CI; risky for ad-hoc pushes to **`pub`**. | Open                                                                                                                                                                            |
+| F8  | P3  | CI          | **`ci.yml`** runs on **`pull_request`** only — not on **`push`** to **`main`**. If direct pushes are allowed, enforce **branch protection** + required status checks so every merge is PR-tested.     | Closed — runbook **`docs/development-workflow.md`** → _GitHub: branch protection (`main`)_.                                                                                     |
+| F9  | P4  | Release     | **`main.yml`** ( **`pub`** deploy) runs **build** only on the runner — not **lint/tsc/test**. Safe if **`pub`** only receives merges that already passed PR CI; risky for ad-hoc pushes to **`pub`**. | Closed — runbook **`docs/development-workflow.md`** → _GitHub: EC2 / `pub` deploy workflow_; optional: add quality steps to `main.yml`.                                         |
 
 _Add rows as review proceeds._

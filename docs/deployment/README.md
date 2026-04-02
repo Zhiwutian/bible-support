@@ -266,5 +266,6 @@ where u."userId" = candidate."userId";
 
 ## Related Reference Docs
 
+- GitHub Actions: PR CI vs EC2 **`pub`** deploy, branch protection — `docs/development-workflow.md` (_GitHub: branch protection_, _EC2 / `pub` deploy workflow_).
 - Legacy API+DB deployment detail: `docs/deployment-render-neon.md`
 - Split-hosting detail: `docs/deployment-vercel-render.md`

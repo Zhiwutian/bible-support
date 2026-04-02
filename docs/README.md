@@ -14,6 +14,7 @@ This folder contains maintainable project documentation for application structur
 - `development-workflow.md`
   - Local setup and daily development loop
   - CI and deployment lifecycle
+  - GitHub **branch protection** for `main` and **EC2 `pub`** deploy expectations (`ci.yml` vs `main.yml`)
 - `configuration.md`
   - Split frontend/backend env-file model
   - Local file setup and Render/Vercel env mapping
