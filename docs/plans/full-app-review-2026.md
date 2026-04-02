@@ -228,7 +228,25 @@ All other routes rely on **controller-level** checks (see below).
 
 ---
 
-## Slice 6 — Code + docs cleanup (pending)
+## Slice 6 — Code + docs cleanup (complete)
+
+**Completed:** triage-style pass over client/server/shared hygiene, doc index vs scripts, and small corrections where docs contradicted `package.json` (no broad refactors).
+
+### Code hygiene (client / server / shared)
+
+- **`TODO` / `FIXME` / `HACK`** in `client/`, `server/`, `shared/` application sources: **none** found (grep).
+- **ESLint suppressions (main app):** [`server/lib/error-middleware.ts`](../../server/lib/error-middleware.ts) (`@typescript-eslint/no-unused-vars`), [`server/lib/auth.d.ts`](../../server/lib/auth.d.ts) (Express `Request` merge) — intentional, low surface.
+- **Large surface files (extraction candidates, not blockers):** `App.tsx` (~1k lines), [`BibleReaderPage`](../../client/src/pages/BibleReaderPage.tsx), [`SearchPage`](../../client/src/pages/SearchPage.tsx), [`EmotionScripturePage`](../../client/src/pages/EmotionScripturePage.tsx) — align with [frontend-patterns.md](../styleguide/frontend-patterns.md) “large pages” guidance when a feature touch needs it.
+
+### Docs alignment (this slice)
+
+- **README + configuration:** Root docs referenced **`pnpm run setup:env`**, **`setup:env:force`**, and **`validate:env`** — **none exist** in root `package.json`. Updated [**`README.md`**](../../README.md) and [**`docs/configuration.md`**](../configuration.md) to describe **`install:env`** (including **`postinstall`**), manual **`client/.env.local`** from **`client/.env.example`**, and removed the nonexistent validation script.
+- **Architecture:** [**`docs/architecture.md`**](../architecture.md) route bullet updated so it is not missing prayer / shared verse / App parity (pointer to **`App.tsx`**).
+- **Testing entry:** [**`docs/README.md`**](../README.md) adds a **Testing** section linking **`development-workflow.md`** and package-level test commands (proposal asked for a single hop; index now surfaces it explicitly).
+
+### Proposal cross-check
+
+- **`docs/data-flow.md`:** not present; **request flow** lives under **`docs/architecture.md`** — no orphan index entry in **`docs/README.md`**.
 
 ---
 
