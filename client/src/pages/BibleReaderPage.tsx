@@ -635,6 +635,7 @@ export function BibleReaderPage() {
       <Card className="-mx-6 mb-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
         <ReaderChapterControls
           book={book}
+          chapter={chapter}
           chapterInputValue={chapterInputValue}
           maxChapterForBook={maxChapterForBook}
           translation={translation}

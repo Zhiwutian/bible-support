@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { SetURLSearchParams } from 'react-router-dom';
 import { BIBLE_BOOKS } from '@shared/bible-books';
 import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
@@ -31,6 +31,16 @@ export function useReaderChapterRouteState({
     () => getInitialReaderChapterState(searchParams).translation,
   );
 
+  const searchParamsRef = useRef(searchParams);
+  useEffect(() => {
+    searchParamsRef.current = searchParams;
+  }, [searchParams]);
+
+  // Only react to URL changes (back/forward, deep links). Do NOT depend on
+  // book/chapter/translation — on local edits state updates before the URL
+  // effect runs; re-running this with stale searchParams would revert the user.
+  // Use functional updates so we never set state when already in sync (avoids
+  // redundant renders / tight loops with the URL-write effect below).
   useEffect(() => {
     const urlBook = searchParams.get('book');
     const urlChapter = Number(searchParams.get('chapter') ?? '');
@@ -49,10 +59,10 @@ export function useReaderChapterRouteState({
     }
     const t = urlTrans as ScriptureTranslationCode;
     const clampedChapter = Math.min(urlChapter, getMaxChaptersForBook(urlBook));
-    if (urlBook !== book) setBook(urlBook);
-    if (clampedChapter !== chapter) setChapter(clampedChapter);
-    if (t !== translation) setTranslation(t);
-  }, [searchParams, book, chapter, translation]);
+    setBook((prev) => (prev === urlBook ? prev : urlBook));
+    setChapter((prev) => (prev === clampedChapter ? prev : clampedChapter));
+    setTranslation((prev) => (prev === t ? prev : t));
+  }, [searchParams]);
 
   const maxChapterForBook = useMemo(() => getMaxChaptersForBook(book), [book]);
 
@@ -65,12 +75,23 @@ export function useReaderChapterRouteState({
   }, [chapter]);
 
   useEffect(() => {
-    const next = new URLSearchParams(searchParams);
+    const current = searchParamsRef.current;
+    const curBook = current.get('book');
+    const curChapter = current.get('chapter');
+    const curTrans = current.get('translation')?.toUpperCase() ?? '';
+    if (
+      curBook === book &&
+      curChapter === String(chapter) &&
+      curTrans === translation
+    ) {
+      return;
+    }
+    const next = new URLSearchParams(current);
     next.set('book', book);
     next.set('chapter', String(chapter));
     next.set('translation', translation);
     setSearchParams(next, { replace: true });
-  }, [book, chapter, searchParams, setSearchParams, translation]);
+  }, [book, chapter, setSearchParams, translation]);
 
   function setBookAndResetChapter(nextBook: string) {
     setBook(nextBook);
