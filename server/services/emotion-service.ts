@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, lte, or, sql } from 'drizzle-orm';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -204,6 +204,63 @@ async function resolveScriptureVerseText(input: {
   };
 }
 
+type VerseRow = {
+  book: string;
+  chapter: number;
+  verse: number;
+  verseText: string;
+};
+
+/** One DB round-trip for primary-translation verse rows covering all parsed ranges. */
+async function fetchPrimaryTranslationVersesForRanges(
+  db: ReturnType<typeof requireDb>,
+  translation: SupportedTranslation,
+  ranges: ParsedScriptureReference[],
+): Promise<VerseRow[]> {
+  if (ranges.length === 0) return [];
+  const rangeConditions = ranges.map((parsed) =>
+    and(
+      eq(scriptureVerses.book, parsed.book),
+      eq(scriptureVerses.chapter, parsed.chapter),
+      gte(scriptureVerses.verse, parsed.verseStart),
+      lte(scriptureVerses.verse, parsed.verseEnd),
+    ),
+  );
+  const condition =
+    rangeConditions.length === 1 ? rangeConditions[0]! : or(...rangeConditions);
+  return db
+    .select({
+      book: scriptureVerses.book,
+      chapter: scriptureVerses.chapter,
+      verse: scriptureVerses.verse,
+      verseText: scriptureVerses.verseText,
+    })
+    .from(scriptureVerses)
+    .where(and(eq(scriptureVerses.translation, translation), condition))
+    .orderBy(
+      asc(scriptureVerses.book),
+      asc(scriptureVerses.chapter),
+      asc(scriptureVerses.verse),
+    );
+}
+
+function tryAssembleVerseTextFromRows(
+  parsed: ParsedScriptureReference,
+  rows: VerseRow[],
+): string | null {
+  const slice = rows.filter(
+    (r) =>
+      r.book === parsed.book &&
+      r.chapter === parsed.chapter &&
+      r.verse >= parsed.verseStart &&
+      r.verse <= parsed.verseEnd,
+  );
+  const expected = parsed.verseEnd - parsed.verseStart + 1;
+  if (slice.length !== expected) return null;
+  slice.sort((a, b) => a.verse - b.verse);
+  return slice.map((r) => r.verseText.trim()).join(' ');
+}
+
 /** Return all emotion tiles ordered alphabetically by name. */
 export async function readEmotions(): Promise<EmotionRecord[]> {
   const db = requireDb();
@@ -232,8 +289,45 @@ export async function readEmotionScripturesBySlug(
     .where(eq(scriptures.emotionId, emotion.emotionId))
     .orderBy(asc(scriptures.displayOrder));
 
+  const parsedByIndex = scriptureRows.map((row) =>
+    parseScriptureReference(row.reference),
+  );
+  const rangesForBatch = parsedByIndex.filter(
+    (p): p is ParsedScriptureReference => p !== null,
+  );
+
+  let batchRows: VerseRow[] = [];
+  try {
+    batchRows = await fetchPrimaryTranslationVersesForRanges(
+      db,
+      selectedTranslation,
+      rangesForBatch,
+    );
+  } catch (err) {
+    logger.warn(
+      { err, slug },
+      'Emotion scripture batch verse fetch failed; falling back per row',
+    );
+  }
+
   const resolvedScriptures = await Promise.all(
-    scriptureRows.map(async (row) => {
+    scriptureRows.map(async (row, index) => {
+      const parsed = parsedByIndex[index];
+      if (parsed && batchRows.length > 0) {
+        const assembled = tryAssembleVerseTextFromRows(parsed, batchRows);
+        if (assembled) {
+          return {
+            ...row,
+            translation: selectedTranslation,
+            verseText: assembled || row.verseText,
+            book: parsed.book,
+            chapter: parsed.chapter,
+            verseStart: parsed.verseStart,
+            verseEnd: parsed.verseEnd,
+            isTranslationFallback: false,
+          };
+        }
+      }
       const resolved = await resolveScriptureVerseText({
         translation: selectedTranslation,
         reference: row.reference,

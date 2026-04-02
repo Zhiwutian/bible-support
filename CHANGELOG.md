@@ -6,11 +6,21 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ## [Unreleased]
 
+### Added
+
+- Client: **`jest-axe`** + **`@types/jest-axe`**; **`src/app-a11y.test.tsx`** — axe smoke for Support home and Search after guest entry (asserts no **serious** or **critical** violations; color-contrast rules are limited under jsdom per jest-axe).
+
+### Changed
+
+- Server: **`readEmotionScripturesBySlug`** batches primary-translation verse rows in **one** `OR` query, then falls back per row for incomplete hits or translation fallback (`emotion-service`).
+- Server: Reader cross-book **prev/next** uses **grouped** `min`/`max` chapter queries over candidate books instead of sequential per-book aggregates (`reader-service`).
+- Client: **`TutorialPage`** loads each tutorial MDX section with **`React.lazy`** and **`Suspense`** so sections code-split in production.
+
 ### Documentation
 
 - **`docs/development-workflow.md`** — _GitHub: branch protection (`main`)_ and _GitHub: EC2 / `pub` deploy workflow_ (PR-only CI, required job names, `pub` build-only deploy train); diagnostics `curl` still references deployment guide for Bearer token.
-- **`docs/README.md`** — index note for branch protection + `pub` deploy.
-- Plans: **`docs/plans/full-app-review-2026.md`** — findings **F8**, **F9** closed with pointers; **F1–F3** previously closed in docs.
+- **`docs/README.md`** — index note for branch protection + `pub` deploy; testing entry mentions **`app-a11y.test.tsx`** (jest-axe).
+- Plans: **`docs/plans/full-app-review-2026.md`** — findings **F1–F9** addressed (**F4–F7** closed with code changes; slices 3–5 tables updated).
 - Deployment / security docs: **`docs/deployment/README.md`** — _Admin API authentication_ (scripture diagnostics **Bearer `TOKEN_SECRET` JWT**, ops-only / not SPA; session **admin** for users/events/role); example token + `curl`.
 - Saved scriptures: **`docs/verse-search-save.md`** — guest **`x-device-id`** threat model; endpoint note points to deployment auth section.
 - **`docs/configuration.md`** — safety note linking guest saves + device id to verse-search-save.

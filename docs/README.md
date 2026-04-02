@@ -99,7 +99,7 @@ This folder contains maintainable project documentation for application structur
 ## Testing
 
 - **Primary workflow:** [development-workflow.md](./development-workflow.md) — install, `pnpm run test`, optional `test:coverage`, CI parity table.
-- **Client:** Vitest + Testing Library in `client/` (`pnpm -C client test`).
+- **Client:** Vitest + Testing Library in `client/` (`pnpm -C client test`); optional **axe** smoke (`client/src/app-a11y.test.tsx`, serious/critical only via `jest-axe`).
 - **Server:** Vitest + Supertest in `server/` (`pnpm -C server test`); some suites set `AUTH_ENABLED=false` via package script.
 
 ## Test Changed Script Note

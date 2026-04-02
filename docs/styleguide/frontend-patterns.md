@@ -142,7 +142,7 @@ Current Reader decomposition references:
 - App shell decides entry state:
   - authenticated users: full route set
   - unauthenticated users: landing first, then guest mode or login
-- Include a user-facing walkthrough route (`/tutorial`) when route count grows, so usage guidance stays in-product.
+- Include a user-facing walkthrough route (`/tutorial`) when route count grows, so usage guidance stays in-product. Tutorial MDX sections use **`React.lazy`** + **`Suspense`** so each section can ship as its own chunk.
 - Guest mode is explicit UI state and should not be conflated with authenticated session state.
 - Preserve route intent through login via `next` path and restore after successful callback.
 - Keep user-facing terminology consistent in shell navigation and support route copy (`Support` / `Scriptural Support`).

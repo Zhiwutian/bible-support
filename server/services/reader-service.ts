@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, lt, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, lt, sql } from 'drizzle-orm';
 import { BIBLE_BOOKS } from '@shared/bible-books.js';
 import type { ReaderChapterResponse } from '@shared/scripture-search-contracts.js';
 import type { DbClient } from '@server/db/drizzle.js';
@@ -88,26 +88,34 @@ async function readReaderChapterFromDb(
     const currentBookIndex = BIBLE_BOOKS.findIndex(
       (bookName) => bookName === canonicalBook,
     );
-    for (let index = currentBookIndex - 1; index >= 0; index -= 1) {
-      const candidateBook = BIBLE_BOOKS[index];
-      const [candidateStats] = await db
+    const priorBooks = BIBLE_BOOKS.slice(0, Math.max(0, currentBookIndex));
+    if (priorBooks.length > 0) {
+      const priorStats = await db
         .select({
+          book: scriptureVerses.book,
           lastChapter: sql<number>`max(${scriptureVerses.chapter})`,
         })
         .from(scriptureVerses)
         .where(
           and(
             eq(scriptureVerses.translation, translation),
-            eq(scriptureVerses.book, candidateBook),
+            inArray(scriptureVerses.book, priorBooks),
           ),
-        );
-      const lastChapter = Number(candidateStats?.lastChapter ?? 0);
-      if (!lastChapter) continue;
-      crossBookPreviousChapter = {
-        book: candidateBook,
-        chapter: lastChapter,
-      };
-      break;
+        )
+        .groupBy(scriptureVerses.book);
+      const lastByBook = new Map(
+        priorStats.map((row) => [row.book, Number(row.lastChapter ?? 0)]),
+      );
+      for (let index = currentBookIndex - 1; index >= 0; index -= 1) {
+        const candidateBook = BIBLE_BOOKS[index];
+        const lastChapter = lastByBook.get(candidateBook) ?? 0;
+        if (!lastChapter) continue;
+        crossBookPreviousChapter = {
+          book: candidateBook,
+          chapter: lastChapter,
+        };
+        break;
+      }
     }
   }
 
@@ -135,30 +143,38 @@ async function readReaderChapterFromDb(
     const currentBookIndex = BIBLE_BOOKS.findIndex(
       (bookName) => bookName === canonicalBook,
     );
-    for (
-      let index = currentBookIndex + 1;
-      index < BIBLE_BOOKS.length;
-      index += 1
-    ) {
-      const candidateBook = BIBLE_BOOKS[index];
-      const [candidateStats] = await db
+    const laterBooks = BIBLE_BOOKS.slice(currentBookIndex + 1);
+    if (laterBooks.length > 0) {
+      const nextStats = await db
         .select({
+          book: scriptureVerses.book,
           firstChapter: sql<number>`min(${scriptureVerses.chapter})`,
         })
         .from(scriptureVerses)
         .where(
           and(
             eq(scriptureVerses.translation, translation),
-            eq(scriptureVerses.book, candidateBook),
+            inArray(scriptureVerses.book, laterBooks),
           ),
-        );
-      const firstChapter = Number(candidateStats?.firstChapter ?? 0);
-      if (!firstChapter) continue;
-      crossBookNextChapter = {
-        book: candidateBook,
-        chapter: firstChapter,
-      };
-      break;
+        )
+        .groupBy(scriptureVerses.book);
+      const firstByBook = new Map(
+        nextStats.map((row) => [row.book, Number(row.firstChapter ?? 0)]),
+      );
+      for (
+        let index = currentBookIndex + 1;
+        index < BIBLE_BOOKS.length;
+        index += 1
+      ) {
+        const candidateBook = BIBLE_BOOKS[index];
+        const firstChapter = firstByBook.get(candidateBook) ?? 0;
+        if (!firstChapter) continue;
+        crossBookNextChapter = {
+          book: candidateBook,
+          chapter: firstChapter,
+        };
+        break;
+      }
     }
   }
 
