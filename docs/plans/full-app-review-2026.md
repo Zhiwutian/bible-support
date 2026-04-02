@@ -112,7 +112,33 @@ All other routes rely on **controller-level** checks (see below).
 
 ---
 
-## Slice 3 — Backend queries / transactions (pending)
+## Slice 3 — Backend queries / transactions / indexes (complete)
+
+**Completed:** transaction inventory, alignment check with [docs/styleguide/database-constraints.md](../styleguide/database-constraints.md), and documented query-shape follow-ups (no schema changes in this slice).
+
+### Drizzle transactions in use
+
+| Location                                                                      | Purpose                                                                                                                 |
+| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [`saved-scripture-service`](../../server/services/saved-scripture-service.ts) | Batch create (single `saveGroupId` + rows); **device → user migration** (insert copies + delete device rows in one tx). |
+| [`prayer-service`](../../server/services/prayer-service.ts)                   | Session logging and related writes (multiple call sites).                                                               |
+| [`admin-service`](../../server/services/admin-service.ts)                     | Admin role change: **admin count / self-demotion safeguards** + `users` update in one transaction.                      |
+
+**Partial-failure semantics:** saved batch returns all-or-nothing inside the transaction; clients should treat **409** / validation errors as non-retry without user action (already noted in prior inventory).
+
+### Index / constraint alignment
+
+- Hot paths for **`scripture_verses`** (reader chapter, search FTS, reference) and **saved scripture chapter scope** indexes match the matrix in [database-constraints.md](../styleguide/database-constraints.md).
+- **Prayer** tables: reminder checks documented there; no new index gaps identified without `EXPLAIN` on production-sized data.
+
+### Query patterns (observations)
+
+| Area                                                                                         | Pattern                                                                                                                                             | Note                                                                                                                                                                                             |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Reader chapter** ([`reader-service`](../../server/services/reader-service.ts))             | Bounded set: aggregates for max chapter, verse list, prev/next in-book, optional **sequential** scans across `BIBLE_BOOKS` for cross-book prev/next | Indexed filters use `translation` + `book` + `chapter`; cross-book loops are worst-case O(books) small queries — acceptable at current scale; batch/cached stats would be a future optimization. |
+| **Support emotions** ([`emotion-service`](../../server/services/emotion-service.ts))         | `readEmotionScripturesBySlug`: **`Promise.all`** over scripture rows, each may hit DB in `resolveScriptureVerseText`                                | **N DB round-trips per emotion list** (N = number of scriptures). Bounded by editorial content size; consider batched verse fetch if latency becomes visible.                                    |
+| **Search** ([`scripture-search-service`](../../server/services/scripture-search-service.ts)) | Single ranked / filtered queries or local JSON path                                                                                                 | Aligns with GIN + btree notes in styleguide.                                                                                                                                                     |
+| **Device migration**                                                                         | Per-row insert in loop inside one transaction                                                                                                       | Typical row count small; bulk `insert … select` would be a micro-optimization if migration volume grew.                                                                                          |
 
 ---
 
@@ -139,5 +165,7 @@ All other routes rely on **controller-level** checks (see below).
 | F1  | P3  | Admin / API | `GET /api/admin/scripture-sources` not used from SPA                                                                                                                                   | Open   |
 | F2  | P3  | Admin / API | Scripture diagnostics uses **Bearer JWT** (`authMiddleware`); other admin routes use **session + admin role**. Document for operators; align future admin UI or unify auth if desired. | Open   |
 | F3  | P3  | Saved / UX  | Device-scoped saves rely on **secret `x-device-id`**; document threat model (lost device header ≈ access to guest saves).                                                              | Open   |
+| F4  | P3  | Performance | `readEmotionScripturesBySlug` uses **N parallel verse resolutions** (potential N DB round-trips per emotion). OK for small editorial N; batch fetch if Support latency grows.          | Open   |
+| F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                    | Open   |
 
 _Add rows as review proceeds._
