@@ -182,11 +182,11 @@ All other routes rely on **controller-level** checks (see below).
 
 ### Accessibility (a11y)
 
-- **No Playwright or `@axe-core/*` in this repository** (unlike some sibling templates under `workout-tracker/`). Regression safety leans on **manual / design review**, **ESLint + markuplint**, RTL tests, and **implementation patterns** in [docs/styleguide/frontend-patterns.md](../styleguide/frontend-patterns.md) (labels, modal shells, high-contrast, reduced motion).
+- **No Playwright E2E** in this repository (unlike some sibling templates under `workout-tracker/`). **jest-axe** RTL smoke tests cover Support home + Search (serious/critical); **color contrast** is still limited under jsdom (jest-axe docs). Regression safety also leans on **manual / design review**, **ESLint + markuplint**, and patterns in [docs/styleguide/frontend-patterns.md](../styleguide/frontend-patterns.md).
 - **Shared modal:** [`ModalShell`](../../client/src/components/ui/ModalShell.tsx) uses `role="dialog"`, `aria-modal="true"`, `aria-labelledby`; verse actions / note flows restore focus via refs in [`useReaderVerseActions`](../../client/src/features/reader/useReaderVerseActions.ts).
 - **Reader comfort:** `prefers-reduced-motion` drives `reader-reduced-motion` class ([`reader-preferences.ts`](../../client/src/features/reader/reader-preferences.ts), [`index.css`](../../client/src/index.css)); covered in [`App.test.tsx`](../../client/src/App.test.tsx).
 - **Labeled controls:** examples include reader options (`aria-label` on selects), mobile menu (`aria-expanded` / `aria-controls`), chapter controls, prayer insights `role="status"` (see changelog / styleguide).
-- **Gap:** no scheduled **axe** or **E2E a11y** run on Support/Reader/Search — see **F7**.
+- **Coverage:** **`client/src/app-a11y.test.tsx`** (Support + Search after guest). Reader/tutorial not in axe smoke yet — extend as needed (**F7** closed baseline).
 
 ### i18n (debt only)
 
