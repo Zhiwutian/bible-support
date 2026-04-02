@@ -8,7 +8,7 @@
 4. Run `pnpm install` if dependencies changed.
 5. Ensure PostgreSQL is running (`sudo service postgresql start`).
 6. Run `pnpm run dev` for client + server watchers.
-   - `pnpm run dev` now validates `server/.env` and `client/.env.local` first.
+   - Ensure `server/.env` exists (created on first `pnpm install` when missing) and add `client/.env.local` when you need frontend overrides; misconfiguration usually surfaces as server startup or API errors.
    - If you hit stale port/process issues, run `pnpm run dev:fresh` instead.
 7. Make incremental changes.
 8. Before commit, run:
@@ -92,7 +92,7 @@ Do **not** hand-edit production databases to “skip” migrations without a run
 
 ## CI Workflow
 
-PRs trigger `/.github/workflows/ci.yml`:
+PRs trigger `/.github/workflows/ci.yml` (`on: pull_request` and `workflow_dispatch`). **Pushes to `main` alone do not run this workflow** — checks run on the PR before merge. Use **branch protection** with required status checks if the repo allows direct pushes to `main`.
 
 1. Install dependencies (`pnpm install --frozen-lockfile`)
 2. Policy checks:

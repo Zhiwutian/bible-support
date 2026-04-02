@@ -2,6 +2,8 @@
 
 Living document for [docs/proposals/full-application-review.md](../proposals/full-application-review.md). Update as slices complete.
 
+**Review pass:** Slices **1–7** (proposal execution order) are **documented below**. Open items live in the [findings log](#findings-log-p0p4) until triaged or closed.
+
 ## Slice 1 — Baseline inventory and journey matrix (complete)
 
 **Completed:** baseline API vs client parity, SPA route surface, journey matrix for manual / E2E passes.
@@ -250,20 +252,53 @@ All other routes rely on **controller-level** checks (see below).
 
 ---
 
-## Slice 7 — CI / release hygiene (pending)
+## Slice 7 — CI / release hygiene (complete)
+
+**Completed:** compared GitHub Actions to documented local gates, deploy paths, and smoke/health expectations; corrected one stale line in **`docs/development-workflow.md`** (env validation vs **`pnpm run dev`**).
+
+### Pull-request CI ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml))
+
+| Job                       | Role                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`docs-policy`**         | On **pull_request** only: if diff touches `client/`, `server/`, `database/`, or key manifests → requires **`README.md`** or **`docs/**`\*\* change. |
+| **`db-migration-policy`** | On **pull_request** only: **`server/db/schema.ts`** or **`database/schema.sql`** change → requires **`database/migrations/**`\*\* updates.          |
+| **`quality`**             | After both policies pass: **`pnpm install --frozen-lockfile`**, **`lint`**, **`tsc`**, **`test`**, **`build`**.                                     |
+
+- **Triggers:** `pull_request`, `workflow_dispatch` — there is **no `push` trigger** on `main`. Merged PRs are covered because checks ran on the PR; a **direct push to `main`** (if allowed) would **not** re-run this workflow. Prefer **branch protection** requiring PR + green checks (see **F8**).
+- **Parity:** Matches [development-workflow.md § CI parity](../development-workflow.md#ci-parity-local-vs-github).
+
+### Advisory audit ([`.github/workflows/audit-scheduled.yml`](../../.github/workflows/audit-scheduled.yml))
+
+- Weekly + manual **`pnpm audit --audit-level high`** — already noted in development workflow and Slice 5.
+
+### EC2 / `pub` deploy ([`.github/workflows/main.yml`](../../.github/workflows/main.yml))
+
+- **Trigger:** push to **`pub`** or **workflow_dispatch**.
+- **Steps:** checkout → **`pnpm install --frozen-lockfile`** → **`pnpm run build`** → rsync → SSH **`db:migrate`**, **`db:seed`**, **pm2** start.
+- **Gap:** workflow does **not** run **`lint`**, **`tsc`**, or **`test`** — it assumes artifacts built from a tree that was already validated (e.g. merged via PR CI). Avoid pushing to **`pub`** from unreviewed commits (see **F9**).
+
+### Render / Vercel / Neon (docs)
+
+- **`docs/deployment/README.md`**: build/pre-deploy/start commands, **`GET /api/health`**, **`pnpm run smoke:deploy`** with **`DEPLOY_URL`** — aligned with [development-workflow.md § Deployment](../development-workflow.md#deployment-workflow).
+
+### Local doc fix (this slice)
+
+- **`docs/development-workflow.md`**: removed claim that **`pnpm run dev`** runs a bundled env validation step (no **`validate:env`** script; see Slice 6).
 
 ---
 
 ## Findings log (P0–P4)
 
-| ID  | Sev | Area        | Finding                                                                                                                                                                                | Status |
-| --- | --- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| F1  | P3  | Admin / API | `GET /api/admin/scripture-sources` not used from SPA                                                                                                                                   | Open   |
-| F2  | P3  | Admin / API | Scripture diagnostics uses **Bearer JWT** (`authMiddleware`); other admin routes use **session + admin role**. Document for operators; align future admin UI or unify auth if desired. | Open   |
-| F3  | P3  | Saved / UX  | Device-scoped saves rely on **secret `x-device-id`**; document threat model (lost device header ≈ access to guest saves).                                                              | Open   |
-| F4  | P3  | Performance | `readEmotionScripturesBySlug` uses **N parallel verse resolutions** (potential N DB round-trips per emotion). OK for small editorial N; batch fetch if Support latency grows.          | Open   |
-| F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                    | Open   |
-| F6  | P4  | Bundle      | Tutorial route is lazy, but **`TutorialPage` imports all MDX sections statically** — first visit loads full tutorial JS. Consider per-section dynamic import if the guide grows large. | Open   |
-| F7  | P4  | A11y / test | No **axe** or Playwright a11y suite in this app repo; reliance on patterns, markuplint, and RTL. Optional: add `@axe-core/playwright` or vitest-axe smoke for Support + Reader shell.  | Open   |
+| ID  | Sev | Area        | Finding                                                                                                                                                                                               | Status |
+| --- | --- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| F1  | P3  | Admin / API | `GET /api/admin/scripture-sources` not used from SPA                                                                                                                                                  | Open   |
+| F2  | P3  | Admin / API | Scripture diagnostics uses **Bearer JWT** (`authMiddleware`); other admin routes use **session + admin role**. Document for operators; align future admin UI or unify auth if desired.                | Open   |
+| F3  | P3  | Saved / UX  | Device-scoped saves rely on **secret `x-device-id`**; document threat model (lost device header ≈ access to guest saves).                                                                             | Open   |
+| F4  | P3  | Performance | `readEmotionScripturesBySlug` uses **N parallel verse resolutions** (potential N DB round-trips per emotion). OK for small editorial N; batch fetch if Support latency grows.                         | Open   |
+| F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                                   | Open   |
+| F6  | P4  | Bundle      | Tutorial route is lazy, but **`TutorialPage` imports all MDX sections statically** — first visit loads full tutorial JS. Consider per-section dynamic import if the guide grows large.                | Open   |
+| F7  | P4  | A11y / test | No **axe** or Playwright a11y suite in this app repo; reliance on patterns, markuplint, and RTL. Optional: add `@axe-core/playwright` or vitest-axe smoke for Support + Reader shell.                 | Open   |
+| F8  | P3  | CI          | **`ci.yml`** runs on **`pull_request`** only — not on **`push`** to **`main`**. If direct pushes are allowed, enforce **branch protection** + required status checks so every merge is PR-tested.     | Open   |
+| F9  | P4  | Release     | **`main.yml`** ( **`pub`** deploy) runs **build** only on the runner — not **lint/tsc/test**. Safe if **`pub`** only receives merges that already passed PR CI; risky for ad-hoc pushes to **`pub`**. | Open   |
 
 _Add rows as review proceeds._

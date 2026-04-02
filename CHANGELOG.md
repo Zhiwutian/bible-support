@@ -19,9 +19,11 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 - Plans: **Slice 4** (frontend abstractions / perf) in **`docs/plans/full-app-review-2026.md`** — lazy routes vs eager shell, centralized `api-client`, reader URL sync + Search sessionStorage, Reader abort/cancel patterns vs ad hoc effects; finding **F6** (tutorial static MDX imports, P4).
 - Plans: **Slice 5** (a11y / telemetry / deps) in **`docs/plans/full-app-review-2026.md`** — modal/focus/reduced-motion patterns, full `trackEvent` inventory vs styleguide + reader comfort tests, `pnpm audit` workflow + `onlyBuiltDependencies`; finding **F7** (no axe/Playwright a11y automation, P4).
 - Plans: **Slice 6** (code + docs cleanup) in **`docs/plans/full-app-review-2026.md`** — TODO/FIXME absent in app sources, eslint-disable triage, large-page pointers; **README** + **`docs/configuration.md`** aligned with actual **`install:env`** / **`postinstall`** (removed nonexistent **`setup:env`** / **`validate:env`**); **`docs/architecture.md`** route summary + **`docs/README.md`** testing section.
+- Plans: **Slice 7** (CI / release hygiene) in **`docs/plans/full-app-review-2026.md`** — **`ci.yml`** jobs vs local parity, advisory audit workflow, **`main.yml`** EC2 **`pub`** path vs quality gates; findings **F8** (PR-only CI, branch protection), **F9** (deploy workflow skips lint/test).
 
 ### Changed
 
+- `docs/development-workflow.md`: local dev step no longer claims **`pnpm run dev`** runs bundled env-file validation; CI section notes **PR-only** triggers and branch-protection guidance.
 - README and `docs/configuration.md`: local env setup documents **`pnpm run install:env`** (and root **`postinstall`**) plus optional **`client/.env.local`** copy from **`client/.env.example`**; removed references to nonexistent **`setup:env`**, **`setup:env:force`**, and **`validate:env`**.
 - `docs/architecture.md`: authenticated route summary points to full surface in `client/src/App.tsx` (prayer, shared verse, etc.).
 - `docs/README.md`: **Testing** subsection links **`docs/development-workflow.md`** and client/server test entry commands.
