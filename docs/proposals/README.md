@@ -22,6 +22,7 @@ Suggested proposal structure:
 
 Current proposals:
 
+- `full-application-review.md` — phased full-stack review: code/docs cleanup, FE/BE optimization, functionality + test gaps, security, a11y, supply chain, telemetry, CI/release
 - `workout-tracker-build-plan.md` — pointer to **`workout-tracker/docs/proposals/workout-tracker-build-plan.md`** (course / standalone app build plan)
 - `oauth-email-login-minimal-pii.md`
 - `same-site-domain-auth-session-strategy.md`

@@ -54,10 +54,14 @@ This folder contains maintainable project documentation for application structur
   - Proposal index and structure for future project updates
 - `proposals/oauth-email-login-minimal-pii.md`
   - Concrete OIDC/OAuth implementation path for email login with minimal PII storage
+- `proposals/full-application-review.md`
+  - Phased full-stack review scope (code/docs, FE/BE, tests, security, a11y, supply chain, telemetry, CI)
 - `plans/backend-db-review.md`
   - Backend and database hardening roadmap (validation, services, DB, ops)
 - `plans/backend-db-review-inventory.md`
   - Living Phase 0 inventory: API map, client usage, initial gap list
+- `plans/full-app-review-2026.md`
+  - Full application review progress: slice checklist, API parity, journey matrix, findings log
 - `plans/reader-comfort-phase-3-4.md`
   - Reader comfort Phase 3–4 status (a11y, rollout telemetry) vs research proposal
 - `app-startup-walkthrough.md`
