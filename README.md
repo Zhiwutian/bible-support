@@ -149,7 +149,11 @@ Out of scope for this MVP baseline:
 
 - Global text-size control with persisted preferences: `Small`, `Medium`, `Large`, `XL`
 - Global high-contrast mode with persisted preference
-- Mobile display settings modal supports live preview and full rollback on `Cancel` (text size + high contrast)
+- Global dark mode for app chrome (menus, cards, shells); reading surfaces can use their own palette (see below).
+- **Display settings** (menu → Display settings): dark mode, high contrast, **Reading colors** (Light / Sepia / Dark), and text size. **Reading colors** use the same stored profile as **Reader → Options → Theme** (`localStorage` reader preferences) and apply to Bible Reader, Support scripture blocks, and Saved verse blocks. `Cancel` restores text size, high contrast, dark mode, and reading colors to their values when the modal opened.
+- Deeper reader options (font family/size, line height, break reminder, etc.) remain under **Reader → Options** on `/reader`, with a shortcut link from Display settings.
+
+See also `docs/development-workflow.md` (database setup, migrations, and API troubleshooting when Postgres or schema is missing).
 
 ## Example API Endpoints
 
