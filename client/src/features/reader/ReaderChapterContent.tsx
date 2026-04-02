@@ -15,10 +15,25 @@ type ReaderChapterContentProps = {
   readingStyle: ReaderPreferences['readingStyle'];
   cleanParagraphs: ReaderCleanParagraph[];
   isBookmarkedVerse: (verse: number) => boolean;
+  hasSavedScriptureForVerse: (verse: number) => boolean;
   hasSavedNoteForVerse: (verse: number) => boolean;
   formatVerseText: (verseText: string) => string;
   onOpenVerseActions: (verse: number, verseText: string) => void;
 };
+
+function verseRowClassName(
+  verse: number,
+  isBookmarkedVerse: (v: number) => boolean,
+  hasSavedScriptureForVerse: (v: number) => boolean,
+): string {
+  const b = isBookmarkedVerse(verse);
+  const s = hasSavedScriptureForVerse(verse);
+  const base = 'reader-verse-paragraph block w-full rounded px-1 text-left';
+  if (b && s) return `${base} ring-2 ring-indigo-400 bg-emerald-500/10`;
+  if (b) return `${base} ring-1 ring-indigo-400`;
+  if (s) return `${base} ring-1 ring-emerald-600/40 bg-emerald-500/5`;
+  return base;
+}
 
 /**
  * Reader chapter text surface with style-specific verse rendering.
@@ -30,6 +45,7 @@ export function ReaderChapterContent({
   readingStyle,
   cleanParagraphs,
   isBookmarkedVerse,
+  hasSavedScriptureForVerse,
   hasSavedNoteForVerse,
   formatVerseText,
   onOpenVerseActions,
@@ -43,9 +59,11 @@ export function ReaderChapterContent({
             type="button"
             data-verse-start={verse.verse}
             data-verse-end={verse.verse}
-            className={`reader-verse-paragraph block w-full rounded px-1 text-left ${
-              isBookmarkedVerse(verse.verse) ? 'ring-1 ring-indigo-400' : ''
-            }`}
+            className={verseRowClassName(
+              verse.verse,
+              isBookmarkedVerse,
+              hasSavedScriptureForVerse,
+            )}
             onClick={() => onOpenVerseActions(verse.verse, verse.verseText)}>
             <sup className="mr-1 align-super text-xs font-semibold">
               {verse.verse}
@@ -68,18 +86,28 @@ export function ReaderChapterContent({
             data-verse-end={
               paragraph.verses[paragraph.verses.length - 1]?.verse
             }
-            className={`reader-verse-paragraph block w-full rounded px-1 text-left ${
-              isBookmarkedVerse(paragraph.firstVerse)
-                ? 'ring-1 ring-indigo-400'
-                : ''
-            }`}>
+            className={
+              paragraph.verses.some(
+                (entry) =>
+                  isBookmarkedVerse(entry.verse) ||
+                  hasSavedScriptureForVerse(entry.verse),
+              )
+                ? 'reader-verse-paragraph block w-full rounded px-1 py-0.5 text-left ring-1 ring-slate-300/40'
+                : 'reader-verse-paragraph block w-full rounded px-1 text-left'
+            }>
             {paragraph.verses.map((entry) => (
               <span
                 key={`${paragraph.key}-${entry.verse}`}
                 role="button"
                 tabIndex={0}
                 aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
-                className="reader-verse-inline-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                className={`reader-verse-inline-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${
+                  isBookmarkedVerse(entry.verse) ? 'ring-1 ring-indigo-400' : ''
+                } ${
+                  hasSavedScriptureForVerse(entry.verse)
+                    ? 'bg-emerald-500/10'
+                    : ''
+                }`}
                 onClick={() => onOpenVerseActions(entry.verse, entry.verseText)}
                 onKeyDown={(event) => {
                   if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -109,18 +137,28 @@ export function ReaderChapterContent({
             data-verse-end={
               paragraph.verses[paragraph.verses.length - 1]?.verse
             }
-            className={`reader-verse-paragraph block w-full rounded px-1 text-left ${
-              isBookmarkedVerse(paragraph.firstVerse)
-                ? 'ring-1 ring-indigo-400'
-                : ''
-            }`}>
+            className={
+              paragraph.verses.some(
+                (entry) =>
+                  isBookmarkedVerse(entry.verse) ||
+                  hasSavedScriptureForVerse(entry.verse),
+              )
+                ? 'reader-verse-paragraph block w-full rounded px-1 py-0.5 text-left ring-1 ring-slate-300/40'
+                : 'reader-verse-paragraph block w-full rounded px-1 text-left'
+            }>
             {paragraph.verses.map((entry) => (
               <span
                 key={`${paragraph.key}-clean-${entry.verse}`}
                 role="button"
                 tabIndex={0}
                 aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
-                className="reader-verse-inline-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                className={`reader-verse-inline-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${
+                  isBookmarkedVerse(entry.verse) ? 'ring-1 ring-indigo-400' : ''
+                } ${
+                  hasSavedScriptureForVerse(entry.verse)
+                    ? 'bg-emerald-500/10'
+                    : ''
+                }`}
                 onClick={() => onOpenVerseActions(entry.verse, entry.verseText)}
                 onKeyDown={(event) => {
                   if (event.key !== 'Enter' && event.key !== ' ') return;

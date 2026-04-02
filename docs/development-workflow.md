@@ -54,6 +54,15 @@ Important:
 - `db:import` is intentionally destructive for local rebuild workflows (drops and recreates schema).
 - Do not run `db:import` against shared/staging/production databases.
 
+### API returns 500 / `Failed query` on `/api/emotions` (or similar)
+
+In **development**, error responses may include a Drizzle `Failed query` detail. Typical causes:
+
+1. **Postgres error `3D000` — database does not exist** — the database name in `server/.env` `DATABASE_URL` was never created. Create it (e.g. `createdb bible_support` or your chosen name), then `pnpm run db:migrate` and `pnpm run db:seed`.
+2. **Relation does not exist** — Postgres is reachable but tables are missing. Run `pnpm run db:migrate` (and seed if needed).
+
+The API maps these cases to **503** with a short fix hint when the driver exposes the Postgres error code.
+
 ### Local `db:migrate` errors (`already exists`, `relation … does not exist`)
 
 Drizzle records applied migrations in PostgreSQL (`__drizzle_migrations`). If that table is **empty** but your database **already has** objects from an old run, import, or manual SQL, `pnpm run db:migrate` may try to re-run `0000_*` and fail (for example `relation "todos_todoId_seq" already exists`).

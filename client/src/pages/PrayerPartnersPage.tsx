@@ -373,7 +373,7 @@ export function PrayerPartnersPage() {
   ]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="min-w-0 max-w-full space-y-4 sm:space-y-6">
       <SectionHeader
         title="Prayer Partners"
         description="Add people you are praying for, record what they need, and track updates over time."
@@ -491,14 +491,14 @@ export function PrayerPartnersPage() {
         </Select>
       </PrayerFilterModalShell>
 
-      <Card className="space-y-3 border p-4 sm:p-5">
+      <Card className="min-w-0 max-w-full space-y-3 border p-4 sm:p-5">
         <h2 className="text-base font-semibold text-slate-800">
           Add prayer partner
         </h2>
         <form
-          className="space-y-3"
+          className="min-w-0 space-y-3"
           onSubmit={(event) => void onCreatePartner(event)}>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block min-w-0 text-sm font-medium text-slate-700">
             Name
             <Input
               value={name}
@@ -507,17 +507,17 @@ export function PrayerPartnersPage() {
               className="mt-1 min-h-11"
             />
           </label>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block min-w-0 text-sm font-medium text-slate-700">
             What are you praying for?
             <textarea
               value={prayerFocus}
               onChange={(event) => setPrayerFocus(event.target.value)}
               rows={3}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full min-w-0 max-w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               placeholder="Health, wisdom, family, work situation..."
             />
           </label>
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block min-w-0 text-sm font-medium text-slate-700">
             Image URL (optional)
             <Input
               value={imageUrl}
@@ -560,14 +560,14 @@ export function PrayerPartnersPage() {
           {filteredPartners.map((partner) => (
             <Card
               key={partner.partnerId}
-              className="space-y-3 border p-4 sm:p-5">
+              className="min-w-0 max-w-full space-y-3 border p-4 sm:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-slate-800">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-base font-semibold text-slate-800">
                     {partner.name}
                     {partner.isArchived ? ' (Archived)' : ''}
                   </p>
-                  <p className="mt-1 text-sm text-slate-700">
+                  <p className="mt-1 break-words text-sm text-slate-700">
                     {partner.prayerFocus}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">

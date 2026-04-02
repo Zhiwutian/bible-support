@@ -32,10 +32,10 @@ A full stack TypeScript template with React, Express, and PostgreSQL.
    cd <your-repo-name>
    ```
 
-2. Open that folder in Cursor.
+2. Open that **local** folder in Cursor (**File → Open Folder**), not only a remote SSH window with no matching host path.
 3. Run `Dev Containers: Rebuild and Reopen in Container`.
 
-This template bind-mounts your local folder to `/workspace`, so files persist across rebuilds.
+This template bind-mounts your local folder to `/workspace` (see `.devcontainer/devcontainer.json`), so files persist across rebuilds.
 Outside devcontainers, this repo also includes `.nvmrc` and engine constraints in `package.json`.
 
 ### 3) Install and configure env

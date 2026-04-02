@@ -25,6 +25,7 @@ import { ReaderBreakReminder } from '@/features/reader/ReaderBreakReminder';
 import { ReaderNoteModal } from '@/features/reader/ReaderNoteModal';
 import { ReaderOptionsModal } from '@/features/reader/ReaderOptionsModal';
 import { ReaderStatusBar } from '@/features/reader/ReaderStatusBar';
+import { ReaderSupportVerseCallout } from '@/features/reader/ReaderSupportVerseCallout';
 import { ReaderVerseActionsModal } from '@/features/reader/ReaderVerseActionsModal';
 import {
   loadReaderScrollPosition,
@@ -36,6 +37,7 @@ import { useReaderVerseActions } from '@/features/reader/useReaderVerseActions';
 import {
   loadReaderBookmark,
   loadReaderPreferences,
+  readerPreferencesClassNames,
   resetReaderBookmark,
   resetReaderPreferences,
   type ReaderPreferences,
@@ -153,6 +155,7 @@ export function BibleReaderPage() {
     setNoteDraft,
     findExactSavedItemForVerse,
     hasSavedNoteForVerse,
+    hasSavedScriptureForVerse,
     openVerseActionsForVerse,
     closeVerseActionsModal,
     handleSaveVerseFromReader,
@@ -402,19 +405,7 @@ export function BibleReaderPage() {
 
   const chapterLabel = useMemo(() => `${book} ${chapter}`, [book, chapter]);
   const readerRootClassName = useMemo(
-    () =>
-      [
-        'reader-root',
-        `reader-theme-${readerPreferences.theme}`,
-        `reader-font-${readerPreferences.fontFamily}`,
-        `reader-size-${readerPreferences.fontSize}`,
-        `reader-line-${readerPreferences.lineHeight}`,
-        `reader-paragraph-${readerPreferences.paragraphSpacing}`,
-        `reader-width-${readerPreferences.contentWidth}`,
-        readerPreferences.reducedMotion ? 'reader-reduced-motion' : '',
-      ]
-        .filter(Boolean)
-        .join(' '),
+    () => readerPreferencesClassNames(readerPreferences),
     [readerPreferences],
   );
 
@@ -705,6 +696,19 @@ export function BibleReaderPage() {
             isReaderAuthenticated={isReaderAuthenticated}
             onJumpToLastPlace={handleJumpToLastPlace}
           />
+          {canReturnToSupportVerse &&
+          Number.isInteger(fromScriptureId) &&
+          fromScriptureId > 0 &&
+          fromEmotion ? (
+            <ReaderSupportVerseCallout
+              emotionSlug={fromEmotion}
+              scriptureId={fromScriptureId}
+              fromTranslation={fromTranslation}
+              readerTranslation={translation}
+              readerPreferences={readerPreferences}
+              stripTranslationIndicators={stripTranslationIndicatorText}
+            />
+          ) : null}
           <div
             ref={readerContainerRef}
             className="reader-content max-h-[60vh] overflow-y-auto rounded-md border p-3">
@@ -715,6 +719,7 @@ export function BibleReaderPage() {
               readingStyle={readerPreferences.readingStyle}
               cleanParagraphs={cleanParagraphs}
               isBookmarkedVerse={isBookmarkedVerse}
+              hasSavedScriptureForVerse={hasSavedScriptureForVerse}
               hasSavedNoteForVerse={hasSavedNoteForVerse}
               formatVerseText={(verseText) =>
                 readerPreferences.hideTranslationIndicators

@@ -19,6 +19,7 @@ import {
   toBibleGatewayChapterUrl,
   toChapterReference,
 } from '@/features/emotions/scripture-links';
+import { buildReaderChapterQuery } from '@/features/reader/build-reader-chapter-url';
 
 /**
  * Render a dedicated full-context reading page for one scripture reference.
@@ -45,8 +46,36 @@ export function FullContextPage() {
   } | null>(null);
   const chapterReference =
     context?.chapterReference || toChapterReference(reference);
+  const readerLinkReference = context?.reference || reference;
 
-  function handleOpenFullChapter() {
+  function handleReadFullChapterInReader() {
+    const query = buildReaderChapterQuery({
+      reference: readerLinkReference,
+      translation,
+      scriptureId: scriptureId ?? null,
+      emotionSlug: slug ?? null,
+      fromTranslation: translation,
+    });
+    if (!query) {
+      showToast({
+        title: 'We could not open Reader',
+        description:
+          'We could not determine the book and chapter for this reference.',
+        variant: 'error',
+      });
+      return;
+    }
+    if (query.usedTranslationFallback) {
+      showToast({
+        title: 'Showing a supported translation',
+        description: `${translation.trim() || 'That translation'} isn’t available in the in-app Reader (only KJV, ASV, and WEB). Opening ${query.effectiveTranslation} instead.`,
+        variant: 'info',
+      });
+    }
+    navigate(`/reader?${query.searchParams.toString()}`);
+  }
+
+  function handleOpenBibleGateway() {
     if (!chapterReference) return;
     const url = toBibleGatewayChapterUrl(chapterReference, translation);
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -112,26 +141,33 @@ export function FullContextPage() {
               setSettingsHelp({
                 title: 'Full Context',
                 description:
-                  'This page loads a longer explanation for the passage (summary and extended text) with source attribution. Back to scripture returns to the Support verse list. Read full chapter opens BibleGateway in a new tab for the whole chapter—handy when you want external chapter reading. This is separate from in-app Reader, which you can open from Support or Search for bookmarks and verse actions.',
+                  'This page loads a longer explanation for the passage (summary and extended text) with source attribution. Back to scripture returns to the Support verse list. Read full chapter opens the in-app Bible Reader for the whole chapter (bookmarks, saved verses, and verse actions). Open on BibleGateway is optional if you prefer reading on the external site.',
               })
             }
           />
         }
       />
 
-      <div className="mb-6 flex items-center gap-2">
+      <div className="mb-6 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <Button
           variant="ghost"
-          className={theme.controlClassName}
+          className={`min-h-11 w-full min-w-0 sm:w-auto ${theme.controlClassName}`}
           onClick={() => navigate(-1)}>
           Back to scripture
         </Button>
         <Button
-          variant="ghost"
-          className={theme.controlClassName}
-          onClick={handleOpenFullChapter}
-          disabled={!chapterReference}>
+          variant="primary"
+          className="min-h-11 w-full min-w-0 sm:w-auto"
+          onClick={handleReadFullChapterInReader}
+          disabled={!readerLinkReference.trim()}>
           Read full chapter
+        </Button>
+        <Button
+          variant="ghost"
+          className={`min-h-11 w-full min-w-0 sm:w-auto ${theme.controlClassName}`}
+          onClick={handleOpenBibleGateway}
+          disabled={!chapterReference}>
+          Open on BibleGateway
         </Button>
       </div>
 

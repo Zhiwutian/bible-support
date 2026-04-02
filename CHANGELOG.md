@@ -8,6 +8,12 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Server: `errorMiddleware` maps common `DrizzleQueryError` + Postgres codes (`3D000` missing database, `42P01` missing relation, `08*` connection class) to **503** with actionable messages instead of a generic 500; `docs/development-workflow.md` troubleshooting for `/api/emotions` failures.
+- UI: shared `Input` skips default full-width classes for `type="checkbox"` / `type="radio"` so inline toggles (e.g. Display settings) stay compact.
+- Reader: `buildReaderChapterQuery` / `translationForReaderChapter`; Full Context and Support show an informational toast when opening Reader with a translation the app does not bundle (KJV, ASV, WEB only).
+- Reader: hybrid reading UX — Support (`EmotionScripturePage`) and Saved book detail wrap verse text in `ReaderSurface` (live reader theme prefs via `reader-preferences-changed`); chapter controls stack on small screens with a chapter `<select>` on mobile; saved verses in a chapter show distinct highlighting in `ReaderChapterContent`; opening Reader from Support shows a **Support verse** callout (`ReaderSupportVerseCallout`). Full Context **Read full chapter** opens in-app Reader; **Open on BibleGateway** remains secondary. Shared `buildReaderChapterSearchParams` / `resolveReaderChapterLocation`; `saveReaderPreferences` dispatches same-tab sync event; `readerPreferencesClassNames` helper.
+- Prayer list detail: removing a member requires `ConfirmModal` confirmation; member rows and notes use `min-w-0` / `break-words` for large text; prayer partners hub cards and forms tightened similarly. App `main` and shared `Input` use `min-w-0` / full width to reduce horizontal overflow.
+- Devcontainer: added `name`, JSONC notes on local-open + `workspaceFolder` bind mount; README clarifies opening the local clone before **Reopen in Container**.
 - Client: after logging a prayer list session, dispatch `app:prayer-insights-invalidate` so hub pages refresh streak/insights data (`prayer-insights-events.ts`, `usePrayerPageInsights`).
 - UI: prayer insights load-error line uses `prayer-insights-inline-status` for dark mode + high contrast in `client/src/index.css`.
 - Client: track `client/src/features/prayer/*` (insights API, hooks, hub bar, filter modal shell, reminder modal) used by prayer hub pages.

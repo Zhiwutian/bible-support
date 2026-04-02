@@ -1,8 +1,6 @@
 import { TouchEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { BIBLE_BOOKS } from '@shared/bible-books';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
-import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 import { useToast } from '@/components/app/toast-context';
 import {
   Badge,
@@ -21,6 +19,8 @@ import {
 } from '@/features/emotions/emotion-api';
 import { toChapterReference } from '@/features/emotions/scripture-links';
 import { useEmotionScriptures } from '@/features/emotions/useEmotionScriptures';
+import { buildReaderChapterQuery } from '@/features/reader/build-reader-chapter-url';
+import { ReaderSurface } from '@/features/reader/ReaderSurface';
 import { saveScripture } from '@/features/search/scripture-search-api';
 
 /**
@@ -175,19 +175,19 @@ export function EmotionScripturePage() {
 
   function handleOpenFullChapter() {
     if (!currentScripture) return;
-    const parsedReference = toChapterReference(currentScripture.reference);
-    const parsedMatch = parsedReference.match(/^(.*)\s+(\d+)$/);
-    const fallbackBook = parsedMatch?.[1]?.trim();
-    const fallbackChapter = Number(parsedMatch?.[2] ?? '');
-    const rawBook = currentScripture.book ?? fallbackBook;
-    const canonicalBook =
-      BIBLE_BOOKS.find(
-        (candidate) =>
-          candidate.toLowerCase() === (rawBook ?? '').toLowerCase(),
-      ) ?? (rawBook?.toLowerCase() === 'psalm' ? 'Psalms' : rawBook);
-    const book = canonicalBook;
-    const chapter = currentScripture.chapter ?? fallbackChapter;
-    if (!book || !Number.isInteger(chapter) || chapter < 1) {
+    const translationRequest =
+      String(currentScripture.translation ?? '') || selectedTranslation;
+    const query = buildReaderChapterQuery({
+      reference: currentScripture.reference,
+      verse: currentScripture.verseStart ?? null,
+      book: currentScripture.book,
+      chapter: currentScripture.chapter,
+      translation: translationRequest,
+      emotionSlug: emotion?.slug ?? slug ?? null,
+      scriptureId: currentScripture.scriptureId,
+      fromTranslation: selectedTranslation,
+    });
+    if (!query) {
       showToast({
         title: 'We could not open Reader',
         description:
@@ -196,27 +196,14 @@ export function EmotionScripturePage() {
       });
       return;
     }
-    const normalizedTranslation = SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
-      currentScripture.translation as ScriptureTranslationCode,
-    )
-      ? (currentScripture.translation as ScriptureTranslationCode)
-      : selectedTranslation;
-    const nextSearchParams = new URLSearchParams({
-      book,
-      chapter: String(chapter),
-      translation: normalizedTranslation,
-    });
-    if (emotion?.slug ?? slug) {
-      nextSearchParams.set('fromEmotion', emotion?.slug ?? slug ?? '');
+    if (query.usedTranslationFallback) {
+      showToast({
+        title: 'Showing a supported translation',
+        description: `${translationRequest} isn’t available in the in-app Reader (only KJV, ASV, and WEB). Opening ${query.effectiveTranslation} instead.`,
+        variant: 'info',
+      });
     }
-    if (currentScripture.scriptureId) {
-      nextSearchParams.set(
-        'fromScriptureId',
-        String(currentScripture.scriptureId),
-      );
-    }
-    nextSearchParams.set('fromTranslation', selectedTranslation);
-    navigate(`/reader?${nextSearchParams.toString()}`);
+    navigate(`/reader?${query.searchParams.toString()}`);
   }
 
   async function handleToggleContext() {
@@ -413,9 +400,11 @@ export function EmotionScripturePage() {
               {currentScripture.translation} instead.
             </p>
           ) : null}
-          <p className="text-xl leading-9 text-slate-800 md:text-2xl">
-            {currentScripture.verseText}
-          </p>
+          <ReaderSurface className="mt-1 border-slate-200/90">
+            <p className="text-xl leading-9 md:text-2xl">
+              {currentScripture.verseText}
+            </p>
+          </ReaderSurface>
 
           <div className="mt-20 space-y-10">
             <div className="grid grid-cols-1 gap-2">

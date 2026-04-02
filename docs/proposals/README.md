@@ -22,6 +22,7 @@ Suggested proposal structure:
 
 Current proposals:
 
+- `workout-tracker-build-plan.md` — pointer to **`workout-tracker/docs/proposals/workout-tracker-build-plan.md`** (course / standalone app build plan)
 - `oauth-email-login-minimal-pii.md`
 - `same-site-domain-auth-session-strategy.md`
 - `company-domain-multi-app-subdomain-strategy.md`
@@ -31,3 +32,4 @@ Current proposals:
 - `scripture-reader-multisave-notes-rollout.md`
 - `reader-comfort-customization-research.md`
 - `reader-styles-bookmarks-account-sync.md`
+- `bible-support-reader-ui-hybrid.md` — hybrid reader (`/reader` + embedded `ReaderSurface`), Full Context → Reader, mobile overflow, prayer confirm modal, saved/support emphasis in chapter
