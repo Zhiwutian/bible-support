@@ -174,7 +174,57 @@ All other routes rely on **controller-level** checks (see below).
 
 ---
 
-## Slice 5 — A11y / telemetry / deps (pending)
+## Slice 5 — A11y / telemetry / deps (complete)
+
+**Completed:** reviewed accessibility patterns, client telemetry surface, dependency/audit posture, and doc alignment (no product or dependency upgrades in this slice).
+
+### Accessibility (a11y)
+
+- **No Playwright or `@axe-core/*` in this repository** (unlike some sibling templates under `workout-tracker/`). Regression safety leans on **manual / design review**, **ESLint + markuplint**, RTL tests, and **implementation patterns** in [docs/styleguide/frontend-patterns.md](../styleguide/frontend-patterns.md) (labels, modal shells, high-contrast, reduced motion).
+- **Shared modal:** [`ModalShell`](../../client/src/components/ui/ModalShell.tsx) uses `role="dialog"`, `aria-modal="true"`, `aria-labelledby`; verse actions / note flows restore focus via refs in [`useReaderVerseActions`](../../client/src/features/reader/useReaderVerseActions.ts).
+- **Reader comfort:** `prefers-reduced-motion` drives `reader-reduced-motion` class ([`reader-preferences.ts`](../../client/src/features/reader/reader-preferences.ts), [`index.css`](../../client/src/index.css)); covered in [`App.test.tsx`](../../client/src/App.test.tsx).
+- **Labeled controls:** examples include reader options (`aria-label` on selects), mobile menu (`aria-expanded` / `aria-controls`), chapter controls, prayer insights `role="status"` (see changelog / styleguide).
+- **Gap:** no scheduled **axe** or **E2E a11y** run on Support/Reader/Search — see **F7**.
+
+### i18n (debt only)
+
+- UI strings are **English-only** with no extraction layer; acceptable for current scope. Future localization would need a string strategy and RTL/layout checks.
+
+### Telemetry (`trackEvent` / `app:telemetry`)
+
+- **Mechanism:** [`client/src/lib/telemetry.ts`](../../client/src/lib/telemetry.ts) dispatches a browser **`CustomEvent('app:telemetry')`** — vendor-neutral until an external listener is attached.
+- **Privacy-tested subset:** [`reader-comfort-telemetry.ts`](../../client/src/features/reader/reader-comfort-telemetry.ts) + Vitest enforce allowlisted shapes for rollout events (`reader_preference_changed`, `reader_preferences_reset`, `reader_break_tip_dismissed`).
+- **Full event inventory (spot-check: metadata only, no verse/note body in payloads):**
+
+| Event                                                                    | Typical payload (summary)                       |
+| ------------------------------------------------------------------------ | ----------------------------------------------- |
+| `auth_login_click`                                                       | `provider`, `next`, `guestMode`                 |
+| `guest_continue_click`                                                   | `routeIntent`                                   |
+| `profile_save_attempt` / `profile_save_success` / `profile_save_failure` | none                                            |
+| `reader_preference_changed`                                              | `key`, `value` (comfort prefs)                  |
+| `reader_preferences_reset`                                               | none                                            |
+| `reader_options_opened`                                                  | none                                            |
+| `reader_style_changed`                                                   | `readingStyle`                                  |
+| `reader_bookmark_set`                                                    | `book`, `chapter`, `verse`, `translation`       |
+| `reader_state_cleared`                                                   | none                                            |
+| `reader_break_tip_dismissed`                                             | none                                            |
+| `reader_verse_actions_opened`                                            | `book`, `chapter`, `verse`, `translation`       |
+| `reader_save_verse`                                                      | same reference fields                           |
+| `reader_note_opened`                                                     | reference + `hasExistingNote`                   |
+| `reader_note_saved`                                                      | reference + `hasNote` (boolean, not text)       |
+| `reader_share_clicked` / `share_*`                                       | reference + `source` (`reader` or verse detail) |
+| `reader_state_synced`                                                    | `source`: `account` \| `patch`                  |
+| `verse_detail_opened`                                                    | `hasValidParams` + optional reference fields    |
+| `prayer_reminder_settings_saved`                                         | `{ enabled: boolean }`                          |
+
+- **Docs:** [frontend-patterns.md § Telemetry](../styleguide/frontend-patterns.md#telemetry-hook-pattern), [development-workflow.md § Reader Comfort Rollout](../development-workflow.md#reader-comfort-rollout-checklist), [reader-comfort-phase-3-4.md](./reader-comfort-phase-3-4.md).
+- **User-facing copy:** About/FAQ does not describe telemetry hooks; fine while nothing forwards off-device without a privacy notice — revisit if a vendor is wired.
+
+### Dependencies and supply chain
+
+- **Tooling:** root `package.json` — `pnpm@10.30.3`, Node **22**; `pnpm.onlyBuiltDependencies` allowlists native/postinstall packages (**argon2**, **esbuild**, **msw**, etc.).
+- **Stacks:** client — React **19**, RR **7**, Vite **7**, Vitest **4**, Tailwind **4**, Zod **4**; server — Express **5**, Drizzle **0.45**, pino, helmet, OIDC client.
+- **CI audit:** [`.github/workflows/audit-scheduled.yml`](../../.github/workflows/audit-scheduled.yml) — weekly **`pnpm audit --audit-level high`** (advisory, not merge-blocking); aligns with [release-readiness / pre-commit rules](../../.cursor/rules/release-readiness-checks.mdc) guidance.
 
 ---
 
@@ -196,5 +246,6 @@ All other routes rely on **controller-level** checks (see below).
 | F4  | P3  | Performance | `readEmotionScripturesBySlug` uses **N parallel verse resolutions** (potential N DB round-trips per emotion). OK for small editorial N; batch fetch if Support latency grows.          | Open   |
 | F5  | P4  | Performance | Reader cross-book prev/next can run **sequential book scans** (rare). Defer unless `EXPLAIN` / profiling justifies caching or a single stats query.                                    | Open   |
 | F6  | P4  | Bundle      | Tutorial route is lazy, but **`TutorialPage` imports all MDX sections statically** — first visit loads full tutorial JS. Consider per-section dynamic import if the guide grows large. | Open   |
+| F7  | P4  | A11y / test | No **axe** or Playwright a11y suite in this app repo; reliance on patterns, markuplint, and RTL. Optional: add `@axe-core/playwright` or vitest-axe smoke for Support + Reader shell.  | Open   |
 
 _Add rows as review proceeds._
