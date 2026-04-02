@@ -8,7 +8,7 @@
 4. Run `pnpm install` if dependencies changed.
 5. Ensure PostgreSQL is running (`sudo service postgresql start`).
 6. Run `pnpm run dev` for client + server watchers.
-   - `pnpm run dev` now validates `server/.env` and `client/.env.local` first.
+   - Ensure `server/.env` exists (created on first `pnpm install` when missing) and add `client/.env.local` when you need frontend overrides; misconfiguration usually surfaces as server startup or API errors.
    - If you hit stale port/process issues, run `pnpm run dev:fresh` instead.
 7. Make incremental changes.
 8. Before commit, run:
@@ -92,7 +92,7 @@ Do **not** hand-edit production databases to “skip” migrations without a run
 
 ## CI Workflow
 
-PRs trigger `/.github/workflows/ci.yml`:
+PRs trigger `/.github/workflows/ci.yml` (`on: pull_request` and `workflow_dispatch`). **Pushes to `main` alone do not run this workflow** — checks run on the PR before merge. Use **branch protection** with required status checks if the repo allows direct pushes to `main`.
 
 1. Install dependencies (`pnpm install --frozen-lockfile`)
 2. Policy checks:
@@ -160,6 +160,29 @@ pnpm run deploy
 
 This pushes `main` to `pub`, triggering `/.github/workflows/main.yml`.
 
+### GitHub: branch protection (`main`)
+
+**Why:** [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on **`pull_request`** and **`workflow_dispatch`** only. A **direct push to `main`** does **not** run that workflow, so bad commits could land untested.
+
+**Recommended (GitHub → Settings → Branches → Branch protection rules → `main`):**
+
+- Require a **pull request** before merging (no direct pushes, or restrict who can bypass).
+- Require **status checks** to pass before merge. Add the CI jobs from `ci.yml`, for example:
+  - **`docs-policy`**
+  - **`db-migration-policy`**
+  - **`quality`**
+- Optional: require branches to be **up to date** before merge.
+
+Adjust names if workflows are renamed; confirm exact check names under the **Actions** tab after a PR run.
+
+### GitHub: EC2 / `pub` deploy workflow
+
+**Workflow:** [`.github/workflows/main.yml`](../../.github/workflows/main.yml) — trigger: push to **`pub`** or manual dispatch.
+
+**What it runs on GitHub:** `pnpm install --frozen-lockfile`, **`pnpm run lint`**, **`pnpm run tsc`**, **`pnpm run test`**, then **`pnpm run build`** — same quality sequence as PR CI before rsync to EC2.
+
+**Safe usage:** Treat **`pub`** as a **release branch** fed from **`main`** after PRs are green (for example `pnpm run deploy` pushes `main` → `pub`). Avoid **`git push` to `pub`** from unreviewed local commits so deploy failures stay rare.
+
 Hosted DB safety:
 
 - Use `pnpm run db:migrate` and `pnpm run db:seed` in hosted environments for schema + starter app data.
@@ -182,7 +205,7 @@ Production verification:
 DEPLOY_URL=https://your-service-url pnpm run smoke:deploy
 ```
 
-Optional corpus diagnostics check:
+Optional corpus diagnostics check (**Bearer JWT** signed with **`TOKEN_SECRET`**, not the browser session — mint token per **`docs/deployment/README.md`** → _Admin API authentication_):
 
 ```sh
 curl -H "Authorization: Bearer <admin-token>" \

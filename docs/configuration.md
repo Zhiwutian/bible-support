@@ -14,19 +14,15 @@ Do not commit real secrets. Local env files are gitignored.
 
 ## Local Setup
 
-1. Copy templates:
+1. Install dependencies. The root **`postinstall`** script runs **`pnpm run install:env`**, which creates **`server/.env`** from `server/.env.example` when it does not exist yet.
+
+2. Frontend template (create **`client/.env.local`** when you need `VITE_*` overrides, for example split hosting):
 
 ```sh
-pnpm run setup:env
+test -f client/.env.local || cp client/.env.example client/.env.local
 ```
 
-To intentionally reset both local env files from templates:
-
-```sh
-pnpm run setup:env:force
-```
-
-2. Edit backend values in `server/.env`:
+3. Edit backend values in `server/.env`:
 
 - `DATABASE_URL`
 - `TOKEN_SECRET`
@@ -34,7 +30,7 @@ pnpm run setup:env:force
 - Optional auth values (`AUTH_*`, `SESSION_*`)
   - `AUTH_SOCIAL_FACEBOOK_ENABLED` controls whether Facebook appears as a login option (default `false`)
 
-3. Edit frontend values in `client/.env.local`:
+4. Edit frontend values in `client/.env.local`:
 
 - `VITE_API_BASE_URL` (for split hosting or non-default API origin)
 
@@ -42,13 +38,7 @@ If `VITE_API_BASE_URL` is empty locally, client requests use same-origin paths.
 
 ## Validation
 
-Run configuration validation manually:
-
-```sh
-pnpm run validate:env
-```
-
-`pnpm run dev` runs this validation automatically before starting watchers.
+There is no root **`validate:env`** script. Ensure required keys from `server/.env.example` are set before `pnpm run dev`; missing database or auth configuration surfaces as startup or request-time errors.
 
 ## Deployment Mapping
 
@@ -69,3 +59,4 @@ For split-host auth cookies in production, use:
 - Anything under `VITE_*` is bundled into frontend code and visible to end users.
 - Email is intentionally not persisted in local auth tables.
 - Auth audit logs are designed to exclude token/cookie/secret values.
+- **Guest saved scriptures** are scoped by the **`x-device-id`** header for anonymous users. Anyone who can send the same id can access that guest’s saved items over the API — see **`docs/verse-search-save.md`** (_Guest `x-device-id` (threat model)_). Prefer **sign-in** when users need account-owned data.

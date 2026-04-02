@@ -13,7 +13,7 @@ At runtime, the browser loads static assets from the server and calls API routes
 
 - **Browser Client**
   - Executes React UI.
-  - Uses React Router for route-level pages (`/`, `/search`, `/saved`, `/saved/:book`, `/reader`, `/emotions/:slug`, `/emotions/:slug/context`, `/tutorial`, `/about`, `/profile`, `/admin`).
+  - Uses React Router for route-level pages (Support `/`, emotion routes, Search, Reader, Shared verse `/verse`, Saved, Prayer partners/lists, `/tutorial`, `/about`, `/profile`, `/admin`; see `client/src/App.tsx`).
   - Uses `react-hook-form` + `zod` for client-side form handling/validation.
   - Uses Context + reducer (`AppStateProvider`) for lean global UI state.
   - Calls backend endpoints for emotion, scripture search/reader/saved workflows, and authenticated profile/admin actions.

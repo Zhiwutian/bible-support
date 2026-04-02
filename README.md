@@ -49,8 +49,12 @@ Outside devcontainers, this repo also includes `.nvmrc` and engine constraints i
 
 2. Configure environment with separate backend/frontend files:
 
+   After **`pnpm install`**, **`postinstall`** runs **`pnpm run install:env`**, which creates **`server/.env`** from `server/.env.example` when it is missing.
+
+   For the frontend, copy the template when you need to override build/runtime vars (for example `VITE_API_BASE_URL`):
+
    ```sh
-   pnpm run setup:env
+   test -f client/.env.local || cp client/.env.example client/.env.local
    ```
 
    Backend (`server/.env`):
@@ -79,7 +83,7 @@ Outside devcontainers, this repo also includes `.nvmrc` and engine constraints i
    - Set `VITE_API_BASE_URL` when frontend and API run on different origins.
 
 See `docs/configuration.md` for full split-config guidance.
-Use `pnpm run setup:env:force` only when you intentionally want to reset local env files from templates.
+To reset local env files from templates, copy the example files again manually (overwriting any existing local values you no longer need).
 
 ### 4) Create your database
 
@@ -223,9 +227,7 @@ Responses use an API envelope:
 - `pnpm run dev` - runs both client and server watchers
 - `pnpm run dev:clean` - stops stale listeners on dev ports (`5173`, `8080`)
 - `pnpm run dev:fresh` - cleans stale listeners, then starts dev watchers
-- `pnpm run setup:env` - creates `server/.env` and `client/.env.local` from examples when missing
-- `pnpm run setup:env:force` - resets local env files from examples (overwrites existing local values)
-- `pnpm run validate:env` - validates split env files before local run/deploy commands
+- `pnpm run install:env` - creates `server/.env` from `server/.env.example` when missing (also runs automatically via `postinstall` after `pnpm install`)
 - `pnpm run lint` - lints client and server
 - `pnpm run tsc` - type checks client and server
 - `pnpm run test` - runs frontend and backend unit/integration tests

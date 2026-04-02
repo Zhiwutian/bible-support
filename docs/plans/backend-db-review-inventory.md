@@ -1,27 +1,32 @@
 # Backend / DB review — Phase 0 inventory
 
-Living document: update as phases complete. Last reviewed: backend hardening wave start.
+Living document: update as phases complete. Last reviewed: full-app-review Slice 1 (2026) — prayer API + client parity; see [full-app-review-2026.md](./full-app-review-2026.md).
 
 ## API surface (server → primary persistence)
 
-| Method                | Path                                           | Controller                         | Service(s)                      | Tables / notes                                |
-| --------------------- | ---------------------------------------------- | ---------------------------------- | ------------------------------- | --------------------------------------------- |
-| GET                   | `/api/hello`                                   | `hello-controller`                 | —                               | None                                          |
-| GET                   | `/api/health`                                  | `health-controller`                | `health-service`                | DB probe if configured                        |
-| GET                   | `/api/ready`                                   | `health-controller`                | `health-service`                | Readiness                                     |
-| GET                   | `/api/auth/login`                              | `auth-controller`                  | `auth-service`                  | Redirect / OIDC                               |
-| GET                   | `/api/auth/callback`                           | `auth-controller`                  | `auth-service`                  | `users`, `auth_accounts`, `auth_audit_events` |
-| GET/POST              | `/api/auth/logout`                             | `auth-controller`                  | `auth-service`                  | Session clear                                 |
-| GET/PATCH             | `/api/auth/me`                                 | `auth-controller`                  | `auth-service`                  | `users`                                       |
-| GET                   | `/api/admin/scripture-sources`                 | `scripture-diagnostics-controller` | `scripture-diagnostics-service` | `scripture_verses` stats                      |
-| GET/PATCH             | `/api/admin/users`, `/api/admin/auth-events`   | `admin-controller`                 | `admin-service`                 | `users`, `auth_audit_events`                  |
-| GET                   | `/api/emotions`                                | `emotion-controller`               | `emotion-service`               | `emotions`                                    |
-| GET                   | `/api/emotions/:slug/scriptures` (+ `/random`) | `emotion-controller`               | `emotion-service`               | `scriptures`                                  |
-| GET                   | `/api/scripture-context`                       | `scripture-context-controller`     | `scripture-context-service`     | `scripture_verses`                            |
-| GET                   | `/api/scriptures/search`                       | `scripture-search-controller`      | `scripture-search-service`      | `scripture_verses` (FTS)                      |
-| GET                   | `/api/reader/chapter`                          | `reader-controller`                | `reader-service`                | `scripture_verses`                            |
-| GET/PATCH/DELETE      | `/api/reader/state`                            | `reader-state-controller`          | `reader-state-service`          | `reader_state`                                |
-| GET/POST/PATCH/DELETE | `/api/saved-scriptures/*`                      | `saved-scripture-controller`       | `saved-scripture-service`       | `saved_scripture_items`                       |
+| Method                | Path                                                                             | Controller                         | Service(s)                      | Tables / notes                                           |
+| --------------------- | -------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------- | -------------------------------------------------------- |
+| GET                   | `/api/hello`                                                                     | `hello-controller`                 | —                               | None                                                     |
+| GET                   | `/api/health`                                                                    | `health-controller`                | `health-service`                | DB probe if configured                                   |
+| GET                   | `/api/ready`                                                                     | `health-controller`                | `health-service`                | Readiness                                                |
+| GET                   | `/api/auth/login`                                                                | `auth-controller`                  | `auth-service`                  | Redirect / OIDC                                          |
+| GET                   | `/api/auth/callback`                                                             | `auth-controller`                  | `auth-service`                  | `users`, `auth_accounts`, `auth_audit_events`            |
+| GET/POST              | `/api/auth/logout`                                                               | `auth-controller`                  | `auth-service`                  | Session clear                                            |
+| GET/PATCH             | `/api/auth/me`                                                                   | `auth-controller`                  | `auth-service`                  | `users`                                                  |
+| GET                   | `/api/admin/scripture-sources`                                                   | `scripture-diagnostics-controller` | `scripture-diagnostics-service` | `scripture_verses` stats                                 |
+| GET                   | `/api/admin/users`, `/api/admin/auth-events`                                     | `admin-controller`                 | `admin-service`                 | `users`, `auth_audit_events`                             |
+| PATCH                 | `/api/admin/users/:userId/role`                                                  | `admin-controller`                 | `admin-service`                 | `users`                                                  |
+| GET                   | `/api/emotions`                                                                  | `emotion-controller`               | `emotion-service`               | `emotions`                                               |
+| GET                   | `/api/emotions/:slug/scriptures` (+ `/random`)                                   | `emotion-controller`               | `emotion-service`               | `scriptures`                                             |
+| GET                   | `/api/scripture-context`                                                         | `scripture-context-controller`     | `scripture-context-service`     | `scripture_verses`                                       |
+| GET                   | `/api/scriptures/search`                                                         | `scripture-search-controller`      | `scripture-search-service`      | `scripture_verses` (FTS)                                 |
+| GET                   | `/api/reader/chapter`                                                            | `reader-controller`                | `reader-service`                | `scripture_verses`                                       |
+| GET/PATCH/DELETE      | `/api/reader/state`                                                              | `reader-state-controller`          | `reader-state-service`          | `reader_state`                                           |
+| GET/POST/PATCH/DELETE | `/api/saved-scriptures/*`                                                        | `saved-scripture-controller`       | `saved-scripture-service`       | `saved_scripture_items`                                  |
+| GET                   | `/api/prayer/insights`                                                           | `prayer-controller`                | `prayer-service`                | `user_prayer_settings`, session aggregates               |
+| PATCH                 | `/api/prayer/settings`                                                           | `prayer-controller`                | `prayer-service`                | `user_prayer_settings`                                   |
+| GET/POST/PATCH/DELETE | `/api/prayer-partners`, `.../:id`, `.../notes`                                   | `prayer-controller`                | `prayer-service`                | `prayer_partners`, `prayer_partner_notes`                |
+| GET/POST/PATCH/DELETE | `/api/prayer-lists`, `.../:listId`, `.../members`, `.../reorder`, `.../sessions` | `prayer-controller`                | `prayer-service`                | `prayer_lists`, `prayer_list_members`, `prayer_sessions` |
 
 ## Client usage vs API (SPA)
 
@@ -32,12 +37,16 @@ The React app calls (via `fetchJson` / `fetchNoContent` and MSW handlers):
 - `/api/scripture-context`, `/api/scriptures/search`
 - `/api/reader/chapter`, `/api/reader/state` (GET/PATCH/DELETE)
 - `/api/saved-scriptures` (list, grouped, chapter, POST, batch, PATCH translation, PATCH note, DELETE)
-- `/api/admin/*` (admin UI)
+- `/api/prayer/insights`, `/api/prayer/settings`
+- `/api/prayer-partners` (CRUD, notes CRUD)
+- `/api/prayer-lists` (CRUD, members, reorder, sessions)
+- `/api/admin/*` (admin UI: users, auth-events, role patch — see `admin-api.ts`)
 
 **Not referenced from client bundles (by path grep):**
 
 - `/api/hello` — useful smoke/debug; keep or document as non-essential.
 - `/api/health`, `/api/ready` — infra/load balancers; expected.
+- `/api/admin/scripture-sources` — diagnostics for scripture corpus; **no current SPA caller** (optional admin tooling follow-up).
 
 ## Gap list (initial)
 

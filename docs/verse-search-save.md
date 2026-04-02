@@ -21,6 +21,12 @@ This document describes the implemented search/save expansion for fast scripture
 - Anonymous device-scoped saves are supported.
 - Authenticated user-scoped saves are also supported.
 - Client sends stable `x-device-id` header for anonymous save scope and migration bridge behavior.
+
+### Guest `x-device-id` (threat model)
+
+- The browser generates and stores a **device id** and sends it on API requests (see `client/src/lib/device-id.ts` and `client/src/lib/api-client.ts`). For **anonymous** users, saved scriptures are scoped to that identifier **on the server**.
+- **Treat the device id like a secret for guest data:** any client that presents the **same** `x-device-id` can access the same guest save collection (read/write within normal API rules). Shared computers, browser extensions, or copied storage could widen exposure.
+- **Mitigation:** Sign in for **account-scoped** ownership; use guest mode only when that tradeoff is acceptable. Product copy and support docs can describe “guest saves stay on this browser” without exposing implementation details.
 - When authenticated via cookie session, saved-scripture routes can resolve user scope without requiring `x-device-id`.
 - Backend stores reference/query metadata, not full user-auth profile data.
 - Saved-item uniqueness is ownership-aware:
@@ -52,7 +58,7 @@ This document describes the implemented search/save expansion for fast scripture
 - `PATCH /api/reader/state`
 - `DELETE /api/reader/state`
 - `GET /api/admin/scripture-sources`
-  - Operational diagnostics for scripture source readiness (DB counts + local JSON file status); requires admin bearer token. Response includes **`readerChapterBundledFallback`** (`availableTranslations`, `allTrackedPresent`) so ops can confirm Reader can fall back to `server/data/bible/*.json` when the DB has no `scripture_verses` rows for a translation.
+  - Operational diagnostics for scripture source readiness (DB counts + local JSON file status); requires a **Bearer JWT signed with `TOKEN_SECRET`** (not the SPA session). **Not wired in the admin UI** — operators use **`curl`** or scripts; see **`docs/deployment/README.md`** → _Admin API authentication_. Response includes **`readerChapterBundledFallback`** (`availableTranslations`, `allTrackedPresent`) so ops can confirm Reader can fall back to `server/data/bible/*.json` when the DB has no `scripture_verses` rows for a translation.
 
 All endpoints use the existing API envelope contract, except delete routes that intentionally return `204 No Content`.
 

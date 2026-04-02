@@ -42,7 +42,7 @@ Use these from load balancers, deploy scripts, and first-line incident triage (s
 
 - **Helmet** + **CORS** + **`trust proxy`** settings remain appropriate after proxy or host changes (`server/app.ts`).
 - **Session cookie**: `SESSION_COOKIE_SAME_SITE`, **`secure`** in production, TTL aligned with product (`server/config/env.ts`).
-- **Admin routes**: `requireAdminSession` + role read from DB; bearer-token admin routes scoped and documented.
+- **Admin routes**: Most admin JSON routes use **`requireAdminSession`** + DB **`admin`** role. **`GET /api/admin/scripture-sources`** is the exception: **Bearer JWT** verified with **`TOKEN_SECRET`**, **not** wired in the SPA — operators only; see **`docs/deployment/README.md`** (_Admin API authentication_).
 - **Auth audit**: new flows use **`writeAuthAuditEvent`** with types from **`shared/auth-audit-contracts.ts`**.
 - **SQL**: Drizzle query builder only; no string-concat SQL with user input.
 

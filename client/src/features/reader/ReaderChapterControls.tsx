@@ -4,6 +4,7 @@ import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contr
 
 type ReaderChapterControlsProps = {
   book: string;
+  chapter: number;
   chapterInputValue: string;
   maxChapterForBook: number;
   translation: ScriptureTranslationCode;
@@ -18,6 +19,7 @@ type ReaderChapterControlsProps = {
  */
 export function ReaderChapterControls({
   book,
+  chapter,
   chapterInputValue,
   maxChapterForBook,
   translation,
@@ -26,7 +28,12 @@ export function ReaderChapterControls({
   onChapterInputBlur,
   onTranslationChange,
 }: ReaderChapterControlsProps) {
-  const chapterSelectValue = chapterInputValue === '' ? '1' : chapterInputValue;
+  // When the desktop number input is cleared, keep the native select aligned with
+  // the actual chapter state (fallback to "1" was wrong and made changes feel ignored).
+  const chapterSelectValue =
+    chapterInputValue === ''
+      ? String(Math.min(Math.max(1, chapter), maxChapterForBook))
+      : chapterInputValue;
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:flex-wrap md:items-end">

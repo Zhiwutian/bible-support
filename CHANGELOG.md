@@ -6,8 +6,48 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ## [Unreleased]
 
+### Added
+
+- Client: **`jest-axe`** + **`@types/jest-axe`**; **`src/app-a11y.test.tsx`** — axe smoke after guest entry for Support, Search, Reader (John 3 / KJV), and Tutorial (no **serious** or **critical** violations; color-contrast limited under jsdom per jest-axe).
+
 ### Changed
 
+- GitHub Actions: **`.github/workflows/main.yml`** runs **`pnpm run lint`**, **`tsc`**, **`test`**, then **`build`** before EC2 rsync (parity with PR CI).
+- Server: **`readEmotionScripturesBySlug`** batches primary-translation verse rows in **one** `OR` query, then falls back per row for incomplete hits or translation fallback (`emotion-service`).
+- Server: Reader cross-book **prev/next** uses **grouped** `min`/`max` chapter queries over candidate books instead of sequential per-book aggregates (`reader-service`).
+- Client: **`TutorialPage`** loads each tutorial MDX section with **`React.lazy`** and **`Suspense`** so sections code-split in production.
+
+### Documentation
+
+- **`docs/development-workflow.md`** — _GitHub: branch protection (`main`)_; _EC2 / `pub` deploy_ documents **lint / tsc / test / build** on deploy; diagnostics `curl` still references deployment guide for Bearer token.
+- **`docs/README.md`** — index note for branch protection + `pub` deploy; testing entry mentions **`app-a11y.test.tsx`** (jest-axe).
+- Plans: **`docs/plans/full-app-review-2026.md`** — findings **F1–F9** addressed (**F4–F7** closed with code changes; slices 3–5 tables updated).
+- Deployment / security docs: **`docs/deployment/README.md`** — _Admin API authentication_ (scripture diagnostics **Bearer `TOKEN_SECRET` JWT**, ops-only / not SPA; session **admin** for users/events/role); example token + `curl`.
+- Saved scriptures: **`docs/verse-search-save.md`** — guest **`x-device-id`** threat model; endpoint note points to deployment auth section.
+- **`docs/configuration.md`** — safety note linking guest saves + device id to verse-search-save.
+- **`docs/styleguide/backend-observability-security.md`** — admin route auth split (scripture-sources vs `requireAdminSession`).
+
+### Fixed
+
+- Reader: chapter picker on small screens no longer defaults the `<select>` to chapter **1** when the chapter number field is empty while the loaded chapter is something else; URL sync for book/chapter/translation updates the query string only when those values change (preserves `verse` and other params). Hydration from the URL runs only when `searchParams` change so local book/chapter/translation changes are not overwritten by a stale query string before it updates. URL hydration uses functional `setState` only when parsed params differ, and the URL-write effect skips `setSearchParams` when the query already matches state, to avoid update churn that could freeze the tab.
+
+### Documentation
+
+- Proposals: **`docs/proposals/full-application-review.md`** — phased full-stack review scope (code/docs cleanup, FE/BE optimization, functionality and test gaps, security, a11y, supply chain, telemetry, CI/release); listed in **`docs/proposals/README.md`**.
+- Plans: **`docs/plans/full-app-review-2026.md`** — review progress tracker (Slice 1: SPA routes, API/client parity, journey matrix, initial finding on admin scripture-sources); **`docs/plans/backend-db-review-inventory.md`** updated with prayer API rows, admin role patch, and SPA client list.
+- Plans: **Slice 2** (security / authz / IDOR) recorded in **`docs/plans/full-app-review-2026.md`** — session vs router middleware, API access classes, saved/prayer/reader ownership notes, findings **F2** (dual admin auth: Bearer vs session admin) and **F3** (device id threat model for guest saves).
+- Plans: **Slice 3** (backend queries / transactions / indexes) in **`docs/plans/full-app-review-2026.md`** — transaction inventory (saved scriptures, prayer, admin role), alignment with **`docs/styleguide/database-constraints.md`**, reader vs emotion query notes; findings **F4** (emotion list N parallel verse fetches), **F5** (reader cross-book scan, P4).
+- Plans: **Slice 4** (frontend abstractions / perf) in **`docs/plans/full-app-review-2026.md`** — lazy routes vs eager shell, centralized `api-client`, reader URL sync + Search sessionStorage, Reader abort/cancel patterns vs ad hoc effects; finding **F6** (tutorial static MDX imports, P4).
+- Plans: **Slice 5** (a11y / telemetry / deps) in **`docs/plans/full-app-review-2026.md`** — modal/focus/reduced-motion patterns, full `trackEvent` inventory vs styleguide + reader comfort tests, `pnpm audit` workflow + `onlyBuiltDependencies`; finding **F7** (no axe/Playwright a11y automation, P4).
+- Plans: **Slice 6** (code + docs cleanup) in **`docs/plans/full-app-review-2026.md`** — TODO/FIXME absent in app sources, eslint-disable triage, large-page pointers; **README** + **`docs/configuration.md`** aligned with actual **`install:env`** / **`postinstall`** (removed nonexistent **`setup:env`** / **`validate:env`**); **`docs/architecture.md`** route summary + **`docs/README.md`** testing section.
+- Plans: **Slice 7** (CI / release hygiene) in **`docs/plans/full-app-review-2026.md`** — **`ci.yml`** jobs vs local parity, advisory audit workflow, **`main.yml`** EC2 **`pub`** path vs quality gates; findings **F8** / **F9** closed in **`docs/development-workflow.md`** runbook sections.
+
+### Changed
+
+- `docs/development-workflow.md`: local dev step no longer claims **`pnpm run dev`** runs bundled env-file validation; CI section notes **PR-only** triggers and branch-protection guidance.
+- README and `docs/configuration.md`: local env setup documents **`pnpm run install:env`** (and root **`postinstall`**) plus optional **`client/.env.local`** copy from **`client/.env.example`**; removed references to nonexistent **`setup:env`**, **`setup:env:force`**, and **`validate:env`**.
+- `docs/architecture.md`: authenticated route summary points to full surface in `client/src/App.tsx` (prayer, shared verse, etc.).
+- `docs/README.md`: **Testing** subsection links **`docs/development-workflow.md`** and client/server test entry commands.
 - Server: `errorMiddleware` maps common `DrizzleQueryError` + Postgres codes (`3D000` missing database, `42P01` missing relation, `08*` connection class) to **503** with actionable messages instead of a generic 500; `docs/development-workflow.md` troubleshooting for `/api/emotions` failures.
 - UI: Display settings adds **Reading colors** (Light / Sepia / Dark) mirroring Reader → Options → Theme (`saveReaderPreferences`); Cancel restores the theme from when the modal opened; link to Reader for font/spacing options. Tutorial + Reader Options help text updated.
 - UI: `ReaderSurface` uses `reader-content` (theme background + border) so Support and Saved verse blocks show sepia/light/dark reader colors correctly in app dark mode; `index.css` prevents merged slate utilities from overriding embedded reader borders and verse text color.
