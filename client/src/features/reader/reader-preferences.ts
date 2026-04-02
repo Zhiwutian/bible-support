@@ -28,7 +28,8 @@ type PersistedReaderPreferences = {
   preferences: ReaderPreferences;
 };
 
-const READER_PREFERENCES_STORAGE_KEY = 'reader-preferences';
+/** localStorage key; exported for cross-tab sync in `useReaderPreferencesLive`. */
+export const READER_PREFERENCES_STORAGE_KEY = 'reader-preferences';
 const READER_BOOKMARK_STORAGE_KEY = 'reader-bookmark';
 const READER_PREFERENCES_SCHEMA_VERSION = 4;
 
@@ -243,6 +244,32 @@ export function loadReaderPreferences(): ReaderPreferences {
   }
 }
 
+/** Same-tab listeners (e.g. embedded `ReaderSurface`) can subscribe to this event name. */
+export const READER_PREFERENCES_CHANGED_EVENT = 'reader-preferences-changed';
+
+function dispatchReaderPreferencesChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(READER_PREFERENCES_CHANGED_EVENT));
+}
+
+/** Build CSS class string for reader theming (shared by BibleReaderPage and ReaderSurface). */
+export function readerPreferencesClassNames(
+  preferences: ReaderPreferences,
+): string {
+  return [
+    'reader-root',
+    `reader-theme-${preferences.theme}`,
+    `reader-font-${preferences.fontFamily}`,
+    `reader-size-${preferences.fontSize}`,
+    `reader-line-${preferences.lineHeight}`,
+    `reader-paragraph-${preferences.paragraphSpacing}`,
+    `reader-width-${preferences.contentWidth}`,
+    preferences.reducedMotion ? 'reader-reduced-motion' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 /** Persist reader preferences in local storage with version metadata. */
 export function saveReaderPreferences(preferences: ReaderPreferences): void {
   if (typeof window === 'undefined') return;
@@ -254,12 +281,14 @@ export function saveReaderPreferences(preferences: ReaderPreferences): void {
     READER_PREFERENCES_STORAGE_KEY,
     JSON.stringify(payload),
   );
+  dispatchReaderPreferencesChanged();
 }
 
 /** Clear stored reader preferences and return the default profile. */
 export function resetReaderPreferences(): ReaderPreferences {
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(READER_PREFERENCES_STORAGE_KEY);
+    dispatchReaderPreferencesChanged();
   }
   return defaultPreferencesWithRuntimeHints();
 }

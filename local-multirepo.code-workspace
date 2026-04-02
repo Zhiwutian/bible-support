@@ -1,0 +1,22 @@
+{
+  // Paths are relative to this file's directory (/workspace).
+  "folders": [
+    {
+      "name": "workspace",
+      "path": "."
+    },
+    {
+      "name": "workout-tracker",
+      "path": "./workout-tracker"
+    },
+    {
+      "name": "workout-tracker-mini",
+      "path": "./workout-tracker-mini"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true
+    }
+  }
+}

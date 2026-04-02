@@ -1,18 +1,20 @@
+// Compose-based dev container: Docker Desktop must be running.
+// Reopen in Container from a local clone of bible-support (File → Open Folder).
+//
+// Primary repo is mounted at /workspace. Sibling workout-tracker is at
+// /workspace/workout-tracker (see docker-compose.yml). Clone it next to bible-support
+// or remove that volume from docker-compose.yml.
 {
+  "name": "full-stack-project",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
   "workspaceFolder": "/workspace",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
-  "image": "learningfuze/lfz-code",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "22"
     }
   },
-  "mounts": [
-    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
-    "source=${containerWorkspaceFolderBasename}-home_dev,target=/home/dev,type=volume",
-    "source=${containerWorkspaceFolderBasename}-postgres_data,target=/var/lib/postgresql,type=volume",
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/dev/.ssh,type=bind"
-  ],
+  "remoteUser": "dev",
   "customizations": {
     "vscode": {
       "extensions": ["learningfuze.lfz-pack"]
@@ -21,6 +23,5 @@
   "postCreateCommand": "corepack enable && pnpm install --frozen-lockfile; sudo chown -R dev:dev ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && chmod 644 ~/.ssh/*.pub",
   "otherPortsAttributes": {
     "onAutoForward": "silent"
-  },
-  "runArgs": ["--sysctl", "net.ipv6.conf.all.disable_ipv6=1"]
+  }
 }

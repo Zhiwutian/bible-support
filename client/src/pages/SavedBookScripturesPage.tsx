@@ -20,6 +20,7 @@ import {
   SettingHelpModal,
 } from '@/components/ui';
 import { appCopy } from '@/lib/copy';
+import { ReaderSurface } from '@/features/reader/ReaderSurface';
 import {
   deleteSavedScripture,
   readSavedScriptureGroups,
@@ -331,14 +332,18 @@ export function SavedBookScripturesPage() {
       {!isLoading && !error && bookGroups.length > 0 && (
         <div className="space-y-3">
           {bookGroups.map((group) => (
-            <Card key={group.groupId} className="space-y-3 border p-4">
+            <Card
+              key={group.groupId}
+              className="min-w-0 max-w-full space-y-3 overflow-hidden border p-4">
               <p className="text-sm font-semibold text-slate-700">
                 {group.items.length > 1 ? 'Saved together' : 'Saved verse'} |{' '}
                 {new Date(group.createdAt).toLocaleString()}
               </p>
-              <pre className="whitespace-pre-wrap text-base leading-8 text-slate-800">
-                {group.displayText}
-              </pre>
+              <ReaderSurface className="min-w-0 max-w-full border-slate-200/90">
+                <div className="whitespace-pre-wrap break-words text-base leading-relaxed">
+                  {group.displayText}
+                </div>
+              </ReaderSurface>
               <div className="space-y-3">
                 {group.items.map((item) => (
                   <Card key={item.savedId} className="space-y-2 border p-3">

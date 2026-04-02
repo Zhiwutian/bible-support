@@ -1,0 +1,33 @@
+# Dev environment for bible-support (+ optional sibling repo in the container).
+# Paths are relative to this file: .. = bible-support root, ../.. = parent of both repos.
+#
+# Second repo: clone or create ../workout-tracker next to bible-support on the host.
+# If that path is missing, create an empty dir or comment out the workout-tracker volume.
+#
+# SSH: uses ${HOME} (macOS/Linux). On Windows, add .devcontainer/.env with:
+#   HOME=/c/Users/YourUser
+# or set USERPROFILE-based path — see Dev Containers docs.
+
+name: bible-support-dev
+
+services:
+  app:
+    image: learningfuze/lfz-code
+    init: true
+    # Keep the dev container process running (override image CMD if needed).
+    command: sleep infinity
+    volumes:
+      # Primary repo → same as before (workspace root)
+      - ..:/workspace:cached
+      # Second repo (sibling folder). Remove this line if you do not use it.
+      - ../../workout-tracker:/workspace/workout-tracker:cached
+      - dev_home:/home/dev
+      - postgres_data:/var/lib/postgresql
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.ssh:/home/dev/.ssh
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+
+volumes:
+  dev_home:
+  postgres_data:

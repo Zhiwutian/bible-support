@@ -5,6 +5,7 @@ import { useToast } from '@/components/app/toast-context';
 import {
   Button,
   Card,
+  ConfirmModal,
   EmptyState,
   Input,
   SectionHeader,
@@ -69,6 +70,10 @@ export function PrayerListDetailPage() {
     title: string;
     description: string;
   } | null>(null);
+  const [pendingRemovePartnerId, setPendingRemovePartnerId] = useState<
+    number | null
+  >(null);
+  const [isRemovingMember, setIsRemovingMember] = useState(false);
 
   const loadDetail = useCallback(async () => {
     if (!Number.isFinite(parsedListId) || parsedListId <= 0) {
@@ -195,20 +200,40 @@ export function PrayerListDetailPage() {
     }
   }
 
-  async function onRemoveMember(partnerIdValue: number) {
-    if (!list) return;
+  async function onRemoveMember(partnerIdValue: number): Promise<boolean> {
+    if (!list) return false;
     try {
       await deletePrayerListMember(list.listId, partnerIdValue);
       await loadDetail();
       showToast({ title: 'Partner removed from list', variant: 'success' });
+      return true;
     } catch (err) {
       showToast({
         title: 'Could not remove partner',
         description: err instanceof Error ? err.message : 'Please try again.',
         variant: 'error',
       });
+      return false;
     }
   }
+
+  async function confirmRemoveMember() {
+    if (pendingRemovePartnerId == null) return;
+    setIsRemovingMember(true);
+    try {
+      const ok = await onRemoveMember(pendingRemovePartnerId);
+      if (ok) setPendingRemovePartnerId(null);
+    } finally {
+      setIsRemovingMember(false);
+    }
+  }
+
+  const pendingRemoveMember = useMemo(
+    () =>
+      members.find((member) => member.partnerId === pendingRemovePartnerId) ??
+      null,
+    [members, pendingRemovePartnerId],
+  );
 
   async function onMoveMember(
     partnerIdValue: number,
@@ -294,7 +319,7 @@ export function PrayerListDetailPage() {
         }
       />
 
-      <Card className="mb-4 space-y-3 border p-4">
+      <Card className="mb-4 min-w-0 max-w-full space-y-3 border p-4">
         <h2 className="text-base font-semibold text-slate-800">List details</h2>
         <label className="block text-sm font-medium text-slate-700">
           Name
@@ -310,7 +335,7 @@ export function PrayerListDetailPage() {
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full min-w-0 max-w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </label>
         <div className="flex gap-2">
@@ -323,13 +348,13 @@ export function PrayerListDetailPage() {
         </div>
       </Card>
 
-      <Card className="mb-4 space-y-3 border p-4">
+      <Card className="mb-4 min-w-0 max-w-full space-y-3 border p-4">
         <h2 className="text-base font-semibold text-slate-800">Members</h2>
         <div className="flex flex-col gap-2 md:flex-row md:items-end">
           <label className="block flex-1 text-sm font-medium text-slate-700">
             Add partner
             <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full min-w-0 max-w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               value={selectedPartnerId || ''}
               onChange={(event) =>
                 setSelectedPartnerId(Number(event.target.value))
@@ -359,31 +384,34 @@ export function PrayerListDetailPage() {
             {members.map((member, index) => (
               <div
                 key={member.prayerListMemberId}
-                className="flex items-center justify-between gap-2 rounded-md border p-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">
+                className="flex min-w-0 flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-semibold text-slate-800">
                     {index + 1}. {member.partner.name}
                   </p>
-                  <p className="text-xs text-slate-600">
+                  <p className="break-words text-xs text-slate-600">
                     {member.partner.prayerFocus}
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex shrink-0 flex-wrap gap-1">
                   <Button
                     variant="ghost"
+                    className="min-h-11"
                     onClick={() => void onMoveMember(member.partnerId, 'up')}
                     disabled={index === 0}>
                     Up
                   </Button>
                   <Button
                     variant="ghost"
+                    className="min-h-11"
                     onClick={() => void onMoveMember(member.partnerId, 'down')}
                     disabled={index === members.length - 1}>
                     Down
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => void onRemoveMember(member.partnerId)}>
+                    className="min-h-11"
+                    onClick={() => setPendingRemovePartnerId(member.partnerId)}>
                     Remove
                   </Button>
                 </div>
@@ -393,7 +421,7 @@ export function PrayerListDetailPage() {
         )}
       </Card>
 
-      <Card className="space-y-3 border p-4">
+      <Card className="min-w-0 max-w-full space-y-3 border p-4">
         <h2 className="text-base font-semibold text-slate-800">
           Prayer sessions
         </h2>
@@ -402,7 +430,7 @@ export function PrayerListDetailPage() {
             value={prayerNote}
             onChange={(event) => setPrayerNote(event.target.value)}
             rows={3}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            className="w-full min-w-0 max-w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
             placeholder="Optional note for this prayer time..."
           />
           <Button variant="primary" type="submit">
@@ -420,7 +448,7 @@ export function PrayerListDetailPage() {
                 <p className="text-xs text-slate-500">
                   {new Date(session.createdAt).toLocaleString()}
                 </p>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-1 break-words text-sm text-slate-700">
                   {session.note || 'No note added.'}
                 </p>
               </div>
@@ -433,6 +461,24 @@ export function PrayerListDetailPage() {
         titleId="prayer-list-detail-settings-help-title"
         onClose={() => setSettingsHelp(null)}
       />
+      {pendingRemoveMember ? (
+        <ConfirmModal
+          title="Remove partner from this list?"
+          titleId="prayer-list-remove-member-title"
+          description="They stay on your roster; only this list membership is removed."
+          confirmLabel="Remove from list"
+          confirmPendingLabel="Removing..."
+          cancelLabel="Cancel"
+          onCancel={() => setPendingRemovePartnerId(null)}
+          onConfirm={() => void confirmRemoveMember()}
+          isConfirming={isRemovingMember}>
+          <p className="text-sm text-slate-700">
+            <span className="font-semibold text-slate-900">
+              {pendingRemoveMember.partner.name}
+            </span>
+          </p>
+        </ConfirmModal>
+      ) : null}
     </>
   );
 }

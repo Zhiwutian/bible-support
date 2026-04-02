@@ -139,6 +139,10 @@ export function useReaderVerseActions({
     return covered.some((item) => Boolean(item.note?.trim()));
   }
 
+  function hasSavedScriptureForVerse(verse: number): boolean {
+    return (savedItemsByCoveredVerse.get(verse)?.length ?? 0) > 0;
+  }
+
   function openVerseActionsForVerse(verse: number, verseText: string) {
     const target = toReaderVerseTarget({ verse, verseText });
     verseActionReturnFocusRef.current =
@@ -364,6 +368,7 @@ export function useReaderVerseActions({
     setNoteDraft,
     findExactSavedItemForVerse,
     hasSavedNoteForVerse,
+    hasSavedScriptureForVerse,
     openVerseActionsForVerse,
     closeVerseActionsModal,
     handleSaveVerseFromReader,
