@@ -6,6 +6,15 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ## [Unreleased]
 
+### Documentation
+
+- Deployment / security docs: **`docs/deployment/README.md`** — _Admin API authentication_ (scripture diagnostics **Bearer `TOKEN_SECRET` JWT**, ops-only / not SPA; session **admin** for users/events/role); example token + `curl`.
+- Saved scriptures: **`docs/verse-search-save.md`** — guest **`x-device-id`** threat model; endpoint note points to deployment auth section.
+- **`docs/configuration.md`** — safety note linking guest saves + device id to verse-search-save.
+- **`docs/styleguide/backend-observability-security.md`** — admin route auth split (scripture-sources vs `requireAdminSession`).
+- **`docs/development-workflow.md`** — diagnostics `curl` references minting token in deployment guide.
+- Plans: **`docs/plans/full-app-review-2026.md`** — findings **F1–F3** closed with doc pointers.
+
 ### Fixed
 
 - Reader: chapter picker on small screens no longer defaults the `<select>` to chapter **1** when the chapter number field is empty while the loaded chapter is something else; URL sync for book/chapter/translation updates the query string only when those values change (preserves `verse` and other params). Hydration from the URL runs only when `searchParams` change so local book/chapter/translation changes are not overwritten by a stale query string before it updates. URL hydration uses functional `setState` only when parsed params differ, and the URL-write effect skips `setSearchParams` when the query already matches state, to avoid update churn that could freeze the tab.

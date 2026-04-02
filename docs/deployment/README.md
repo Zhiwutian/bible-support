@@ -188,6 +188,38 @@ curl -i "${AUTH_ISSUER%.}/.well-known/openid-configuration"
 
 Expected `200` JSON. If `404`, issuer domain is incorrect (often Auth0 regional domain mismatch).
 
+## Admin API authentication (two models)
+
+Operators should treat these as **different** credentials and flows.
+
+### Scripture diagnostics — `GET /api/admin/scripture-sources`
+
+- **Purpose:** Read-only report of scripture corpus / bundled JSON readiness (`database.translationCounts`, `readerChapterBundledFallback`, etc.). Useful after deploy or import issues.
+- **Not in the SPA:** There is **no** admin UI screen for this route today. Use **`curl`**, scripts, or monitoring that can send a custom header.
+- **Auth:** `Authorization: Bearer <jwt>`. The API verifies the JWT with the server’s **`TOKEN_SECRET`** (`jsonwebtoken.verify` — see `server/lib/authorization-middleware.ts`). This is **not** the browser **session** cookie and **not** the same mechanism as the admin pages below.
+
+### Admin users, auth events, role changes — session + DB `admin` role
+
+- **Routes:** e.g. `GET /api/admin/users`, `GET /api/admin/auth-events`, `PATCH /api/admin/users/:userId/role`.
+- **Auth:** User must be **signed in** (session cookie) and have **`role = 'admin'`** in the database (`requireAdminSession`). A Bearer token from `TOKEN_SECRET` **does not** satisfy these routes.
+
+### Minting a Bearer token for diagnostics (example)
+
+On a **trusted** machine, with the same **`TOKEN_SECRET`** value configured on the API host (never log or commit the real secret):
+
+```sh
+export TOKEN_SECRET='use-the-value-from-the-api-host-env'
+pnpm -C server exec node -e "const jwt=require('jsonwebtoken'); console.log(jwt.sign({ userId: 'scripture-diagnostics' }, process.env.TOKEN_SECRET));"
+```
+
+Then:
+
+```sh
+curl -sS -H "Authorization: Bearer <paste-token-here>" "https://<render-host>/api/admin/scripture-sources"
+```
+
+Payload shape is flexible as long as **`jsonwebtoken`** accepts the token; tests often use a minimal payload such as `{ role: 'admin' }` signed with **`TOKEN_SECRET`**.
+
 ## Admin Role Runbook
 
 Use this after first successful auth login in production.

@@ -182,7 +182,7 @@ Production verification:
 DEPLOY_URL=https://your-service-url pnpm run smoke:deploy
 ```
 
-Optional corpus diagnostics check:
+Optional corpus diagnostics check (**Bearer JWT** signed with **`TOKEN_SECRET`**, not the browser session — mint token per **`docs/deployment/README.md`** → _Admin API authentication_):
 
 ```sh
 curl -H "Authorization: Bearer <admin-token>" \

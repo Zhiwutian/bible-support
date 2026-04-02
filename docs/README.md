@@ -41,6 +41,7 @@ This folder contains maintainable project documentation for application structur
 - `deployment/README.md`
   - Main deployment guide with end-to-end step sequence
   - Links to per-service account setup guides
+  - **Admin API authentication:** Bearer JWT (`TOKEN_SECRET`) for scripture diagnostics vs session + DB `admin` role for other admin routes
 - `deployment/neon-account-setup.md`
   - Neon account/project/database setup checklist
 - `deployment/render-account-setup.md`
