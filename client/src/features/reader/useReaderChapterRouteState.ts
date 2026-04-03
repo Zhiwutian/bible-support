@@ -5,6 +5,7 @@ import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
 import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
 import { getInitialReaderChapterState } from '@/features/reader/last-reader-location';
+import { loadPreferredTranslation } from '@/lib/preferred-translation';
 
 type UseReaderChapterRouteStateArgs = {
   searchParams: URLSearchParams;
@@ -57,11 +58,15 @@ export function useReaderChapterRouteState({
     ) {
       return;
     }
-    const t = urlTrans as ScriptureTranslationCode;
     const clampedChapter = Math.min(urlChapter, getMaxChaptersForBook(urlBook));
+    const preferred = loadPreferredTranslation();
+    const resolvedTranslation =
+      preferred ?? (urlTrans as ScriptureTranslationCode);
     setBook((prev) => (prev === urlBook ? prev : urlBook));
     setChapter((prev) => (prev === clampedChapter ? prev : clampedChapter));
-    setTranslation((prev) => (prev === t ? prev : t));
+    setTranslation((prev) =>
+      prev === resolvedTranslation ? prev : resolvedTranslation,
+    );
   }, [searchParams]);
 
   const maxChapterForBook = useMemo(() => getMaxChaptersForBook(book), [book]);

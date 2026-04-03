@@ -3,6 +3,10 @@ import { BIBLE_BOOKS } from '@shared/bible-books';
 import { getMaxChaptersForBook } from '@shared/bible-book-chapter-counts';
 import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
+import {
+  loadPreferredTranslation,
+  seedPreferredTranslationFromReaderUrlIfNeeded,
+} from '@/lib/preferred-translation';
 
 export const LAST_READER_LOCATION_KEY = 'reader:last-location:v1';
 
@@ -119,12 +123,31 @@ export function loadLastReaderLocation(): LastReaderLocation | null {
   return null;
 }
 
+function resolveReaderTranslation(
+  urlTransRaw: string,
+  stored: LastReaderLocation | null,
+): ScriptureTranslationCode {
+  const preferred = loadPreferredTranslation();
+  if (preferred !== null) return preferred;
+  if (urlTransRaw && isValidTranslation(urlTransRaw)) {
+    return urlTransRaw;
+  }
+  if (stored && isValidTranslation(stored.translation)) {
+    return stored.translation;
+  }
+  return 'KJV';
+}
+
 /**
  * Resolve initial book/chapter/translation from the URL, else session last-reader, else defaults.
+ * Seeds global translation preference from the URL once when storage is empty; saved preference
+ * overrides URL `translation` when set.
  */
 export function getInitialReaderChapterState(
   searchParams: URLSearchParams,
 ): ReaderChapterInitialState {
+  seedPreferredTranslationFromReaderUrlIfNeeded(searchParams);
+
   const urlBook = searchParams.get('book');
   const urlChapter = Number(searchParams.get('chapter') ?? '');
   const urlTrans = searchParams.get('translation')?.toUpperCase() ?? '';
@@ -137,10 +160,11 @@ export function getInitialReaderChapterState(
     urlTrans &&
     isValidTranslation(urlTrans)
   ) {
+    const stored = loadLastReaderLocation();
     return {
       book: urlBook,
       chapter: clampChapterForBook(urlBook, urlChapter),
-      translation: urlTrans,
+      translation: resolveReaderTranslation(urlTrans, stored),
     };
   }
 
@@ -149,14 +173,14 @@ export function getInitialReaderChapterState(
     return {
       book: stored.book,
       chapter: clampChapterForBook(stored.book, stored.chapter),
-      translation: stored.translation as ScriptureTranslationCode,
+      translation: resolveReaderTranslation('', stored),
     };
   }
 
   return {
     book: BIBLE_BOOKS[0],
     chapter: 1,
-    translation: 'KJV',
+    translation: loadPreferredTranslation() ?? 'KJV',
   };
 }
 
@@ -167,7 +191,8 @@ export function getLastReaderTo(): string {
   const p = new URLSearchParams();
   p.set('book', loc.book);
   p.set('chapter', String(loc.chapter));
-  p.set('translation', loc.translation);
+  const translation = loadPreferredTranslation() ?? loc.translation;
+  p.set('translation', translation);
   if (loc.verse != null && loc.verse > 0) {
     p.set('verse', String(loc.verse));
   }

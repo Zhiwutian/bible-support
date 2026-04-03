@@ -4,7 +4,7 @@ import { ToastProvider } from '@/components/app/ToastProvider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import App from './App';
-import { AppStateProvider } from '@/state';
+import { AppStateProvider, PreferredTranslationProvider } from '@/state';
 import { MemoryRouter } from 'react-router-dom';
 import { server } from '@/test/server';
 import { isPrivacySafeReaderComfortRolloutPayload } from '@/features/reader/reader-comfort-telemetry';
@@ -14,7 +14,9 @@ function renderApp(initialEntries: string[] = ['/']) {
     <MemoryRouter initialEntries={initialEntries}>
       <ToastProvider>
         <AppStateProvider>
-          <App />
+          <PreferredTranslationProvider>
+            <App />
+          </PreferredTranslationProvider>
         </AppStateProvider>
       </ToastProvider>
     </MemoryRouter>,
@@ -160,6 +162,59 @@ describe('App', () => {
         name: /for god so loved the world/i,
       }),
     ).toBeInTheDocument();
+  });
+
+  it('verse click does not open reader tools dialog', async () => {
+    const user = userEvent.setup();
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      }),
+    );
+    expect(
+      screen.queryByRole('dialog', { name: 'Reader tools' }),
+    ).not.toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /john 3:16/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('reader tools opens sheet and full screen shows exit control', async () => {
+    const requestFullscreenMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+      configurable: true,
+      value: requestFullscreenMock,
+    });
+    const user = userEvent.setup();
+    try {
+      renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+      await continueAsGuest(user);
+
+      await screen.findByRole('button', {
+        name: /for god so loved the world/i,
+      });
+      await user.click(screen.getByRole('button', { name: /^Reader tools$/i }));
+      expect(
+        await screen.findByRole('dialog', { name: 'Reader tools' }),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /^Full screen$/i }));
+      expect(requestFullscreenMock).toHaveBeenCalled();
+      expect(
+        await screen.findByRole('button', { name: /exit full screen/i }),
+      ).toBeInTheDocument();
+      await user.click(
+        screen.getByRole('button', { name: /exit full screen/i }),
+      );
+      expect(
+        screen.queryByRole('button', { name: /exit full screen/i }),
+      ).not.toBeInTheDocument();
+    } finally {
+      delete (HTMLElement.prototype as { requestFullscreen?: unknown })
+        .requestFullscreen;
+    }
   });
 
   it('moves reader chapter forward with next button', async () => {
@@ -502,53 +557,21 @@ describe('App', () => {
     randomSpy.mockRestore();
   });
 
-  it('does not show stale context errors after changing scripture', async () => {
-    let contextRequestCount = 0;
-    server.use(
-      http.get('/api/scripture-context', ({ request }) => {
-        contextRequestCount += 1;
-        const url = new URL(request.url);
-        const reference = url.searchParams.get('reference') ?? '';
-        if (contextRequestCount === 1) {
-          return HttpResponse.json(
-            {
-              error: {
-                code: 'internal_error',
-                message: 'context request failed',
-              },
-            },
-            { status: 500 },
-          );
-        }
-        return HttpResponse.json({
-          data: {
-            reference,
-            chapterReference: reference.split(':')[0] ?? reference,
-            summary: 'Recovered context response',
-            fullContext: 'Recovered context response',
-            sourceName: 'Seeded Study Context',
-            sourceUrl: '',
-            isFallback: false,
-          },
-        });
-      }),
-    );
+  it('shows outbound study links on support scripture view', async () => {
     const user = userEvent.setup();
     renderApp();
     await continueAsGuest(user);
 
     await user.click(await screen.findByRole('link', { name: 'I Am Afraid' }));
-    await user.click(
-      await screen.findByRole('button', { name: 'Learn context' }),
-    );
-    expect(
-      await screen.findByText(/Could not load context right now/i),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: '← Previous' }));
-    expect(
-      screen.queryByText(/Could not load context right now/i),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText(/study online/i)).toBeInTheDocument();
+    const bibleCom = await screen.findByRole('link', {
+      name: /open passage on bible.com/i,
+    });
+    expect(bibleCom.getAttribute('href')).toContain('bible.com');
+    const bgw = screen.getByRole('link', {
+      name: /open passage on biblegateway/i,
+    });
+    expect(bgw.getAttribute('href')).toContain('biblegateway.com');
   });
 
   it('keeps the current scripture when translation changes', async () => {

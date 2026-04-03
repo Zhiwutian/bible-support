@@ -29,11 +29,13 @@ import {
   searchScriptures,
   toSavePayload,
 } from '@/features/search/scripture-search-api';
+import { loadPreferredTranslation } from '@/lib/preferred-translation';
 import {
   readRouteState,
   searchPageRouteStateSchema,
   writeRouteState,
 } from '@/lib/route-session-state';
+import { usePreferredTranslation } from '@/state';
 
 const SEARCH_ROUTE_PATH = '/search';
 
@@ -41,6 +43,8 @@ const SEARCH_ROUTE_PATH = '/search';
 export function SearchPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { preferredTranslation, setPreferredTranslation } =
+    usePreferredTranslation();
   const [mode, setMode] = useState<ScriptureSearchMode>('guided');
   const [translation, setTranslation] =
     useState<ScriptureTranslationCode>('KJV');
@@ -107,12 +111,13 @@ export function SearchPage() {
     const saved = readRouteState(SEARCH_ROUTE_PATH, searchPageRouteStateSchema);
     if (saved) {
       setMode(saved.mode);
-      const tr = SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
+      const fromSession = SUPPORTED_SCRIPTURE_TRANSLATIONS.includes(
         saved.translation as ScriptureTranslationCode,
       )
         ? (saved.translation as ScriptureTranslationCode)
         : 'KJV';
-      setTranslation(tr);
+      const storedPref = loadPreferredTranslation();
+      setTranslation(storedPref !== null ? storedPref : fromSession);
       if (BIBLE_BOOKS.includes(saved.book as (typeof BIBLE_BOOKS)[number])) {
         setBook(saved.book as (typeof BIBLE_BOOKS)[number]);
       }
@@ -128,6 +133,11 @@ export function SearchPage() {
     }
     setSearchRouteHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (preferredTranslation === null) return;
+    setTranslation(preferredTranslation);
+  }, [preferredTranslation]);
 
   const persistSearchRouteState = useCallback(() => {
     writeRouteState(SEARCH_ROUTE_PATH, {
@@ -347,9 +357,11 @@ export function SearchPage() {
               <select
                 className="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2"
                 value={translation}
-                onChange={(event) =>
-                  setTranslation(event.target.value as ScriptureTranslationCode)
-                }>
+                onChange={(event) => {
+                  const next = event.target.value as ScriptureTranslationCode;
+                  setTranslation(next);
+                  setPreferredTranslation(next);
+                }}>
                 {SUPPORTED_SCRIPTURE_TRANSLATIONS.map((translationCode) => (
                   <option key={translationCode} value={translationCode}>
                     {translationCode}

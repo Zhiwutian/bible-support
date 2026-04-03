@@ -4,7 +4,7 @@ import { axe, toHaveNoViolations } from 'jest-axe';
 import { ToastProvider } from '@/components/app/ToastProvider';
 import { beforeEach, describe, expect, it } from 'vitest';
 import App from './App';
-import { AppStateProvider } from '@/state';
+import { AppStateProvider, PreferredTranslationProvider } from '@/state';
 import { MemoryRouter } from 'react-router-dom';
 
 expect.extend(toHaveNoViolations);
@@ -14,7 +14,9 @@ function renderApp(initialEntries: string[] = ['/']) {
     <MemoryRouter initialEntries={initialEntries}>
       <ToastProvider>
         <AppStateProvider>
-          <App />
+          <PreferredTranslationProvider>
+            <App />
+          </PreferredTranslationProvider>
         </AppStateProvider>
       </ToastProvider>
     </MemoryRouter>,

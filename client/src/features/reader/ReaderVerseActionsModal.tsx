@@ -1,10 +1,13 @@
 import { Button, ModalShell } from '@/components/ui';
+import { cn } from '@/lib';
 
 type ReaderVerseActionsModalProps = {
   isOpen: boolean;
   reference: string;
   hasSavedNote: boolean;
   isVerseAlreadySaved: boolean;
+  /** When true, backdrop stacks above reader immersive shell (z-[60]). */
+  stackAboveImmersiveReader?: boolean;
   onClose: () => void;
   onBookmarkHere: () => void;
   onSaveVerse: () => void;
@@ -20,6 +23,7 @@ export function ReaderVerseActionsModal({
   reference,
   hasSavedNote,
   isVerseAlreadySaved,
+  stackAboveImmersiveReader = false,
   onClose,
   onBookmarkHere,
   onSaveVerse,
@@ -33,7 +37,7 @@ export function ReaderVerseActionsModal({
       title={reference}
       titleId="reader-verse-actions-title"
       onClose={onClose}
-      className="p-0 md:p-4"
+      className={cn('p-0 md:p-4', stackAboveImmersiveReader && 'z-[70]')}
       panelClassName="w-full max-w-none rounded-t-2xl rounded-b-none border-x-0 border-b-0 pb-[max(1rem,env(safe-area-inset-bottom))] md:max-w-md md:rounded-md md:border md:border-slate-200 md:pb-4">
       <div className="mt-3 space-y-3">
         <p className="text-sm text-slate-600">

@@ -1,4 +1,5 @@
 import { Button, ModalShell } from '@/components/ui';
+import { cn } from '@/lib';
 
 type ReaderNoteModalProps = {
   isOpen: boolean;
@@ -6,6 +7,8 @@ type ReaderNoteModalProps = {
   noteDraft: string;
   noteSaveError: string;
   isNoteSaving: boolean;
+  /** When true, backdrop stacks above reader immersive shell (z-[60]). */
+  stackAboveImmersiveReader?: boolean;
   onClose: () => void;
   onNoteDraftChange: (nextValue: string) => void;
   onSaveNote: () => void;
@@ -20,6 +23,7 @@ export function ReaderNoteModal({
   noteDraft,
   noteSaveError,
   isNoteSaving,
+  stackAboveImmersiveReader = false,
   onClose,
   onNoteDraftChange,
   onSaveNote,
@@ -31,6 +35,7 @@ export function ReaderNoteModal({
       title={`Note for ${reference}`}
       titleId="reader-note-modal-title"
       onClose={onClose}
+      className={cn(stackAboveImmersiveReader && 'z-[70]')}
       panelClassName="max-w-lg">
       <div className="mt-3 space-y-3">
         <p className="text-sm text-slate-600">

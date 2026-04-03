@@ -39,7 +39,7 @@ export function TutorialPage() {
       />
       <Suspense
         fallback={
-          <p className="text-sm text-slate-600" role="status">
+          <p className="text-sm text-slate-600 tutorial-prose" role="status">
             Loading tutorial sections…
           </p>
         }>

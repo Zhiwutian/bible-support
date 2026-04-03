@@ -14,8 +14,9 @@ export function TutorialCallout({
 }: Props) {
   return (
     <aside
+      data-variant={variant}
       className={cn(
-        'rounded-lg border px-4 py-3 text-sm leading-relaxed',
+        'tutorial-callout rounded-lg border px-4 py-3 text-sm leading-relaxed',
         variant === 'info' && 'border-indigo-200 bg-indigo-50 text-indigo-950',
         variant === 'tip' && 'border-amber-200 bg-amber-50 text-amber-950',
         className,

@@ -34,3 +34,5 @@ Current proposals:
 - `reader-comfort-customization-research.md`
 - `reader-styles-bookmarks-account-sync.md`
 - `bible-support-reader-ui-hybrid.md` — hybrid reader (`/reader` + embedded `ReaderSurface`), Full Context → Reader, mobile overflow, prayer confirm modal, saved/support emphasis in chapter
+- `reader-mobile-fullscreen.md` — reader tools sheet + full viewport / Fullscreen API + safe-area fallback on **all viewports** (responsive sheet layout); verse click isolation
+- `translation-support-tutorial-study-links.md` — global translation preference (localStorage, overrides URL), tutorial dark-mode prose, support scripture layout (no swipe), outbound Bible.com/BibleGateway study links (no YouVersion study API)

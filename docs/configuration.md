@@ -60,3 +60,7 @@ For split-host auth cookies in production, use:
 - Email is intentionally not persisted in local auth tables.
 - Auth audit logs are designed to exclude token/cookie/secret values.
 - **Guest saved scriptures** are scoped by the **`x-device-id`** header for anonymous users. Anyone who can send the same id can access that guest’s saved items over the API — see **`docs/verse-search-save.md`** (_Guest `x-device-id` (threat model)_). Prefer **sign-in** when users need account-owned data.
+
+## Client preferences (localStorage)
+
+- **`app:preferred-translation:v1`** — global Bible translation (KJV, ASV, WEB). Once set, it overrides the Reader `translation` query after the first visit (the URL seeds this key only when it was previously unset). Support, Search, and Reader all read/write this preference.
