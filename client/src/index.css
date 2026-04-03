@@ -376,6 +376,15 @@ body {
   border-color: var(--reader-border);
 }
 
+/*
+ * Immersive reader: bottom chapter bar clearance for the scrollable column.
+ * Align with `BibleReaderPage` bottom chrome (≈ two min-h-11 rows + pt-2 + border);
+ * bump if that bar grows or wraps more lines.
+ */
+.reader-immersive-shell {
+  --reader-immersive-bottom-chrome-pad: 5.25rem;
+}
+
 .reader-chapter-text {
   color: var(--reader-text);
   font-family: var(--reader-font-family);
@@ -459,6 +468,25 @@ body {
 }
 
 /*
+ * ─── index.css section map (maintenance) ─────────────────────────────────────
+ * 1) @import tailwind; :root scale tokens; body.
+ * 2) .app-brand-title* breakpoints; mobile native select sizing.
+ * 3) .app-text-scale-* — shell font-size + remapped .text-* steps; form controls.
+ * 4) .ui-modal-* — shared modal layout utilities.
+ * 5) .reader-* — theme/size/spacing tokens; .reader-content / .reader-chapter-text;
+ *    immersive --reader-immersive-bottom-chrome-pad; verse hover; break reminder.
+ * 6) GLOBAL DISPLAY MODES — .app-high-contrast / .app-dark-mode blocks use
+ *    substring class matching and !important; order and specificity matter.
+ * 6a) Reader: keep reader variables on .reader-content / .reader-chapter-text first.
+ * 6b) High contrast — slate/sky/bg-white shell overrides (black/white/gray).
+ * 6c) Dark mode — slate text; .emotion-support-page hue utilities; surfaces/
+ *     borders/hover; .reader-root rescopes; .ui-modal-panel; tutorial callouts.
+ * 7) Global cursor rules (must stay after .app-text-scale-* form rules; stylelint).
+ * 8) .reader-root button.reader-verse-paragraph — reader font tokens on verse rows.
+ * ───────────────────────────────────────────────────────────────────────────
+ */
+
+/*
  * High-contrast mode overrides common Tailwind slate/sky tokens used across
  * pages and shared components. Scope stays local to the app shell.
  */
@@ -492,6 +520,20 @@ body {
  */
 .app-dark-mode [class*='text-slate-'] {
   color: #e5e7eb !important;
+}
+
+/*
+ * Emotion Support (home + scripture viewer): themes use non-slate `text-{hue}-*`
+ * utilities that the slate-only dark rule above does not touch, leaving ink too dark.
+ */
+.app-dark-mode .emotion-support-page [class*='text-indigo-'],
+.app-dark-mode .emotion-support-page [class*='text-red-'],
+.app-dark-mode .emotion-support-page [class*='text-blue-'],
+.app-dark-mode .emotion-support-page [class*='text-amber-'],
+.app-dark-mode .emotion-support-page [class*='text-violet-'],
+.app-dark-mode .emotion-support-page [class*='text-orange-'],
+.app-dark-mode .emotion-support-page [class*='text-teal-'] {
+  color: #f8fafc !important;
 }
 
 /* Softer secondary copy on prayer insights card (global dark rule above is very bright). */
@@ -625,7 +667,14 @@ input[type='radio'] {
 }
 /* stylelint-enable no-descending-specificity, selector-not-notation */
 
-/* Full-width verse rows are native <button>; reinforce for theme/hover stacking. */
+/*
+ * Full-width verse rows are native <button>. Match .reader-chapter-text typography
+ * explicitly so reader font size / line height apply (inherit can lose to shell
+ * form-control rules such as .app-text-scale-sm button).
+ */
 .reader-root button[type='button'].reader-verse-paragraph {
   cursor: pointer !important;
+  font-family: var(--reader-font-family);
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
 }

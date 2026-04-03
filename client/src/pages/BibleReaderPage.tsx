@@ -1,4 +1,11 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
@@ -101,6 +108,9 @@ function buildCleanParagraphs(
   return chunks;
 }
 
+/** Delay before showing Exit in immersive mode unless user scrolls/taps (skipped if reduced motion). */
+const IMMERSIVE_EXIT_REVEAL_DELAY_MS = 4000;
+
 /** Render chapter reader view with URL-synced book/chapter/translation state. */
 export function BibleReaderPage() {
   const navigate = useNavigate();
@@ -111,6 +121,8 @@ export function BibleReaderPage() {
   const hasRestoredInitialBookmarkRef = useRef(false);
   const suppressSessionScrollRef = useRef(false);
   const sessionScrollRestoredKeyRef = useRef<string | null>(null);
+  /** Next session scroll restore for this chapter should start at top (prev/next chapter nav). */
+  const forceReaderScrollTopAfterNavRef = useRef(false);
   const fromEmotion = searchParams.get('fromEmotion')?.trim() ?? '';
   const fromScriptureId = Number(searchParams.get('fromScriptureId') ?? '');
   const fromTranslation = searchParams.get('fromTranslation')?.toUpperCase();
@@ -214,6 +226,104 @@ export function BibleReaderPage() {
   const [immersiveModalHostEl, setImmersiveModalHostEl] =
     useState<HTMLDivElement | null>(null);
 
+  const [immersiveExitRevealed, setImmersiveExitRevealed] = useState(false);
+  const [immersiveBottomChromeVisible, setImmersiveBottomChromeVisible] =
+    useState(true);
+  /** Browser timer id (`window.setTimeout`); typed as `number` to avoid Node/DOM `setTimeout` merge conflicts. */
+  const immersiveExitRevealTimeoutRef = useRef<number | null>(null);
+  const immersiveExitRevealTrackedRef = useRef(false);
+  /** Skip hiding chrome on programmatic scroll (chapter change / session restore). */
+  const suppressImmersiveChromeHideOnScrollRef = useRef(false);
+  /** Only the latest scheduled clear runs (avoids stacked double-rAF clearing suppress early). */
+  const immersiveScrollSuppressClearGenRef = useRef(0);
+
+  const scheduleClearImmersiveChromeScrollSuppress = useCallback(() => {
+    const generation = ++immersiveScrollSuppressClearGenRef.current;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (immersiveScrollSuppressClearGenRef.current === generation) {
+          suppressImmersiveChromeHideOnScrollRef.current = false;
+        }
+      });
+    });
+  }, []);
+
+  const clearImmersiveExitRevealTimeout = useCallback(() => {
+    if (immersiveExitRevealTimeoutRef.current !== null) {
+      clearTimeout(immersiveExitRevealTimeoutRef.current);
+      immersiveExitRevealTimeoutRef.current = null;
+    }
+  }, []);
+
+  const revealImmersiveExitControl = useCallback(
+    (reason: 'pointer' | 'timeout') => {
+      if (immersiveExitRevealTimeoutRef.current !== null) {
+        clearTimeout(immersiveExitRevealTimeoutRef.current);
+        immersiveExitRevealTimeoutRef.current = null;
+      }
+      setImmersiveExitRevealed((prev) => {
+        if (prev) return prev;
+        if (!immersiveExitRevealTrackedRef.current) {
+          immersiveExitRevealTrackedRef.current = true;
+          trackEvent('reader_immersive_exit_revealed', { reason });
+        }
+        return true;
+      });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isImmersiveReader) {
+      clearImmersiveExitRevealTimeout();
+      /* Reset chrome visibility when leaving immersive (any exit path: button, Esc, native FS). */
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync UI state to fullscreen hook
+      setImmersiveExitRevealed(false);
+      setImmersiveBottomChromeVisible(true);
+      immersiveExitRevealTrackedRef.current = false;
+      return;
+    }
+    clearImmersiveExitRevealTimeout();
+    setImmersiveExitRevealed(false);
+    setImmersiveBottomChromeVisible(true);
+    immersiveExitRevealTrackedRef.current = false;
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const delayMs = reduceMotion ? 0 : IMMERSIVE_EXIT_REVEAL_DELAY_MS;
+    if (delayMs === 0) {
+      revealImmersiveExitControl('timeout');
+    } else {
+      immersiveExitRevealTimeoutRef.current = window.setTimeout(() => {
+        immersiveExitRevealTimeoutRef.current = null;
+        revealImmersiveExitControl('timeout');
+      }, delayMs);
+    }
+    return () => {
+      clearImmersiveExitRevealTimeout();
+    };
+  }, [
+    isImmersiveReader,
+    clearImmersiveExitRevealTimeout,
+    revealImmersiveExitControl,
+  ]);
+
+  useEffect(() => {
+    if (!isImmersiveReader) return;
+    const el = readerContainerRef.current;
+    if (!el) return;
+    function onScroll(ev: Event) {
+      if (suppressImmersiveChromeHideOnScrollRef.current) return;
+      if (ev instanceof UIEvent && ev.isTrusted === false) return;
+      setImmersiveBottomChromeVisible(false);
+    }
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+    };
+  }, [isImmersiveReader, book, chapter, translation]);
+
   useEffect(() => {
     const verseRaw = searchParams.get('verse');
     const v = verseRaw ? Number(verseRaw) : NaN;
@@ -229,6 +339,12 @@ export function BibleReaderPage() {
     suppressSessionScrollRef.current = false;
     sessionScrollRestoredKeyRef.current = null;
   }, [book, chapter, translation]);
+
+  useEffect(() => {
+    return () => {
+      sessionScrollRestoredKeyRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (
@@ -304,7 +420,9 @@ export function BibleReaderPage() {
     function tryApplyBookmarkScroll() {
       const el = readerContainerRef.current;
       if (el) {
+        suppressImmersiveChromeHideOnScrollRef.current = true;
         el.scrollTop = scrollTarget.scrollOffset;
+        scheduleClearImmersiveChromeScrollSuppress();
         if (pending) {
           pendingJumpBookmarkRef.current = null;
         }
@@ -319,7 +437,7 @@ export function BibleReaderPage() {
       // pendingJumpBookmarkRef until a later effect run when the ref exists.
     }
     requestAnimationFrame(tryApplyBookmarkScroll);
-  }, [bookmark, payload]);
+  }, [bookmark, payload, scheduleClearImmersiveChromeScrollSuppress]);
 
   useEffect(() => {
     if (!payload) return;
@@ -344,33 +462,53 @@ export function BibleReaderPage() {
     });
     if (!match) return;
     suppressSessionScrollRef.current = true;
+    suppressImmersiveChromeHideOnScrollRef.current = true;
     match.scrollIntoView({ block: 'center' });
     pendingVerseFromUrlRef.current = null;
-  }, [payload, readerPreferences.readingStyle]);
+    scheduleClearImmersiveChromeScrollSuppress();
+  }, [
+    payload,
+    readerPreferences.readingStyle,
+    scheduleClearImmersiveChromeScrollSuppress,
+  ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!payload || !readerContainerRef.current) return;
+    if (payload.book !== book || payload.chapter !== chapter) return;
     const key = `${book}|${chapter}|${translation}`;
     if (sessionScrollRestoredKeyRef.current === key) return;
     if (suppressSessionScrollRef.current) {
       sessionScrollRestoredKeyRef.current = key;
       return;
     }
-    const saved = loadReaderScrollPosition(book, chapter, translation);
-    if (saved == null) {
-      sessionScrollRestoredKeyRef.current = key;
-      return;
+    const forceTop = forceReaderScrollTopAfterNavRef.current;
+    if (forceTop) {
+      forceReaderScrollTopAfterNavRef.current = false;
     }
-    requestAnimationFrame(() => {
-      if (!readerContainerRef.current) return;
-      readerContainerRef.current.scrollTop = saved;
-    });
+    const saved = forceTop
+      ? null
+      : loadReaderScrollPosition(book, chapter, translation);
+    const el = readerContainerRef.current;
+    suppressImmersiveChromeHideOnScrollRef.current = true;
+    if (saved != null) {
+      el.scrollTop = saved;
+    } else {
+      el.scrollTop = 0;
+    }
     sessionScrollRestoredKeyRef.current = key;
-  }, [payload, book, chapter, translation]);
+    scheduleClearImmersiveChromeScrollSuppress();
+  }, [
+    payload,
+    book,
+    chapter,
+    translation,
+    scheduleClearImmersiveChromeScrollSuppress,
+  ]);
 
   useEffect(() => {
     const el = readerContainerRef.current;
     if (!el || !payload) return;
+    if (payload.book !== book || payload.chapter !== chapter) return;
     let timeoutId: number | undefined;
     function flushScrollSave() {
       const node = readerContainerRef.current;
@@ -401,16 +539,25 @@ export function BibleReaderPage() {
   useEffect(() => {
     function onPageShow(ev: PageTransitionEvent) {
       if (!ev.persisted) return;
+      if (!isImmersiveReader) return;
       const el = readerContainerRef.current;
       if (!el) return;
       const saved = loadReaderScrollPosition(book, chapter, translation);
       if (saved != null) {
+        suppressImmersiveChromeHideOnScrollRef.current = true;
         el.scrollTop = saved;
+        scheduleClearImmersiveChromeScrollSuppress();
       }
     }
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
-  }, [book, chapter, translation]);
+  }, [
+    book,
+    chapter,
+    translation,
+    isImmersiveReader,
+    scheduleClearImmersiveChromeScrollSuppress,
+  ]);
 
   useEffect(() => {
     if (!payload && isImmersiveReader) {
@@ -458,9 +605,11 @@ export function BibleReaderPage() {
   useLayoutEffect(() => {
     const el = readerContainerRef.current;
     if (el) {
+      suppressImmersiveChromeHideOnScrollRef.current = true;
       el.scrollTop = savedReaderScrollRef.current;
+      scheduleClearImmersiveChromeScrollSuppress();
     }
-  }, [isImmersiveReader]);
+  }, [isImmersiveReader, scheduleClearImmersiveChromeScrollSuppress]);
 
   useEffect(() => {
     if (!verseActionTarget && !noteModalTarget && !isOptionsModalOpen) return;
@@ -568,6 +717,17 @@ export function BibleReaderPage() {
     const el = readerContainerRef.current;
     if (el) savedReaderScrollRef.current = el.scrollTop;
     exitImmersiveReader();
+  }
+
+  function navigateReaderChapter(nextBook: string, nextChapter: number) {
+    forceReaderScrollTopAfterNavRef.current = true;
+    suppressImmersiveChromeHideOnScrollRef.current = true;
+    scheduleClearImmersiveChromeScrollSuppress();
+    setImmersiveBottomChromeVisible(true);
+    setIsLoading(true);
+    setError('');
+    setBook(nextBook);
+    setChapter(nextChapter);
   }
 
   function isBookmarkedVerse(verse: number): boolean {
@@ -734,30 +894,12 @@ export function BibleReaderPage() {
         description="Read one chapter at a time, save your place, and use verse actions when you need them."
       />
       {canReturnToSupportVerse && (
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4">
           <Button
             variant="ghost"
             className="min-h-11"
             onClick={handleBackToSupportVerse}>
             Back to Support Verse
-          </Button>
-          {isReaderComfortEnabled && (
-            <Button
-              variant="primary"
-              className="min-h-11"
-              onClick={handleOpenOptionsModal}>
-              Options
-            </Button>
-          )}
-        </div>
-      )}
-      {isReaderComfortEnabled && !canReturnToSupportVerse && (
-        <div className="mb-4">
-          <Button
-            variant="primary"
-            className="min-h-11"
-            onClick={handleOpenOptionsModal}>
-            Options
           </Button>
         </div>
       )}
@@ -865,18 +1007,53 @@ export function BibleReaderPage() {
           {isImmersiveReader ? (
             <div
               ref={immersiveContainerRef}
+              data-testid="reader-immersive-shell"
+              onPointerDownCapture={() => {
+                setImmersiveBottomChromeVisible(true);
+                revealImmersiveExitControl('pointer');
+              }}
               className={cn(
                 readerRootClassName,
                 'reader-immersive-shell fixed inset-0 z-[60] flex max-h-[100dvh] flex-col overflow-hidden',
                 'pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
-                'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+                'pt-[env(safe-area-inset-top)]',
               )}>
-              <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--reader-border)] bg-[var(--reader-bg)] px-2 py-2">
-                {isLoading ? (
-                  <span className="w-full text-center text-sm text-[var(--reader-text)] opacity-80 sm:w-auto sm:flex-1 sm:text-left">
+              {isLoading ? (
+                <div className="flex shrink-0 justify-center border-b border-[var(--reader-border)] bg-[var(--reader-bg)] px-2 py-2">
+                  <span className="text-center text-sm text-[var(--reader-text)] opacity-80">
                     Loading chapter…
                   </span>
-                ) : null}
+                </div>
+              ) : null}
+              <div className="relative min-h-0 flex flex-1 flex-col">
+                <div
+                  ref={readerContainerRef}
+                  data-testid="reader-immersive-scroll"
+                  className={cn(
+                    'reader-content min-h-0 flex-1 overflow-y-auto p-3 text-[var(--reader-text)]',
+                    immersiveBottomChromeVisible &&
+                      'pb-[var(--reader-immersive-bottom-chrome-pad)]',
+                  )}>
+                  {readerChapter}
+                </div>
+              </div>
+              <div
+                ref={setImmersiveModalHostEl}
+                className="pointer-events-none absolute inset-0 z-[70] [&>*]:pointer-events-auto"
+              />
+              <div
+                data-testid="reader-immersive-bottom-chrome"
+                aria-hidden={immersiveBottomChromeVisible ? undefined : true}
+                className={cn(
+                  'pointer-events-auto absolute bottom-0 left-0 right-0 z-[75] flex flex-wrap items-center gap-2 border-t border-[var(--reader-border)] bg-[var(--reader-bg)] px-2 pt-2 shadow-[0_-6px_16px_rgba(0,0,0,0.06)]',
+                  'motion-safe:transition-[transform,opacity] motion-safe:duration-200 motion-safe:ease-out',
+                  immersiveBottomChromeVisible
+                    ? 'translate-y-0 opacity-100'
+                    : 'pointer-events-none translate-y-full opacity-0',
+                )}
+                style={{
+                  paddingBottom: `max(0.5rem, env(safe-area-inset-bottom, 0px))`,
+                }}>
                 <Button
                   type="button"
                   variant="ghost"
@@ -884,10 +1061,10 @@ export function BibleReaderPage() {
                   disabled={!payload.hasPrevious || isLoading}
                   onClick={() => {
                     if (!payload.previousChapter) return;
-                    setIsLoading(true);
-                    setError('');
-                    setBook(payload.previousChapter.book);
-                    setChapter(payload.previousChapter.chapter);
+                    navigateReaderChapter(
+                      payload.previousChapter.book,
+                      payload.previousChapter.chapter,
+                    );
                   }}>
                   ← Previous chapter
                 </Button>
@@ -898,30 +1075,23 @@ export function BibleReaderPage() {
                   disabled={!payload.hasNext || isLoading}
                   onClick={() => {
                     if (!payload.nextChapter) return;
-                    setIsLoading(true);
-                    setError('');
-                    setBook(payload.nextChapter.book);
-                    setChapter(payload.nextChapter.chapter);
+                    navigateReaderChapter(
+                      payload.nextChapter.book,
+                      payload.nextChapter.chapter,
+                    );
                   }}>
                   Next chapter →
                 </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  className="min-h-11 w-full sm:ml-auto sm:w-auto"
-                  onClick={handleExitImmersiveReader}>
-                  Exit full screen
-                </Button>
+                {immersiveExitRevealed ? (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="min-h-11 w-full sm:ml-auto sm:w-auto"
+                    onClick={handleExitImmersiveReader}>
+                    Exit full screen
+                  </Button>
+                ) : null}
               </div>
-              <div
-                ref={readerContainerRef}
-                className="reader-content min-h-0 flex-1 overflow-y-auto p-3 text-[var(--reader-text)]">
-                {readerChapter}
-              </div>
-              <div
-                ref={setImmersiveModalHostEl}
-                className="pointer-events-none absolute inset-0 z-[70] [&>*]:pointer-events-auto"
-              />
             </div>
           ) : (
             <Card className="-mx-6 space-y-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
@@ -951,8 +1121,8 @@ export function BibleReaderPage() {
               <div className="flex justify-center">
                 <Button
                   type="button"
-                  variant="ghost"
-                  className="min-h-11 text-sm"
+                  variant="primary"
+                  className="min-h-11 w-full max-w-sm px-6 py-3 text-base font-semibold sm:w-auto"
                   onClick={handleReaderToolsButtonClick}>
                   Reader tools
                 </Button>
@@ -980,17 +1150,17 @@ export function BibleReaderPage() {
                 hasNext={payload.hasNext}
                 onPreviousChapter={() => {
                   if (!payload.previousChapter) return;
-                  setIsLoading(true);
-                  setError('');
-                  setBook(payload.previousChapter.book);
-                  setChapter(payload.previousChapter.chapter);
+                  navigateReaderChapter(
+                    payload.previousChapter.book,
+                    payload.previousChapter.chapter,
+                  );
                 }}
                 onNextChapter={() => {
                   if (!payload.nextChapter) return;
-                  setIsLoading(true);
-                  setError('');
-                  setBook(payload.nextChapter.book);
-                  setChapter(payload.nextChapter.chapter);
+                  navigateReaderChapter(
+                    payload.nextChapter.book,
+                    payload.nextChapter.chapter,
+                  );
                 }}
               />
             </Card>

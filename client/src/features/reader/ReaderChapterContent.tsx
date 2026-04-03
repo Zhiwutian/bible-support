@@ -68,14 +68,14 @@ export function ReaderChapterContent({
               event.stopPropagation();
               onOpenVerseActions(verse.verse, verse.verseText);
             }}>
-            <sup className="mr-1 align-super text-xs font-semibold">
+            <sup className="mr-1 align-super text-[0.75em] font-semibold leading-none">
               {verse.verse}
             </sup>
             {formatVerseText(verse.verseText)}
             {hasSavedNoteForVerse(verse.verse) ? (
               <sup
                 aria-label={`Has note for ${book} ${chapter}:${verse.verse}`}
-                className="ml-1 align-super text-[0.65rem] font-semibold text-indigo-700">
+                className="ml-1 align-super text-[0.55em] font-semibold leading-none text-indigo-700">
                 n
               </sup>
             ) : null}
@@ -121,14 +121,14 @@ export function ReaderChapterContent({
                   event.stopPropagation();
                   onOpenVerseActions(entry.verse, entry.verseText);
                 }}>
-                <sup className="mr-1 align-super text-xs font-semibold text-indigo-700">
+                <sup className="mr-1 align-super text-[0.75em] font-semibold leading-none text-indigo-700">
                   {entry.verse}
                 </sup>
                 {entry.verseText}
                 {hasSavedNoteForVerse(entry.verse) ? (
                   <sup
                     aria-label={`Has note for ${book} ${chapter}:${entry.verse}`}
-                    className="ml-1 mr-1 align-super text-[0.55rem] font-semibold text-indigo-700">
+                    className="ml-1 mr-1 align-super text-[0.5em] font-semibold leading-none text-indigo-700">
                     n
                   </sup>
                 ) : null}{' '}
@@ -180,7 +180,7 @@ export function ReaderChapterContent({
                 {hasSavedNoteForVerse(entry.verse) ? (
                   <sup
                     aria-label={`Has note for ${book} ${chapter}:${entry.verse}`}
-                    className="ml-1 mr-1 align-super text-[0.55rem] font-semibold text-indigo-700">
+                    className="ml-1 mr-1 align-super text-[0.5em] font-semibold leading-none text-indigo-700">
                     n
                   </sup>
                 ) : null}{' '}

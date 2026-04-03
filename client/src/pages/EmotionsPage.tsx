@@ -91,7 +91,7 @@ export function EmotionsPage() {
   }
 
   return (
-    <>
+    <div className="emotion-support-page">
       <SectionHeader
         title="Scriptural Support"
         description="Choose how you feel, then follow a calm scripture path with practical next steps."
@@ -141,6 +141,6 @@ export function EmotionsPage() {
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

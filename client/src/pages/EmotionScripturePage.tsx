@@ -217,7 +217,8 @@ export function EmotionScripturePage() {
   }
 
   return (
-    <div className={`rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
+    <div
+      className={`emotion-support-page rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
         title={emotion ? `Scriptures for ${emotion.name}` : 'Scriptures'}
         description="Use Previous and Next to move through these curated passages. Your translation choice is remembered across Support, Search, and Reader."
