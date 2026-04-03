@@ -1,5 +1,6 @@
-import { TouchEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import type { ScriptureTranslationCode } from '@shared/scripture-search-contracts';
 import { SUPPORTED_SCRIPTURE_TRANSLATIONS } from '@shared/scripture-search-contracts';
 import { useToast } from '@/components/app/toast-context';
 import {
@@ -12,29 +13,28 @@ import {
   SettingHelpModal,
 } from '@/components/ui';
 import { appCopy } from '@/lib/copy';
-import { getEmotionTheme } from '@/features/emotions/emotion-theme';
 import {
-  readScriptureContext,
-  ScriptureContext,
-} from '@/features/emotions/emotion-api';
-import { toChapterReference } from '@/features/emotions/scripture-links';
+  buildBibleComPassageUrl,
+  buildBibleGatewayPassageUrl,
+} from '@/lib/study-links';
+import { getEmotionTheme } from '@/features/emotions/emotion-theme';
 import { useEmotionScriptures } from '@/features/emotions/useEmotionScriptures';
 import { buildReaderChapterQuery } from '@/features/reader/build-reader-chapter-url';
 import { ReaderSurface } from '@/features/reader/ReaderSurface';
 import { saveScripture } from '@/features/search/scripture-search-api';
+import { trackEvent } from '@/lib/telemetry';
+import { usePreferredTranslation } from '@/state';
 
 /**
- * Render scripture viewer for one emotion with arrow and swipe navigation.
+ * Render scripture viewer for one emotion with prev/next and outbound study links.
  */
 export function EmotionScripturePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
-  const touchStartXRef = useRef<number | null>(null);
-  const [selectedTranslation, setSelectedTranslation] = useState<
-    'KJV' | 'ASV' | 'WEB'
-  >('KJV');
+  const { effectivePreferredTranslation, setPreferredTranslation } =
+    usePreferredTranslation();
   const [selectedAction, setSelectedAction] = useState('');
   const selectedScriptureIdFromUrl = Number(
     searchParams.get('scriptureId') ?? '',
@@ -50,33 +50,19 @@ export function EmotionScripturePage() {
     isLoading,
     goNext,
     goPrevious,
-  } = useEmotionScriptures(slug, selectedTranslation, selectedScriptureId);
+  } = useEmotionScriptures(
+    slug,
+    effectivePreferredTranslation,
+    selectedScriptureId,
+  );
   const theme = getEmotionTheme(emotion?.slug ?? slug);
-  const [showContext, setShowContext] = useState(false);
   const [settingsHelp, setSettingsHelp] = useState<{
     title: string;
     description: string;
   } | null>(null);
-  const [contextByScriptureId, setContextByScriptureId] = useState<
-    Record<number, ScriptureContext>
-  >({});
-  const [contextErrorByScriptureId, setContextErrorByScriptureId] = useState<
-    Record<number, string>
-  >({});
-  const [isContextLoadingByScriptureId, setIsContextLoadingByScriptureId] =
-    useState<Record<number, boolean>>({});
 
   const currentScripture = scriptures[currentIndex];
   const canCycle = scriptures.length > 1;
-  const currentContext = currentScripture
-    ? contextByScriptureId[currentScripture.scriptureId]
-    : undefined;
-  const currentContextError = currentScripture
-    ? (contextErrorByScriptureId[currentScripture.scriptureId] ?? '')
-    : '';
-  const isCurrentContextLoading = currentScripture
-    ? (isContextLoadingByScriptureId[currentScripture.scriptureId] ?? false)
-    : false;
 
   useEffect(() => {
     if (!currentScripture) return;
@@ -130,20 +116,6 @@ export function EmotionScripturePage() {
     }
   }
 
-  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    touchStartXRef.current = event.touches[0]?.clientX ?? null;
-  }
-
-  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
-    const startX = touchStartXRef.current;
-    const endX = event.changedTouches[0]?.clientX ?? null;
-    if (startX === null || endX === null) return;
-    const deltaX = endX - startX;
-    if (Math.abs(deltaX) < 40) return;
-    if (deltaX < 0) goNext();
-    if (deltaX > 0) goPrevious();
-  }
-
   function handleCopyCurrent() {
     if (!currentScripture) return;
     const content = `${currentScripture.reference} (${currentScripture.translation})\n${currentScripture.verseText}`;
@@ -175,8 +147,7 @@ export function EmotionScripturePage() {
 
   function handleOpenFullChapter() {
     if (!currentScripture) return;
-    const translationRequest =
-      String(currentScripture.translation ?? '') || selectedTranslation;
+    const translationRequest = effectivePreferredTranslation;
     const query = buildReaderChapterQuery({
       reference: currentScripture.reference,
       verse: currentScripture.verseStart ?? null,
@@ -185,7 +156,7 @@ export function EmotionScripturePage() {
       translation: translationRequest,
       emotionSlug: emotion?.slug ?? slug ?? null,
       scriptureId: currentScripture.scriptureId,
-      fromTranslation: selectedTranslation,
+      fromTranslation: effectivePreferredTranslation,
     });
     if (!query) {
       showToast({
@@ -206,65 +177,20 @@ export function EmotionScripturePage() {
     navigate(`/reader?${query.searchParams.toString()}`);
   }
 
-  async function handleToggleContext() {
-    if (!currentScripture) return;
-
-    const nextIsOpen = !showContext;
-    setShowContext(nextIsOpen);
-    if (!nextIsOpen) return;
-
-    if (contextByScriptureId[currentScripture.scriptureId]) return;
-
-    setIsContextLoadingByScriptureId((current) => ({
-      ...current,
-      [currentScripture.scriptureId]: true,
-    }));
-    setContextErrorByScriptureId((current) => ({
-      ...current,
-      [currentScripture.scriptureId]: '',
-    }));
-    try {
-      const context = await readScriptureContext({
-        scriptureId: currentScripture.scriptureId,
-        reference: currentScripture.reference,
-      });
-      setContextByScriptureId((current) => ({
-        ...current,
-        [currentScripture.scriptureId]: context,
-      }));
-      setContextErrorByScriptureId((current) => ({
-        ...current,
-        [currentScripture.scriptureId]: '',
-      }));
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Could not load context';
-      setContextErrorByScriptureId((current) => ({
-        ...current,
-        [currentScripture.scriptureId]: message,
-      }));
-      showToast({
-        title: 'We could not load context',
-        description: message,
-        variant: 'error',
-      });
-    } finally {
-      setIsContextLoadingByScriptureId((current) => ({
-        ...current,
-        [currentScripture.scriptureId]: false,
-      }));
-    }
-  }
-
-  function handleOpenFullContext() {
-    if (!currentScripture) return;
-    const searchParams = new URLSearchParams({
-      scriptureId: String(currentScripture.scriptureId),
-      reference: currentScripture.reference,
-      translation: currentScripture.translation,
+  const bibleComUrl =
+    currentScripture &&
+    buildBibleComPassageUrl({
+      book: currentScripture.book,
+      chapter: currentScripture.chapter,
+      verse: currentScripture.verseStart,
+      translation: effectivePreferredTranslation,
     });
-    navigate(`/emotions/${emotion?.slug ?? slug}/context?${searchParams}`);
-  }
+  const bibleGatewayUrl = currentScripture
+    ? buildBibleGatewayPassageUrl({
+        reference: currentScripture.reference,
+        translation: effectivePreferredTranslation,
+      })
+    : '';
 
   function handleBackAction() {
     navigate(-1);
@@ -294,7 +220,7 @@ export function EmotionScripturePage() {
     <div className={`rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
         title={emotion ? `Scriptures for ${emotion.name}` : 'Scriptures'}
-        description="Swipe left or right on mobile, or use the buttons to move through these curated passages."
+        description="Use Previous and Next to move through these curated passages. Your translation choice is remembered across Support, Search, and Reader."
         metadata={
           scriptures.length > 0 ? (
             <Badge className={theme.badgeClassName}>
@@ -314,7 +240,7 @@ export function EmotionScripturePage() {
                 setSettingsHelp({
                   title: 'Translation',
                   description:
-                    'Choose which translation to use for Support verses and related Reader links.',
+                    'Choose which translation to use for Support verses and Reader links. This applies across the app until you change it.',
                 })
               }
             />
@@ -322,10 +248,10 @@ export function EmotionScripturePage() {
           <select
             aria-label="Translation"
             className="w-full rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium"
-            value={selectedTranslation}
+            value={effectivePreferredTranslation}
             onChange={(event) =>
-              setSelectedTranslation(
-                event.target.value as 'KJV' | 'ASV' | 'WEB',
+              setPreferredTranslation(
+                event.target.value as ScriptureTranslationCode,
               )
             }>
             {SUPPORTED_SCRIPTURE_TRANSLATIONS.map((translationCode) => (
@@ -387,9 +313,7 @@ export function EmotionScripturePage() {
 
       {!isLoading && !error && currentScripture && (
         <Card
-          className={`mx-auto max-w-prose border p-6 shadow-md ${theme.scriptureContainerClassName}`}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}>
+          className={`mx-auto max-w-prose border p-6 shadow-md ${theme.scriptureContainerClassName}`}>
           <p
             className={`mb-4 text-sm font-semibold tracking-wide ${theme.referenceClassName}`}>
             {currentScripture.reference} ({currentScripture.translation})
@@ -406,97 +330,8 @@ export function EmotionScripturePage() {
             </p>
           </ReaderSurface>
 
-          <div className="mt-20 space-y-10">
-            <div className="grid grid-cols-1 gap-2">
-              <div className="relative flex items-center">
-                <Button
-                  variant="ghost"
-                  className={`min-h-11 w-full justify-center pr-12 ${theme.controlClassName}`}
-                  onClick={handleOpenFullChapter}>
-                  <span>Read full chapter</span>
-                </Button>
-                <div className="pointer-events-none absolute right-2">
-                  <div className="pointer-events-auto">
-                    <SettingHelpButton
-                      settingLabel="Read full chapter"
-                      onClick={() =>
-                        setSettingsHelp({
-                          title: 'Read full chapter',
-                          description:
-                            'Open Reader to this same book and chapter in the selected translation.',
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-center pr-12 ${theme.controlClassName}`}
-                  onClick={handleToggleContext}>
-                  <span>{showContext ? 'Hide context' : 'Learn context'}</span>
-                </Button>
-                <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
-                  <div className="pointer-events-auto">
-                    <SettingHelpButton
-                      settingLabel="Learn context"
-                      onClick={() =>
-                        setSettingsHelp({
-                          title: 'Learn context',
-                          description:
-                            'Show a short summary and source details. Use View full context for a deeper explanation.',
-                        })
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {showContext && (
-                <Card
-                  className={`mt-2 border p-4 ${theme.scriptureContextClassName}`}>
-                  <p
-                    className={`mb-2 text-sm font-semibold ${theme.referenceClassName}`}>
-                    Context for {toChapterReference(currentScripture.reference)}
-                  </p>
-                  {isCurrentContextLoading && (
-                    <p className="text-base leading-7 text-slate-700">
-                      {appCopy.loading.context}
-                    </p>
-                  )}
-                  {!isCurrentContextLoading && currentContextError && (
-                    <p className="text-base leading-7 text-slate-700">
-                      We could not load context right now. You can still use
-                      Read full chapter for full context.
-                    </p>
-                  )}
-                  {!isCurrentContextLoading &&
-                    !currentContextError &&
-                    currentContext && (
-                      <>
-                        <p className="text-base leading-7 text-slate-700">
-                          {currentContext.summary}
-                        </p>
-                        {currentContext.fullContext && (
-                          <button
-                            type="button"
-                            onClick={handleOpenFullContext}
-                            className={`mt-2 text-xs underline ${theme.referenceClassName}`}>
-                            View full context
-                          </button>
-                        )}
-                        <p
-                          className={`mt-2 text-xs ${theme.referenceClassName}`}>
-                          Source: {currentContext.sourceName}
-                        </p>
-                      </>
-                    )}
-                </Card>
-              )}
-            </div>
-
-            <div className="flex justify-between">
+          <div className="mt-8 space-y-6">
+            <div className="flex justify-between gap-2">
               <Button
                 variant="ghost"
                 className={theme.controlClassName}
@@ -511,6 +346,66 @@ export function EmotionScripturePage() {
                 disabled={!canCycle}>
                 Next →
               </Button>
+            </div>
+
+            <div className="relative flex items-center">
+              <Button
+                variant="ghost"
+                className={`min-h-11 w-full justify-center pr-12 ${theme.controlClassName}`}
+                onClick={handleOpenFullChapter}>
+                <span>Read full chapter</span>
+              </Button>
+              <div className="pointer-events-none absolute right-2">
+                <div className="pointer-events-auto">
+                  <SettingHelpButton
+                    settingLabel="Read full chapter"
+                    onClick={() =>
+                      setSettingsHelp({
+                        title: 'Read full chapter',
+                        description:
+                          'Open the in-app Reader to this book and chapter using your saved translation.',
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p
+                className={`text-sm font-semibold ${theme.referenceClassName}`}>
+                Study online
+              </p>
+              <p className="text-xs text-slate-600">
+                Opens Bible.com or BibleGateway in a new tab. Content and terms
+                are governed by those sites.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {bibleComUrl ? (
+                  <a
+                    href={bibleComUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 underline-offset-2 hover:underline ${theme.controlClassName}`}
+                    onClick={() =>
+                      trackEvent('study_link_opened', { provider: 'bible_com' })
+                    }>
+                    Open passage on Bible.com
+                  </a>
+                ) : null}
+                <a
+                  href={bibleGatewayUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex min-h-11 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 underline-offset-2 hover:underline ${theme.controlClassName}`}
+                  onClick={() =>
+                    trackEvent('study_link_opened', {
+                      provider: 'bible_gateway',
+                    })
+                  }>
+                  Open passage on BibleGateway
+                </a>
+              </div>
             </div>
           </div>
         </Card>

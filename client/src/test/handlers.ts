@@ -14,6 +14,10 @@ type Scripture = {
   verseText: string;
   translation: string;
   displayOrder: number;
+  book?: string;
+  chapter?: number;
+  verseStart?: number;
+  verseEnd?: number;
 };
 
 type SavedScriptureItem = {
@@ -55,6 +59,10 @@ const scripturesByEmotionSlug: Record<string, Scripture[]> = {
         'Even though I walk through the darkest valley, I will fear no evil.',
       translation: 'NIV',
       displayOrder: 1,
+      book: 'Psalms',
+      chapter: 23,
+      verseStart: 4,
+      verseEnd: 4,
     },
     {
       scriptureId: 2,
@@ -63,6 +71,10 @@ const scripturesByEmotionSlug: Record<string, Scripture[]> = {
       verseText: 'So do not fear, for I am with you.',
       translation: 'NIV',
       displayOrder: 2,
+      book: 'Isaiah',
+      chapter: 41,
+      verseStart: 10,
+      verseEnd: 10,
     },
   ],
   anger: [

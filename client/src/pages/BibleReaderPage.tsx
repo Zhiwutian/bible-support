@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
   ReaderBookmark,
@@ -26,7 +27,13 @@ import { ReaderNoteModal } from '@/features/reader/ReaderNoteModal';
 import { ReaderOptionsModal } from '@/features/reader/ReaderOptionsModal';
 import { ReaderStatusBar } from '@/features/reader/ReaderStatusBar';
 import { ReaderSupportVerseCallout } from '@/features/reader/ReaderSupportVerseCallout';
+import { ReaderToolsSheet } from '@/features/reader/ReaderToolsSheet';
 import { ReaderVerseActionsModal } from '@/features/reader/ReaderVerseActionsModal';
+import { useNarrowReaderToolsLayout } from '@/features/reader/useNarrowReaderToolsLayout';
+import {
+  useReaderFullscreen,
+  type ReaderFullscreenMode,
+} from '@/features/reader/useReaderFullscreen';
 import {
   loadReaderScrollPosition,
   saveLastReaderLocation,
@@ -47,7 +54,9 @@ import {
   readReaderChapter,
   readSavedScripturesForChapter,
 } from '@/features/search/scripture-search-api';
+import { cn } from '@/lib';
 import { appCopy } from '@/lib/copy';
+import { savePreferredTranslation } from '@/lib/preferred-translation';
 import { trackEvent } from '@/lib/telemetry';
 
 function parseBooleanFlag(
@@ -178,6 +187,32 @@ export function BibleReaderPage() {
       setReaderPreferences,
       setBookmark,
     });
+
+  const [isReaderToolsSheetOpen, setIsReaderToolsSheetOpen] = useState(false);
+  const savedReaderScrollRef = useRef(0);
+  const useBottomSheetLayout = useNarrowReaderToolsLayout();
+
+  const readerFullscreenOptions = useMemo(
+    () => ({
+      onEnterMode(mode: ReaderFullscreenMode) {
+        trackEvent('reader_fullscreen_entered', { mode });
+      },
+      onExit() {
+        trackEvent('reader_fullscreen_exited');
+      },
+    }),
+    [],
+  );
+
+  const {
+    containerRef: immersiveContainerRef,
+    isActive: isImmersiveReader,
+    enter: enterImmersiveReader,
+    exit: exitImmersiveReader,
+  } = useReaderFullscreen(readerFullscreenOptions);
+
+  const [immersiveModalHostEl, setImmersiveModalHostEl] =
+    useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const verseRaw = searchParams.get('verse');
@@ -378,6 +413,56 @@ export function BibleReaderPage() {
   }, [book, chapter, translation]);
 
   useEffect(() => {
+    if (!payload && isImmersiveReader) {
+      exitImmersiveReader();
+    }
+  }, [payload, isImmersiveReader, exitImmersiveReader]);
+
+  useEffect(() => {
+    if (!isImmersiveReader) return;
+    if (isOptionsModalOpen || readerSettingsHelp) {
+      const el = readerContainerRef.current;
+      if (el) savedReaderScrollRef.current = el.scrollTop;
+      exitImmersiveReader();
+    }
+  }, [
+    isOptionsModalOpen,
+    readerSettingsHelp,
+    isImmersiveReader,
+    exitImmersiveReader,
+  ]);
+
+  useEffect(() => {
+    if (!isImmersiveReader) return;
+    function onOverlayEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      const immersiveEl = immersiveContainerRef.current;
+      if (document.fullscreenElement === immersiveEl) return;
+      event.preventDefault();
+      const el = readerContainerRef.current;
+      if (el) savedReaderScrollRef.current = el.scrollTop;
+      exitImmersiveReader();
+    }
+    window.addEventListener('keydown', onOverlayEscape);
+    return () => window.removeEventListener('keydown', onOverlayEscape);
+  }, [isImmersiveReader, exitImmersiveReader, immersiveContainerRef]);
+
+  useLayoutEffect(() => {
+    const ref = readerContainerRef;
+    return () => {
+      const el = ref.current;
+      if (el) savedReaderScrollRef.current = el.scrollTop;
+    };
+  }, [isImmersiveReader]);
+
+  useLayoutEffect(() => {
+    const el = readerContainerRef.current;
+    if (el) {
+      el.scrollTop = savedReaderScrollRef.current;
+    }
+  }, [isImmersiveReader]);
+
+  useEffect(() => {
     if (!verseActionTarget && !noteModalTarget && !isOptionsModalOpen) return;
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
@@ -450,6 +535,39 @@ export function BibleReaderPage() {
   function handleOpenOptionsModal() {
     setIsOptionsModalOpen(true);
     trackEvent('reader_options_opened');
+  }
+
+  function handleReaderChromeClick() {
+    if (isImmersiveReader) return;
+    trackEvent('reader_mobile_tools_opened', { source: 'reader_content' });
+    setIsReaderToolsSheetOpen(true);
+  }
+
+  function handleReaderToolsButtonClick() {
+    trackEvent('reader_mobile_tools_opened', { source: 'reader_tools_button' });
+    setIsReaderToolsSheetOpen(true);
+  }
+
+  function handleToolsSelectFullScreen() {
+    trackEvent('reader_mobile_tools_option_selected', { option: 'fullscreen' });
+    setIsReaderToolsSheetOpen(false);
+    const el = readerContainerRef.current;
+    if (el) savedReaderScrollRef.current = el.scrollTop;
+    enterImmersiveReader();
+  }
+
+  function handleToolsSelectReaderOptions() {
+    trackEvent('reader_mobile_tools_option_selected', {
+      option: 'reader_options',
+    });
+    setIsReaderToolsSheetOpen(false);
+    handleOpenOptionsModal();
+  }
+
+  function handleExitImmersiveReader() {
+    const el = readerContainerRef.current;
+    if (el) savedReaderScrollRef.current = el.scrollTop;
+    exitImmersiveReader();
   }
 
   function isBookmarkedVerse(verse: number): boolean {
@@ -525,6 +643,90 @@ export function BibleReaderPage() {
     return buildCleanParagraphs(normalizedPayload);
   }, [payload, readerPreferences.hideTranslationIndicators]);
 
+  /** Keep immersive UI mounted during chapter fetch so Fullscreen API / overlay are not torn down. */
+  const showReaderChapterSurfaces =
+    Boolean(payload) && !error && (!isLoading || isImmersiveReader);
+
+  const readerDisplayBook =
+    isImmersiveReader && isLoading && payload ? payload.book : book;
+  const readerDisplayChapter =
+    isImmersiveReader && isLoading && payload ? payload.chapter : chapter;
+
+  const readerChapter =
+    payload && !error && (!isLoading || isImmersiveReader) ? (
+      <ReaderChapterContent
+        payload={payload}
+        book={readerDisplayBook}
+        chapter={readerDisplayChapter}
+        readingStyle={readerPreferences.readingStyle}
+        cleanParagraphs={cleanParagraphs}
+        isBookmarkedVerse={isBookmarkedVerse}
+        hasSavedScriptureForVerse={hasSavedScriptureForVerse}
+        hasSavedNoteForVerse={hasSavedNoteForVerse}
+        formatVerseText={(verseText) =>
+          readerPreferences.hideTranslationIndicators
+            ? stripTranslationIndicatorText(verseText)
+            : verseText
+        }
+        onOpenVerseActions={(verse, verseText) => {
+          openVerseActionsForVerse(verse, verseText);
+        }}
+      />
+    ) : null;
+
+  function readerVerseModalsTree() {
+    return (
+      <>
+        <ReaderVerseActionsModal
+          isOpen={Boolean(verseActionTarget)}
+          stackAboveImmersiveReader={false}
+          reference={verseActionTarget?.reference ?? ''}
+          hasSavedNote={
+            verseActionTarget
+              ? hasSavedNoteForVerse(verseActionTarget.verse)
+              : false
+          }
+          isVerseAlreadySaved={
+            verseActionTarget
+              ? Boolean(findExactSavedItemForVerse(verseActionTarget.verse))
+              : false
+          }
+          onClose={closeVerseActionsModal}
+          onBookmarkHere={() => {
+            if (!verseActionTarget) return;
+            handleSetBookmark(verseActionTarget.verse);
+            closeVerseActionsModal();
+          }}
+          onSaveVerse={() => {
+            if (!verseActionTarget) return;
+            void handleSaveVerseFromReader(verseActionTarget);
+          }}
+          onShareVerse={() => {
+            if (!verseActionTarget) return;
+            void handleShareVerseFromReader(verseActionTarget);
+          }}
+          onViewEditNote={() => {
+            if (!verseActionTarget) return;
+            void openNoteModalForVerse(verseActionTarget);
+          }}
+        />
+        <ReaderNoteModal
+          isOpen={Boolean(noteModalTarget)}
+          stackAboveImmersiveReader={false}
+          reference={noteModalTarget?.reference ?? ''}
+          noteDraft={noteDraft}
+          noteSaveError={noteSaveError}
+          isNoteSaving={isNoteSaving}
+          onClose={closeNoteModal}
+          onNoteDraftChange={setNoteDraft}
+          onSaveNote={() => {
+            void handleSaveReaderVerseNote();
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <div className={readerRootClassName}>
       <SectionHeader
@@ -588,50 +790,11 @@ export function BibleReaderPage() {
         titleId="reader-settings-help-title"
         onClose={() => setReaderSettingsHelp(null)}
       />
-      <ReaderVerseActionsModal
-        isOpen={Boolean(verseActionTarget)}
-        reference={verseActionTarget?.reference ?? ''}
-        hasSavedNote={
-          verseActionTarget
-            ? hasSavedNoteForVerse(verseActionTarget.verse)
-            : false
-        }
-        isVerseAlreadySaved={
-          verseActionTarget
-            ? Boolean(findExactSavedItemForVerse(verseActionTarget.verse))
-            : false
-        }
-        onClose={closeVerseActionsModal}
-        onBookmarkHere={() => {
-          if (!verseActionTarget) return;
-          handleSetBookmark(verseActionTarget.verse);
-          closeVerseActionsModal();
-        }}
-        onSaveVerse={() => {
-          if (!verseActionTarget) return;
-          void handleSaveVerseFromReader(verseActionTarget);
-        }}
-        onShareVerse={() => {
-          if (!verseActionTarget) return;
-          void handleShareVerseFromReader(verseActionTarget);
-        }}
-        onViewEditNote={() => {
-          if (!verseActionTarget) return;
-          void openNoteModalForVerse(verseActionTarget);
-        }}
-      />
-      <ReaderNoteModal
-        isOpen={Boolean(noteModalTarget)}
-        reference={noteModalTarget?.reference ?? ''}
-        noteDraft={noteDraft}
-        noteSaveError={noteSaveError}
-        isNoteSaving={isNoteSaving}
-        onClose={closeNoteModal}
-        onNoteDraftChange={setNoteDraft}
-        onSaveNote={() => {
-          void handleSaveReaderVerseNote();
-        }}
-      />
+      {isImmersiveReader && immersiveModalHostEl
+        ? createPortal(readerVerseModalsTree(), immersiveModalHostEl)
+        : !isImmersiveReader
+          ? readerVerseModalsTree()
+          : null}
       <Card className="-mx-6 mb-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
         <ReaderChapterControls
           book={book}
@@ -667,13 +830,17 @@ export function BibleReaderPage() {
             setIsLoading(true);
             setError('');
             setTranslation(nextTranslation);
+            savePreferredTranslation(nextTranslation);
+            trackEvent('translation_preference_changed', {
+              translation: nextTranslation,
+            });
           }}
         />
       </Card>
 
-      {isLoading && (
+      {isLoading && !isImmersiveReader ? (
         <p className="text-sm text-slate-600">Loading chapter...</p>
-      )}
+      ) : null}
       {!isLoading && error && (
         <EmptyState
           title="We could not load this chapter"
@@ -685,84 +852,151 @@ export function BibleReaderPage() {
           }
         />
       )}
-      {!isLoading && !error && payload && (
-        <Card className="-mx-6 space-y-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
-          <p className="text-lg font-semibold text-slate-900">
-            {chapterLabel} ({payload.translation})
-          </p>
-          <ReaderStatusBar
-            canJumpToLastPlace={Boolean(bookmark)}
-            bookmarkStatus={bookmarkStatus}
-            isReaderAuthLoading={isReaderAuthLoading}
-            isReaderAuthenticated={isReaderAuthenticated}
-            onJumpToLastPlace={handleJumpToLastPlace}
+      {showReaderChapterSurfaces && payload ? (
+        <>
+          <ReaderToolsSheet
+            isOpen={isReaderToolsSheetOpen && Boolean(payload)}
+            onClose={() => setIsReaderToolsSheetOpen(false)}
+            useBottomSheetLayout={useBottomSheetLayout}
+            isReaderComfortEnabled={isReaderComfortEnabled}
+            onSelectFullScreen={handleToolsSelectFullScreen}
+            onSelectReaderOptions={handleToolsSelectReaderOptions}
           />
-          {canReturnToSupportVerse &&
-          Number.isInteger(fromScriptureId) &&
-          fromScriptureId > 0 &&
-          fromEmotion ? (
-            <ReaderSupportVerseCallout
-              emotionSlug={fromEmotion}
-              scriptureId={fromScriptureId}
-              fromTranslation={fromTranslation}
-              readerTranslation={translation}
-              readerPreferences={readerPreferences}
-              stripTranslationIndicators={stripTranslationIndicatorText}
-            />
-          ) : null}
-          <div
-            ref={readerContainerRef}
-            className="reader-content max-h-[60vh] overflow-y-auto rounded-md border p-3">
-            <ReaderChapterContent
-              payload={payload}
-              book={book}
-              chapter={chapter}
-              readingStyle={readerPreferences.readingStyle}
-              cleanParagraphs={cleanParagraphs}
-              isBookmarkedVerse={isBookmarkedVerse}
-              hasSavedScriptureForVerse={hasSavedScriptureForVerse}
-              hasSavedNoteForVerse={hasSavedNoteForVerse}
-              formatVerseText={(verseText) =>
-                readerPreferences.hideTranslationIndicators
-                  ? stripTranslationIndicatorText(verseText)
-                  : verseText
-              }
-              onOpenVerseActions={(verse, verseText) => {
-                openVerseActionsForVerse(verse, verseText);
-              }}
-            />
-          </div>
-          <ReaderBreakReminder
-            isVisible={
-              isReaderComfortEnabled &&
-              readerPreferences.breakReminder &&
-              !isBreakTipDismissed
-            }
-            onDismiss={() => {
-              setIsBreakTipDismissed(true);
-              trackEvent('reader_break_tip_dismissed');
-            }}
-          />
-          <ReaderChapterNavigation
-            hasPrevious={payload.hasPrevious}
-            hasNext={payload.hasNext}
-            onPreviousChapter={() => {
-              if (!payload.previousChapter) return;
-              setIsLoading(true);
-              setError('');
-              setBook(payload.previousChapter.book);
-              setChapter(payload.previousChapter.chapter);
-            }}
-            onNextChapter={() => {
-              if (!payload.nextChapter) return;
-              setIsLoading(true);
-              setError('');
-              setBook(payload.nextChapter.book);
-              setChapter(payload.nextChapter.chapter);
-            }}
-          />
-        </Card>
-      )}
+          {isImmersiveReader ? (
+            <div
+              ref={immersiveContainerRef}
+              className={cn(
+                readerRootClassName,
+                'reader-immersive-shell fixed inset-0 z-[60] flex max-h-[100dvh] flex-col overflow-hidden',
+                'pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]',
+                'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+              )}>
+              <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--reader-border)] bg-[var(--reader-bg)] px-2 py-2">
+                {isLoading ? (
+                  <span className="w-full text-center text-sm text-[var(--reader-text)] opacity-80 sm:w-auto sm:flex-1 sm:text-left">
+                    Loading chapter…
+                  </span>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 min-w-0 flex-1 sm:flex-none"
+                  disabled={!payload.hasPrevious || isLoading}
+                  onClick={() => {
+                    if (!payload.previousChapter) return;
+                    setIsLoading(true);
+                    setError('');
+                    setBook(payload.previousChapter.book);
+                    setChapter(payload.previousChapter.chapter);
+                  }}>
+                  ← Previous chapter
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 min-w-0 flex-1 sm:flex-none"
+                  disabled={!payload.hasNext || isLoading}
+                  onClick={() => {
+                    if (!payload.nextChapter) return;
+                    setIsLoading(true);
+                    setError('');
+                    setBook(payload.nextChapter.book);
+                    setChapter(payload.nextChapter.chapter);
+                  }}>
+                  Next chapter →
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="min-h-11 w-full sm:ml-auto sm:w-auto"
+                  onClick={handleExitImmersiveReader}>
+                  Exit full screen
+                </Button>
+              </div>
+              <div
+                ref={readerContainerRef}
+                className="reader-content min-h-0 flex-1 overflow-y-auto p-3 text-[var(--reader-text)]">
+                {readerChapter}
+              </div>
+              <div
+                ref={setImmersiveModalHostEl}
+                className="pointer-events-none absolute inset-0 z-[70] [&>*]:pointer-events-auto"
+              />
+            </div>
+          ) : (
+            <Card className="-mx-6 space-y-4 rounded-none border-x-0 p-4 sm:mx-0 sm:rounded-md sm:border-x">
+              <p className="text-lg font-semibold text-slate-900">
+                {chapterLabel} ({payload.translation})
+              </p>
+              <ReaderStatusBar
+                canJumpToLastPlace={Boolean(bookmark)}
+                bookmarkStatus={bookmarkStatus}
+                isReaderAuthLoading={isReaderAuthLoading}
+                isReaderAuthenticated={isReaderAuthenticated}
+                onJumpToLastPlace={handleJumpToLastPlace}
+              />
+              {canReturnToSupportVerse &&
+              Number.isInteger(fromScriptureId) &&
+              fromScriptureId > 0 &&
+              fromEmotion ? (
+                <ReaderSupportVerseCallout
+                  emotionSlug={fromEmotion}
+                  scriptureId={fromScriptureId}
+                  fromTranslation={fromTranslation}
+                  readerTranslation={translation}
+                  readerPreferences={readerPreferences}
+                  stripTranslationIndicators={stripTranslationIndicatorText}
+                />
+              ) : null}
+              <div className="flex justify-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 text-sm"
+                  onClick={handleReaderToolsButtonClick}>
+                  Reader tools
+                </Button>
+              </div>
+              <div
+                ref={readerContainerRef}
+                role="presentation"
+                onClick={handleReaderChromeClick}
+                className="reader-content max-h-[60vh] cursor-default overflow-y-auto rounded-md border border-[var(--reader-border)] bg-[var(--reader-bg)] p-3 text-[var(--reader-text)]">
+                {readerChapter}
+              </div>
+              <ReaderBreakReminder
+                isVisible={
+                  isReaderComfortEnabled &&
+                  readerPreferences.breakReminder &&
+                  !isBreakTipDismissed
+                }
+                onDismiss={() => {
+                  setIsBreakTipDismissed(true);
+                  trackEvent('reader_break_tip_dismissed');
+                }}
+              />
+              <ReaderChapterNavigation
+                hasPrevious={payload.hasPrevious}
+                hasNext={payload.hasNext}
+                onPreviousChapter={() => {
+                  if (!payload.previousChapter) return;
+                  setIsLoading(true);
+                  setError('');
+                  setBook(payload.previousChapter.book);
+                  setChapter(payload.previousChapter.chapter);
+                }}
+                onNextChapter={() => {
+                  if (!payload.nextChapter) return;
+                  setIsLoading(true);
+                  setError('');
+                  setBook(payload.nextChapter.book);
+                  setChapter(payload.nextChapter.chapter);
+                }}
+              />
+            </Card>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }

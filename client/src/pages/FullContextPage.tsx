@@ -20,6 +20,7 @@ import {
   toChapterReference,
 } from '@/features/emotions/scripture-links';
 import { buildReaderChapterQuery } from '@/features/reader/build-reader-chapter-url';
+import { loadPreferredTranslation } from '@/lib/preferred-translation';
 
 /**
  * Render a dedicated full-context reading page for one scripture reference.
@@ -49,12 +50,13 @@ export function FullContextPage() {
   const readerLinkReference = context?.reference || reference;
 
   function handleReadFullChapterInReader() {
+    const readerTranslation = loadPreferredTranslation() ?? translation;
     const query = buildReaderChapterQuery({
       reference: readerLinkReference,
-      translation,
+      translation: readerTranslation,
       scriptureId: scriptureId ?? null,
       emotionSlug: slug ?? null,
-      fromTranslation: translation,
+      fromTranslation: readerTranslation,
     });
     if (!query) {
       showToast({
@@ -68,7 +70,7 @@ export function FullContextPage() {
     if (query.usedTranslationFallback) {
       showToast({
         title: 'Showing a supported translation',
-        description: `${translation.trim() || 'That translation'} isn’t available in the in-app Reader (only KJV, ASV, and WEB). Opening ${query.effectiveTranslation} instead.`,
+        description: `${String(readerTranslation).trim() || 'That translation'} isn’t available in the in-app Reader (only KJV, ASV, and WEB). Opening ${query.effectiveTranslation} instead.`,
         variant: 'info',
       });
     }

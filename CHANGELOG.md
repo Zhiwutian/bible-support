@@ -8,6 +8,12 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Client: **Global Bible translation** preference in **`localStorage`** (`app:preferred-translation:v1`); Support, Search, and Reader stay aligned. Reader seeds from `translation` in the URL once when unset, then the saved preference overrides shared links. Outbound **Study online** links (Bible.com + BibleGateway) on Support replace the inline Learn context panel; tutorial copy and dark-mode styles for tutorial prose/callouts updated. See **`docs/proposals/translation-support-tutorial-study-links.md`**.
+- Reader: **Reader tools** sheet (bottom sheet on narrow viewports, centered modal on `md+`) with **Full screen** (Fullscreen API + fixed overlay fallback) and **Reader options** when comfort is enabled; click chapter scroll area opens tools without triggering verse actions (`stopPropagation` on verses). Telemetry: `reader_mobile_tools_*`, `reader_fullscreen_entered` / `reader_fullscreen_exited`. See **`docs/proposals/reader-mobile-fullscreen.md`**.
+- Reader: **Full screen** stays active while **previous/next chapter** loads (immersive shell no longer unmounts on `isLoading`); in-immersive loading hint and disabled chapter nav until the fetch finishes.
+- Reader: **Verse actions** and **note** modals stack above immersive full screen (`z-[70]`) so full screen is kept; **Options** / setting-help still exit immersive so those dialogs remain usable.
+- Reader: verse/note modals are **portaled inside the immersive shell** so they appear during **native** browser fullscreen (only the fullscreen element’s subtree is visible to the compositor).
+- Client: **`viewport-fit=cover`** on the root viewport meta for safe-area insets with immersive reader.
 - Client: **`jest-axe`** + **`@types/jest-axe`**; **`src/app-a11y.test.tsx`** — axe smoke after guest entry for Support, Search, Reader (John 3 / KJV), and Tutorial (no **serious** or **critical** violations; color-contrast limited under jsdom per jest-axe).
 
 ### Changed

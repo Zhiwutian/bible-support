@@ -64,7 +64,10 @@ export function ReaderChapterContent({
               isBookmarkedVerse,
               hasSavedScriptureForVerse,
             )}
-            onClick={() => onOpenVerseActions(verse.verse, verse.verseText)}>
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenVerseActions(verse.verse, verse.verseText);
+            }}>
             <sup className="mr-1 align-super text-xs font-semibold">
               {verse.verse}
             </sup>
@@ -108,10 +111,14 @@ export function ReaderChapterContent({
                     ? 'bg-emerald-500/10'
                     : ''
                 }`}
-                onClick={() => onOpenVerseActions(entry.verse, entry.verseText)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenVerseActions(entry.verse, entry.verseText);
+                }}
                 onKeyDown={(event) => {
                   if (event.key !== 'Enter' && event.key !== ' ') return;
                   event.preventDefault();
+                  event.stopPropagation();
                   onOpenVerseActions(entry.verse, entry.verseText);
                 }}>
                 <sup className="mr-1 align-super text-xs font-semibold text-indigo-700">
@@ -159,10 +166,14 @@ export function ReaderChapterContent({
                     ? 'bg-emerald-500/10'
                     : ''
                 }`}
-                onClick={() => onOpenVerseActions(entry.verse, entry.verseText)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenVerseActions(entry.verse, entry.verseText);
+                }}
                 onKeyDown={(event) => {
                   if (event.key !== 'Enter' && event.key !== ' ') return;
                   event.preventDefault();
+                  event.stopPropagation();
                   onOpenVerseActions(entry.verse, entry.verseText);
                 }}>
                 {entry.verseText}

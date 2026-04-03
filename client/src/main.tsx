@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from '@/components/app/ErrorBoundary';
 import { ToastProvider } from '@/components/app/ToastProvider';
-import { AppStateProvider } from '@/state';
+import { AppStateProvider, PreferredTranslationProvider } from '@/state';
 import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 
@@ -13,7 +13,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ToastProvider>
         <BrowserRouter>
           <AppStateProvider>
-            <App />
+            <PreferredTranslationProvider>
+              <App />
+            </PreferredTranslationProvider>
           </AppStateProvider>
         </BrowserRouter>
       </ToastProvider>

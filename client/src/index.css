@@ -575,6 +575,31 @@ body {
   color: var(--reader-text) !important;
 }
 
+/* Tutorial route: headings, body, and links outside generic slate overrides. */
+.app-dark-mode .tutorial-prose [class*='text-slate-900'] {
+  color: #f1f5f9 !important;
+}
+
+.app-dark-mode .tutorial-prose [class*='text-indigo-'] {
+  color: #a5b4fc !important;
+}
+
+.app-dark-mode .tutorial-prose [class*='hover:text-indigo-']:hover {
+  color: #c7d2fe !important;
+}
+
+.app-dark-mode .tutorial-callout[data-variant='info'] {
+  border-color: #4338ca !important;
+  background-color: rgb(49 46 129 / 35%) !important;
+  color: #e0e7ff !important;
+}
+
+.app-dark-mode .tutorial-callout[data-variant='tip'] {
+  border-color: #b45309 !important;
+  background-color: rgb(120 53 15 / 35%) !important;
+  color: #fef3c7 !important;
+}
+
 /*
  * Interactive cursors — unlayered + !important so they always beat Tailwind
  * @layer base / utilities ordering. Disabled rules are separate so they still win.
