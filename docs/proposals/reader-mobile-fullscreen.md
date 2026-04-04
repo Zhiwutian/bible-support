@@ -59,6 +59,7 @@
 
 ## Related docs
 
+- [`docs/proposals/reader-immersive-chrome-scroll.md`](reader-immersive-chrome-scroll.md) — bottom immersive chrome, deferred Exit, chapter scroll reset
 - [`docs/proposals/bible-support-reader-ui-hybrid.md`](bible-support-reader-ui-hybrid.md) — hybrid reader / mobile overflow context
 - [`docs/proposals/reader-comfort-customization-research.md`](reader-comfort-customization-research.md) — reader comfort flag
 

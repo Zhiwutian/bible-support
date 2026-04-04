@@ -1,8 +1,11 @@
+import { twMerge } from 'tailwind-merge';
+
 /**
- * Join class names while ignoring empty values.
+ * Join class names and resolve conflicting Tailwind utilities (last wins).
  */
 export function cn(
   ...values: Array<string | false | null | undefined>
 ): string {
-  return values.filter(Boolean).join(' ');
+  const merged = values.filter(Boolean).join(' ');
+  return merged ? twMerge(merged) : '';
 }

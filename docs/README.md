@@ -75,6 +75,9 @@ This folder contains maintainable project documentation for application structur
   - Search-mode UX contract and backend endpoint summary
   - Device-scoped save behavior, hybrid source strategy, and validation steps
   - Translation import/sync workflow and scripture diagnostics endpoint usage
+- `emotion-high-contrast-spot-check.md`
+  - Manual checklist: Support home + emotion scripture viewer with **High contrast** enabled
+  - Pointers to `index.css` global mode rules and emotion/reader surfaces
 
 ## Documentation Maintenance Rules
 

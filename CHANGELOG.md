@@ -8,16 +8,27 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Added
 
+- Client: **`tailwind-merge`** in **`cn()`** (`@/lib/cn`) so shared `Button` / layout classes resolve conflicting Tailwind utilities correctly.
+- Client: **`@types/node`** (dev) for tests that read **`index.css`** from disk; **`reader-typography-css.guard.test.ts`** asserts immersive bottom-pad token and verse-row reader font CSS; **`App.test`** covers immersive chrome hide-on-scroll / show-on-pointer and verse **`reader-size-*`** classes from stored prefs.
+- Reader: **Immersive full screen** — chapter controls moved to a **bottom** bar with safe-area padding; **Exit full screen** stays hidden until the first **pointer** interaction or a **timeout** (immediate when `prefers-reduced-motion: reduce`). Telemetry: `reader_immersive_exit_revealed`. New chapter loads **scroll to top** when there is no saved scroll offset for that chapter key (fixes next/previous leaving the viewport scrolled). See **`docs/proposals/reader-immersive-chrome-scroll.md`**.
 - Client: **Global Bible translation** preference in **`localStorage`** (`app:preferred-translation:v1`); Support, Search, and Reader stay aligned. Reader seeds from `translation` in the URL once when unset, then the saved preference overrides shared links. Outbound **Study online** links (Bible.com + BibleGateway) on Support replace the inline Learn context panel; tutorial copy and dark-mode styles for tutorial prose/callouts updated. See **`docs/proposals/translation-support-tutorial-study-links.md`**.
 - Reader: **Reader tools** sheet (bottom sheet on narrow viewports, centered modal on `md+`) with **Full screen** (Fullscreen API + fixed overlay fallback) and **Reader options** when comfort is enabled; click chapter scroll area opens tools without triggering verse actions (`stopPropagation` on verses). Telemetry: `reader_mobile_tools_*`, `reader_fullscreen_entered` / `reader_fullscreen_exited`. See **`docs/proposals/reader-mobile-fullscreen.md`**.
 - Reader: **Full screen** stays active while **previous/next chapter** loads (immersive shell no longer unmounts on `isLoading`); in-immersive loading hint and disabled chapter nav until the fetch finishes.
-- Reader: **Verse actions** and **note** modals stack above immersive full screen (`z-[70]`) so full screen is kept; **Options** / setting-help still exit immersive so those dialogs remain usable.
+- Reader: **Verse actions** and **note** modals stack above immersive full screen (`z-[70]`) so full screen is kept; **Reader options** (from **Reader tools**) / setting-help still exit immersive so those dialogs remain usable.
 - Reader: verse/note modals are **portaled inside the immersive shell** so they appear during **native** browser fullscreen (only the fullscreen element’s subtree is visible to the compositor).
 - Client: **`viewport-fit=cover`** on the root viewport meta for safe-area insets with immersive reader.
 - Client: **`jest-axe`** + **`@types/jest-axe`**; **`src/app-a11y.test.tsx`** — axe smoke after guest entry for Support, Search, Reader (John 3 / KJV), and Tutorial (no **serious** or **critical** violations; color-contrast limited under jsdom per jest-axe).
 
 ### Changed
 
+- Reader: **Reader tools** on the chapter card uses the **primary** button style and a larger label so it reads as the main action.
+- Reader: **Verse** reading style applies **Reader options → Font size** (and line height) to each verse row by setting typography from the same CSS variables as the chapter text.
+- Reader: Removed the top-of-page **Options** button; **Reader tools** → **Reader options** is the only in-page entry to reader comfort settings on `/reader`.
+- Reader: **Immersive** scrollable column uses **`--reader-immersive-bottom-chrome-pad`** on **`.reader-immersive-shell`** (see **`index.css`**) instead of a magic `5.25rem` only in JSX; bottom chrome uses **`aria-hidden`** when visually hidden.
+- Reader: Programmatic-scroll suppress uses a **generation counter** so stacked **`scheduleClearImmersiveChromeScrollSuppress`** double-`rAF` callbacks do not clear the flag early; **`pageshow`** restore sets suppress only when **immersive** is active.
+- Reader: **Immersive full screen** bottom chapter bar **hides while scrolling** and stays hidden until the user **taps the reading surface** again (no timed auto-show after scroll ends).
+- Reader: Verse / standard / clean **sup** markers use **`em`**-based sizes so they scale with reader body text.
+- Support (**Emotions** home + **emotion scripture** viewer): **dark mode** forces light ink (**`#f8fafc`**) for emotion theme utilities (`text-indigo-*`, `text-red-*`, etc.) via **`.emotion-support-page`** so copy stays readable on the dark shell (global dark rules only rewrote **`text-slate-*`** before).
 - GitHub Actions: **`.github/workflows/main.yml`** runs **`pnpm run lint`**, **`tsc`**, **`test`**, then **`build`** before EC2 rsync (parity with PR CI).
 - Server: **`readEmotionScripturesBySlug`** batches primary-translation verse rows in **one** `OR` query, then falls back per row for incomplete hits or translation fallback (`emotion-service`).
 - Server: Reader cross-book **prev/next** uses **grouped** `min`/`max` chapter queries over candidate books instead of sequential per-book aggregates (`reader-service`).
@@ -25,6 +36,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Documentation
 
+- **`docs/emotion-high-contrast-spot-check.md`** — manual checklist for Support / emotion scripture routes with **High contrast**; **`docs/README.md`** index entry added.
 - **`docs/development-workflow.md`** — _GitHub: branch protection (`main`)_; _EC2 / `pub` deploy_ documents **lint / tsc / test / build** on deploy; diagnostics `curl` still references deployment guide for Bearer token.
 - **`docs/README.md`** — index note for branch protection + `pub` deploy; testing entry mentions **`app-a11y.test.tsx`** (jest-axe).
 - Plans: **`docs/plans/full-app-review-2026.md`** — findings **F1–F9** addressed (**F4–F7** closed with code changes; slices 3–5 tables updated).

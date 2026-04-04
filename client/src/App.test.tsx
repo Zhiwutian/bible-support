@@ -1,4 +1,11 @@
-import { render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ToastProvider } from '@/components/app/ToastProvider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +15,10 @@ import { AppStateProvider, PreferredTranslationProvider } from '@/state';
 import { MemoryRouter } from 'react-router-dom';
 import { server } from '@/test/server';
 import { isPrivacySafeReaderComfortRolloutPayload } from '@/features/reader/reader-comfort-telemetry';
+import {
+  defaultReaderPreferences,
+  READER_PREFERENCES_STORAGE_KEY,
+} from '@/features/reader/reader-preferences';
 
 function renderApp(initialEntries: string[] = ['/']) {
   return render(
@@ -26,6 +37,18 @@ function renderApp(initialEntries: string[] = ['/']) {
 async function continueAsGuest(user: ReturnType<typeof userEvent.setup>) {
   await user.click(
     await screen.findByRole('button', { name: /continue as guest/i }),
+  );
+}
+
+/** Reader comfort settings: **Reader tools** → **Reader options** (no top-level Options button). */
+async function openReaderComfortOptions(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  await user.click(
+    await screen.findByRole('button', { name: /^Reader tools$/i }),
+  );
+  await user.click(
+    await screen.findByRole('button', { name: /^Reader options$/i }),
   );
 }
 
@@ -203,8 +226,39 @@ describe('App', () => {
       await user.click(screen.getByRole('button', { name: /^Full screen$/i }));
       expect(requestFullscreenMock).toHaveBeenCalled();
       expect(
+        screen.queryByRole('button', { name: /exit full screen/i }),
+      ).not.toBeInTheDocument();
+      await user.click(
+        screen.getByRole('button', { name: /for god so loved the world/i }),
+      );
+      expect(
         await screen.findByRole('button', { name: /exit full screen/i }),
       ).toBeInTheDocument();
+
+      const bottomChrome = screen.getByTestId('reader-immersive-bottom-chrome');
+      expect(bottomChrome).not.toHaveAttribute('aria-hidden');
+      const scrollEl = screen.getByTestId('reader-immersive-scroll');
+      await act(async () => {
+        await new Promise<void>((resolve) => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => resolve());
+          });
+        });
+      });
+      await act(async () => {
+        scrollEl.scrollTop = 1;
+        scrollEl.dispatchEvent(new Event('scroll', { bubbles: false }));
+      });
+      await waitFor(() => {
+        expect(bottomChrome).toHaveAttribute('aria-hidden', 'true');
+      });
+      await act(async () => {
+        fireEvent.pointerDown(scrollEl);
+      });
+      await waitFor(() => {
+        expect(bottomChrome).not.toHaveAttribute('aria-hidden');
+      });
+
       await user.click(
         screen.getByRole('button', { name: /exit full screen/i }),
       );
@@ -264,7 +318,7 @@ describe('App', () => {
       }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Reading style' }),
       'standard',
@@ -287,7 +341,7 @@ describe('App', () => {
     const user = userEvent.setup();
     renderApp(['/reader?book=John&chapter=3&translation=KJV']);
     await continueAsGuest(user);
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Reading style' }),
       'verse',
@@ -378,7 +432,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Bible Reader' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Theme' }),
       'dark',
@@ -401,7 +455,7 @@ describe('App', () => {
     expect(
       await screen.findByRole('heading', { name: 'Bible Reader' }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('dark');
     expect(screen.getByRole('combobox', { name: 'Font size' })).toHaveValue(
       'lg',
@@ -448,12 +502,54 @@ describe('App', () => {
     renderApp(['/reader?book=John&chapter=3&translation=KJV']);
     await continueAsGuest(user);
 
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     await user.click(screen.getByRole('checkbox', { name: 'Reduced motion' }));
 
     expect(
       document.querySelector('.reader-root.reader-reduced-motion'),
     ).toBeTruthy();
+  });
+
+  it('verse reading style keeps reader size classes on the root for font tokens', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      READER_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: 4,
+        preferences: {
+          ...defaultReaderPreferences,
+          readingStyle: 'verse',
+          fontSize: 'md',
+        },
+      }),
+    );
+    const mdRender = renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+    const verseMd = await screen.findByRole('button', {
+      name: /for god so loved the world/i,
+    });
+    expect(verseMd).toHaveClass('reader-verse-paragraph');
+    expect(verseMd.closest('.reader-root')).toHaveClass('reader-size-md');
+    mdRender.unmount();
+    window.sessionStorage.clear();
+
+    window.localStorage.setItem(
+      READER_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: 4,
+        preferences: {
+          ...defaultReaderPreferences,
+          readingStyle: 'verse',
+          fontSize: 'xl',
+        },
+      }),
+    );
+    renderApp(['/reader?book=John&chapter=3&translation=KJV']);
+    await continueAsGuest(user);
+    const verseXl = await screen.findByRole('button', {
+      name: /for god so loved the world/i,
+    });
+    expect(verseXl.closest('.reader-root')).toHaveClass('reader-size-xl');
   });
 
   it('combines app text scale with reader route', async () => {
@@ -489,7 +585,7 @@ describe('App', () => {
     renderApp(['/reader?book=John&chapter=3&translation=KJV']);
     await continueAsGuest(user);
 
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     await user.selectOptions(
       screen.getByRole('combobox', { name: 'Theme' }),
       'dark',
@@ -521,7 +617,7 @@ describe('App', () => {
     renderApp(['/reader?book=John&chapter=3&translation=KJV']);
     await continueAsGuest(user);
 
-    await user.click(screen.getByRole('button', { name: 'Options' }));
+    await openReaderComfortOptions(user);
     expect(
       screen.getByRole('note', { name: /global high contrast hint/i }),
     ).toBeInTheDocument();
