@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
@@ -108,8 +109,13 @@ function buildCleanParagraphs(
   return chunks;
 }
 
-/** Delay before showing Exit in immersive mode unless user scrolls/taps (skipped if reduced motion). */
+/** Delay before showing Exit in immersive mode unless user long-presses (skipped if reduced motion). */
 const IMMERSIVE_EXIT_REVEAL_DELAY_MS = 4000;
+
+/** Hold duration to reveal immersive bottom chrome; avoids showing it on scroll touches. */
+const IMMERSIVE_CHROME_LONG_PRESS_MS = 550;
+/** Cancel long-press if the pointer moves beyond this radius from touchdown (scroll slop). */
+const IMMERSIVE_CHROME_LONG_PRESS_MOVE_PX = 12;
 
 /** Render chapter reader view with URL-synced book/chapter/translation state. */
 export function BibleReaderPage() {
@@ -256,7 +262,7 @@ export function BibleReaderPage() {
   }, []);
 
   const revealImmersiveExitControl = useCallback(
-    (reason: 'pointer' | 'timeout') => {
+    (reason: 'timeout' | 'long_press') => {
       if (immersiveExitRevealTimeoutRef.current !== null) {
         clearTimeout(immersiveExitRevealTimeoutRef.current);
         immersiveExitRevealTimeoutRef.current = null;
@@ -273,8 +279,59 @@ export function BibleReaderPage() {
     [],
   );
 
+  const immersiveChromeLongPressTimerRef = useRef<number | null>(null);
+  const immersiveChromeLongPressOriginRef = useRef<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const clearImmersiveChromeLongPressTimer = useCallback(() => {
+    if (immersiveChromeLongPressTimerRef.current !== null) {
+      clearTimeout(immersiveChromeLongPressTimerRef.current);
+      immersiveChromeLongPressTimerRef.current = null;
+    }
+    immersiveChromeLongPressOriginRef.current = null;
+  }, []);
+
+  const handleImmersivePointerDownCapture = useCallback(
+    (ev: ReactPointerEvent<HTMLDivElement>) => {
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+      clearImmersiveChromeLongPressTimer();
+      immersiveChromeLongPressOriginRef.current = {
+        x: ev.clientX,
+        y: ev.clientY,
+      };
+      immersiveChromeLongPressTimerRef.current = window.setTimeout(() => {
+        immersiveChromeLongPressTimerRef.current = null;
+        immersiveChromeLongPressOriginRef.current = null;
+        setImmersiveBottomChromeVisible(true);
+        revealImmersiveExitControl('long_press');
+      }, IMMERSIVE_CHROME_LONG_PRESS_MS);
+    },
+    [clearImmersiveChromeLongPressTimer, revealImmersiveExitControl],
+  );
+
+  const handleImmersivePointerMoveCapture = useCallback(
+    (ev: ReactPointerEvent<HTMLDivElement>) => {
+      if (immersiveChromeLongPressOriginRef.current === null) return;
+      const origin = immersiveChromeLongPressOriginRef.current;
+      const dx = ev.clientX - origin.x;
+      const dy = ev.clientY - origin.y;
+      const slop = IMMERSIVE_CHROME_LONG_PRESS_MOVE_PX;
+      if (dx * dx + dy * dy > slop * slop) {
+        clearImmersiveChromeLongPressTimer();
+      }
+    },
+    [clearImmersiveChromeLongPressTimer],
+  );
+
+  const handleImmersivePointerUpOrCancelCapture = useCallback(() => {
+    clearImmersiveChromeLongPressTimer();
+  }, [clearImmersiveChromeLongPressTimer]);
+
   useEffect(() => {
     if (!isImmersiveReader) {
+      clearImmersiveChromeLongPressTimer();
       clearImmersiveExitRevealTimeout();
       /* Reset chrome visibility when leaving immersive (any exit path: button, Esc, native FS). */
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sync UI state to fullscreen hook
@@ -283,6 +340,7 @@ export function BibleReaderPage() {
       immersiveExitRevealTrackedRef.current = false;
       return;
     }
+    clearImmersiveChromeLongPressTimer();
     clearImmersiveExitRevealTimeout();
     setImmersiveExitRevealed(false);
     setImmersiveBottomChromeVisible(true);
@@ -301,10 +359,12 @@ export function BibleReaderPage() {
       }, delayMs);
     }
     return () => {
+      clearImmersiveChromeLongPressTimer();
       clearImmersiveExitRevealTimeout();
     };
   }, [
     isImmersiveReader,
+    clearImmersiveChromeLongPressTimer,
     clearImmersiveExitRevealTimeout,
     revealImmersiveExitControl,
   ]);
@@ -1008,10 +1068,10 @@ export function BibleReaderPage() {
             <div
               ref={immersiveContainerRef}
               data-testid="reader-immersive-shell"
-              onPointerDownCapture={() => {
-                setImmersiveBottomChromeVisible(true);
-                revealImmersiveExitControl('pointer');
-              }}
+              onPointerDownCapture={handleImmersivePointerDownCapture}
+              onPointerMoveCapture={handleImmersivePointerMoveCapture}
+              onPointerUpCapture={handleImmersivePointerUpOrCancelCapture}
+              onPointerCancelCapture={handleImmersivePointerUpOrCancelCapture}
               className={cn(
                 readerRootClassName,
                 'reader-immersive-shell fixed inset-0 z-[60] flex max-h-[100dvh] flex-col overflow-hidden',
