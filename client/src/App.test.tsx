@@ -228,9 +228,24 @@ describe('App', () => {
       expect(
         screen.queryByRole('button', { name: /exit full screen/i }),
       ).not.toBeInTheDocument();
-      await user.click(
-        screen.getByRole('button', { name: /for god so loved the world/i }),
-      );
+      const shell = screen.getByTestId('reader-immersive-shell');
+      await act(async () => {
+        fireEvent.pointerDown(shell, {
+          clientX: 100,
+          clientY: 200,
+          pointerId: 1,
+        });
+      });
+      await act(async () => {
+        await new Promise<void>((r) => setTimeout(r, 650));
+      });
+      await act(() => {
+        fireEvent.pointerUp(shell, {
+          clientX: 100,
+          clientY: 200,
+          pointerId: 1,
+        });
+      });
       expect(
         await screen.findByRole('button', { name: /exit full screen/i }),
       ).toBeInTheDocument();
@@ -253,7 +268,21 @@ describe('App', () => {
         expect(bottomChrome).toHaveAttribute('aria-hidden', 'true');
       });
       await act(async () => {
-        fireEvent.pointerDown(scrollEl);
+        fireEvent.pointerDown(shell, {
+          clientX: 50,
+          clientY: 50,
+          pointerId: 2,
+        });
+      });
+      await act(async () => {
+        await new Promise<void>((r) => setTimeout(r, 650));
+      });
+      await act(() => {
+        fireEvent.pointerUp(shell, {
+          clientX: 50,
+          clientY: 50,
+          pointerId: 2,
+        });
       });
       await waitFor(() => {
         expect(bottomChrome).not.toHaveAttribute('aria-hidden');

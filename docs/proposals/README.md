@@ -35,5 +35,5 @@ Current proposals:
 - `reader-styles-bookmarks-account-sync.md`
 - `bible-support-reader-ui-hybrid.md` — hybrid reader (`/reader` + embedded `ReaderSurface`), Full Context → Reader, mobile overflow, prayer confirm modal, saved/support emphasis in chapter
 - `reader-mobile-fullscreen.md` — reader tools sheet + full viewport / Fullscreen API + safe-area fallback on **all viewports** (responsive sheet layout); verse click isolation
-- `reader-immersive-chrome-scroll.md` — immersive bottom chapter bar, deferred Exit control (interaction + timeout + reduced motion), scroll-to-top when no saved offset for chapter key
+- `reader-immersive-chrome-scroll.md` — immersive bottom chapter bar, deferred Exit control (**long press** or timeout + reduced motion), scroll-to-top when no saved offset for chapter key
 - `translation-support-tutorial-study-links.md` — global translation preference (localStorage, overrides URL), tutorial dark-mode prose, support scripture layout (no swipe), outbound Bible.com/BibleGateway study links (no YouVersion study API)
