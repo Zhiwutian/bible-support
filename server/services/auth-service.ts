@@ -65,6 +65,8 @@ export async function buildLoginRedirectUrl(
     nonce: params.nonce,
     code_challenge: await oidc.calculatePKCECodeChallenge(params.codeVerifier),
     code_challenge_method: 'S256',
+    /** Show account picker on each login (e.g. Google via Auth0). */
+    prompt: 'select_account',
     ...(params.connection ? { connection: params.connection } : {}),
   });
   return redirectUrl.toString();

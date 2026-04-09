@@ -21,6 +21,7 @@ The format is inspired by Keep a Changelog and uses semantic-style version secti
 
 ### Changed
 
+- Auth: OIDC login redirect (`buildLoginRedirectUrl` in **`server/services/auth-service.ts`**) now sends **`prompt=select_account`** so users get the provider account picker on each login (aligned with workout-tracker OIDC behavior).
 - Reader: **Reader tools** on the chapter card uses the **primary** button style and a larger label so it reads as the main action.
 - Reader: **Verse** reading style applies **Reader options → Font size** (and line height) to each verse row by setting typography from the same CSS variables as the chapter text.
 - Reader: Removed the top-of-page **Options** button; **Reader tools** → **Reader options** is the only in-page entry to reader comfort settings on `/reader`.
