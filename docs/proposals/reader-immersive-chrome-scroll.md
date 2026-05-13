@@ -24,12 +24,12 @@
 | Bottom chapter bar visibility | **Hides** on **user scroll**; stays **hidden** until the user **clicks** the immersive shell again (same as Exit). **No** idle timer to re-show after scroll. Programmatic scroll uses a suppress flag so restore/nav does not hide the bar. **Chapter nav** (prev/next) still **shows** the bar when invoked.                               |
 | Clearance / a11y              | Scroll column **`padding-bottom`** uses **`--reader-immersive-bottom-chrome-pad`** on **`.reader-immersive-shell`** (see **`index.css`**). When the bar is off-screen, the chrome container sets **`aria-hidden`** so assistive tech matches the visual.                                                                                     |
 | Suppress + bfcache            | Double-`rAF` clear is **generation-scoped** so overlapping schedules do not drop suppress early. **`pageshow`** (bfcache) only arms suppress when **immersive** is active.                                                                                                                                                                   |
-| Stacking                      | Bottom chrome is **after** the modal portal host in the DOM with **higher z-index** (`z-[75]` vs host `z-[70]`) so controls stay visible and tappable; modals still cover when open.                                                                                                                                                         |
+| Stacking                      | Modal portal host **`z-[80]`** sits **above** bottom chrome **`z-[75]`** so verse/note modals cover prev/next/exit; the bar stays visible and tappable when no reader modal is open.                                                                                                                                                         |
 | Telemetry                     | `reader_immersive_exit_revealed` with `{ reason: 'surface_click' \| 'timeout' }` (once per immersive session).                                                                                                                                                                                                                               |
 
 ## Current state (summary)
 
-- [`BibleReaderPage.tsx`](../../client/src/pages/BibleReaderPage.tsx): immersive shell is `flex-col` with **top** row (prev / next / exit), then scrollable `reader-content`, then absolute modal host `z-[70]`.
+- [`BibleReaderPage.tsx`](../../client/src/pages/BibleReaderPage.tsx): immersive shell is `flex-col` with **top** row (prev / next / exit), then scrollable `reader-content`, then absolute modal host `z-[80]`.
 - Session scroll restore: if `loadReaderScrollPosition` returns `null`, the effect does not set `scrollTop`, so the **same** scroll container keeps the **old** offset after chapter change.
 
 ## Recommended approach

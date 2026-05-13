@@ -869,6 +869,7 @@ export function BibleReaderPage() {
         <ReaderVerseActionsModal
           isOpen={Boolean(verseActionTarget)}
           stackAboveImmersiveReader={false}
+          immersiveLayout={isImmersiveReader}
           reference={verseActionTarget?.reference ?? ''}
           hasSavedNote={
             verseActionTarget
@@ -1061,7 +1062,7 @@ export function BibleReaderPage() {
               </div>
               <div
                 ref={setImmersiveModalHostEl}
-                className="pointer-events-none absolute inset-0 z-[70] [&>*]:pointer-events-auto"
+                className="pointer-events-none absolute inset-0 z-[80] [&>*]:pointer-events-auto"
               />
               <div
                 data-testid="reader-immersive-bottom-chrome"
