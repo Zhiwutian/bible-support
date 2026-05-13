@@ -18,7 +18,6 @@ export type ReaderPreferences = {
   paragraphSpacing: ReaderParagraphSpacing;
   contentWidth: ReaderContentWidth;
   reducedMotion: boolean;
-  breakReminder: boolean;
   readingStyle: ReaderReadingStyle;
   hideTranslationIndicators: boolean;
 };
@@ -31,7 +30,7 @@ type PersistedReaderPreferences = {
 /** localStorage key; exported for cross-tab sync in `useReaderPreferencesLive`. */
 export const READER_PREFERENCES_STORAGE_KEY = 'reader-preferences';
 const READER_BOOKMARK_STORAGE_KEY = 'reader-bookmark';
-const READER_PREFERENCES_SCHEMA_VERSION = 4;
+const READER_PREFERENCES_SCHEMA_VERSION = 5;
 
 export const defaultReaderPreferences: ReaderPreferences = {
   theme: 'sepia',
@@ -41,13 +40,12 @@ export const defaultReaderPreferences: ReaderPreferences = {
   paragraphSpacing: 'normal',
   contentWidth: 'balanced',
   reducedMotion: false,
-  breakReminder: true,
   readingStyle: 'verse',
   hideTranslationIndicators: false,
 };
 
-function isReaderPreferences(value: unknown): value is ReaderPreferences {
-  if (!value || typeof value !== 'object') return false;
+function sanitizeReaderPreferences(value: unknown): ReaderPreferences | null {
+  if (!value || typeof value !== 'object') return null;
   const candidate = value as Record<string, unknown>;
   const isTheme =
     candidate.theme === 'light' ||
@@ -74,25 +72,38 @@ function isReaderPreferences(value: unknown): value is ReaderPreferences {
     candidate.contentWidth === 'balanced' ||
     candidate.contentWidth === 'wide';
   const isReducedMotion = typeof candidate.reducedMotion === 'boolean';
-  const isBreakReminder = typeof candidate.breakReminder === 'boolean';
   const isReadingStyle =
     candidate.readingStyle === 'verse' ||
     candidate.readingStyle === 'standard' ||
     candidate.readingStyle === 'clean';
   const isHideTranslationIndicators =
     typeof candidate.hideTranslationIndicators === 'boolean';
-  return (
-    isTheme &&
-    isFontFamily &&
-    isFontSize &&
-    isLineHeight &&
-    isParagraphSpacing &&
-    isContentWidth &&
-    isReducedMotion &&
-    isBreakReminder &&
-    isReadingStyle &&
-    isHideTranslationIndicators
-  );
+  if (
+    !(
+      isTheme &&
+      isFontFamily &&
+      isFontSize &&
+      isLineHeight &&
+      isParagraphSpacing &&
+      isContentWidth &&
+      isReducedMotion &&
+      isReadingStyle &&
+      isHideTranslationIndicators
+    )
+  ) {
+    return null;
+  }
+  return {
+    theme: candidate.theme as ReaderTheme,
+    fontFamily: candidate.fontFamily as ReaderFontFamily,
+    fontSize: candidate.fontSize as ReaderFontSize,
+    lineHeight: candidate.lineHeight as ReaderLineHeight,
+    paragraphSpacing: candidate.paragraphSpacing as ReaderParagraphSpacing,
+    contentWidth: candidate.contentWidth as ReaderContentWidth,
+    reducedMotion: candidate.reducedMotion as boolean,
+    readingStyle: candidate.readingStyle as ReaderReadingStyle,
+    hideTranslationIndicators: candidate.hideTranslationIndicators as boolean,
+  };
 }
 
 function prefersReducedMotionByDefault(): boolean {
@@ -114,7 +125,10 @@ function defaultPreferencesWithRuntimeHints(): ReaderPreferences {
 
 function isV1ReaderPreferences(
   value: unknown,
-): value is Omit<ReaderPreferences, 'breakReminder'> {
+): value is Omit<
+  ReaderPreferences,
+  'readingStyle' | 'hideTranslationIndicators'
+> {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Record<string, unknown>;
   return (
@@ -164,8 +178,7 @@ function isV2ReaderPreferences(
     (candidate.contentWidth === 'narrow' ||
       candidate.contentWidth === 'balanced' ||
       candidate.contentWidth === 'wide') &&
-    typeof candidate.reducedMotion === 'boolean' &&
-    typeof candidate.breakReminder === 'boolean'
+    typeof candidate.reducedMotion === 'boolean'
   );
 }
 
@@ -194,7 +207,6 @@ function isV3ReaderPreferences(
       candidate.contentWidth === 'balanced' ||
       candidate.contentWidth === 'wide') &&
     typeof candidate.reducedMotion === 'boolean' &&
-    typeof candidate.breakReminder === 'boolean' &&
     (candidate.readingStyle === 'verse' ||
       candidate.readingStyle === 'standard' ||
       candidate.readingStyle === 'clean')
@@ -212,31 +224,44 @@ export function loadReaderPreferences(): ReaderPreferences {
   try {
     const parsed = JSON.parse(raw) as Partial<PersistedReaderPreferences>;
     if (parsed.version === READER_PREFERENCES_SCHEMA_VERSION) {
-      return isReaderPreferences(parsed.preferences)
-        ? parsed.preferences
-        : defaultPreferencesWithRuntimeHints();
+      return (
+        sanitizeReaderPreferences(parsed.preferences) ??
+        defaultPreferencesWithRuntimeHints()
+      );
+    }
+    // Legacy v4 payloads may include a removed `breakReminder` field; strip via sanitize.
+    if (parsed.version === 4) {
+      return (
+        sanitizeReaderPreferences(parsed.preferences) ??
+        defaultPreferencesWithRuntimeHints()
+      );
     }
     // Backward-compatible upgrade path from phase-2 schema.
     if (parsed.version === 1 && isV1ReaderPreferences(parsed.preferences)) {
-      return {
-        ...parsed.preferences,
-        breakReminder: true,
-        readingStyle: 'verse',
-        hideTranslationIndicators: false,
-      };
+      return (
+        sanitizeReaderPreferences({
+          ...parsed.preferences,
+          readingStyle: 'verse',
+          hideTranslationIndicators: false,
+        }) ?? defaultPreferencesWithRuntimeHints()
+      );
     }
     if (parsed.version === 2 && isV2ReaderPreferences(parsed.preferences)) {
-      return {
-        ...parsed.preferences,
-        readingStyle: 'verse',
-        hideTranslationIndicators: false,
-      };
+      return (
+        sanitizeReaderPreferences({
+          ...parsed.preferences,
+          readingStyle: 'verse',
+          hideTranslationIndicators: false,
+        }) ?? defaultPreferencesWithRuntimeHints()
+      );
     }
     if (parsed.version === 3 && isV3ReaderPreferences(parsed.preferences)) {
-      return {
-        ...parsed.preferences,
-        hideTranslationIndicators: false,
-      };
+      return (
+        sanitizeReaderPreferences({
+          ...parsed.preferences,
+          hideTranslationIndicators: false,
+        }) ?? defaultPreferencesWithRuntimeHints()
+      );
     }
     return defaultPreferencesWithRuntimeHints();
   } catch {

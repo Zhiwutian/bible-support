@@ -135,7 +135,7 @@ Current Reader decomposition references:
 - Treat app-wide high-contrast overrides as a controlled global layer; avoid adding new `!important` rules outside accessibility scope.
 - For reader-longform surfaces, validate reduced-motion and high-contrast combinations together.
 - For reader bookmarking interactions, keep keyboard-accessible click targets and provide visible status feedback (`role="status"`).
-- For interactive reader verse targets, prefer reader-scoped semantic classes (for example `reader-verse-inline-hit`) over `hover:bg-slate-*` utility hooks to avoid global dark/high-contrast selector bleed.
+- For interactive reader verse targets, prefer reader-scoped semantic classes (for example `reader-verse-text-hit`) over `hover:bg-slate-*` utility hooks to avoid global dark/high-contrast selector bleed.
 
 ## Routing and Entry Pattern
 

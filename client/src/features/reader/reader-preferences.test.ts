@@ -40,22 +40,17 @@ describe('reader preferences persistence', () => {
     expect(loadReaderPreferences()).toEqual(defaultReaderPreferences);
   });
 
-  it('upgrades v1 payloads with break reminder and reading style defaults', () => {
+  it('upgrades v1 payloads with reading style and indicator defaults', () => {
     window.localStorage.setItem(
       'reader-preferences',
       JSON.stringify({
         version: 1,
         preferences: {
           ...defaultReaderPreferences,
-          breakReminder: undefined,
         },
       }),
     );
-    expect(loadReaderPreferences()).toEqual({
-      ...defaultReaderPreferences,
-      breakReminder: true,
-      readingStyle: 'verse',
-    });
+    expect(loadReaderPreferences()).toEqual(defaultReaderPreferences);
   });
 
   it('upgrades v2 payloads with reading style default', () => {

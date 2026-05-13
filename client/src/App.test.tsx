@@ -229,23 +229,7 @@ describe('App', () => {
         screen.queryByRole('button', { name: /exit full screen/i }),
       ).not.toBeInTheDocument();
       const shell = screen.getByTestId('reader-immersive-shell');
-      await act(async () => {
-        fireEvent.pointerDown(shell, {
-          clientX: 100,
-          clientY: 200,
-          pointerId: 1,
-        });
-      });
-      await act(async () => {
-        await new Promise<void>((r) => setTimeout(r, 650));
-      });
-      await act(() => {
-        fireEvent.pointerUp(shell, {
-          clientX: 100,
-          clientY: 200,
-          pointerId: 1,
-        });
-      });
+      fireEvent.click(shell);
       expect(
         await screen.findByRole('button', { name: /exit full screen/i }),
       ).toBeInTheDocument();
@@ -267,23 +251,7 @@ describe('App', () => {
       await waitFor(() => {
         expect(bottomChrome).toHaveAttribute('aria-hidden', 'true');
       });
-      await act(async () => {
-        fireEvent.pointerDown(shell, {
-          clientX: 50,
-          clientY: 50,
-          pointerId: 2,
-        });
-      });
-      await act(async () => {
-        await new Promise<void>((r) => setTimeout(r, 650));
-      });
-      await act(() => {
-        fireEvent.pointerUp(shell, {
-          clientX: 50,
-          clientY: 50,
-          pointerId: 2,
-        });
-      });
+      fireEvent.click(shell);
       await waitFor(() => {
         expect(bottomChrome).not.toHaveAttribute('aria-hidden');
       });
@@ -470,14 +438,7 @@ describe('App', () => {
       screen.getByRole('combobox', { name: 'Font size' }),
       'lg',
     );
-    expect(
-      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
-    ).toBeChecked();
-    await user.click(screen.getByRole('button', { name: 'Dismiss' }));
-    expect(screen.queryByText(/Eye comfort tip/i)).not.toBeInTheDocument();
-    await user.click(
-      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     firstRender.unmount();
 
     renderApp(['/reader?book=John&chapter=3&translation=KJV']);
@@ -489,9 +450,6 @@ describe('App', () => {
     expect(screen.getByRole('combobox', { name: 'Font size' })).toHaveValue(
       'lg',
     );
-    expect(
-      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
-    ).not.toBeChecked();
 
     await user.click(
       screen.getByRole('button', { name: /reset reader settings/i }),
@@ -502,9 +460,6 @@ describe('App', () => {
     expect(screen.getByRole('combobox', { name: 'Font size' })).toHaveValue(
       'md',
     );
-    expect(
-      screen.getByRole('checkbox', { name: 'Gentle break reminders' }),
-    ).toBeChecked();
   });
 
   it('keeps reader theme classes when app high contrast is enabled', async () => {
@@ -557,7 +512,8 @@ describe('App', () => {
     const verseMd = await screen.findByRole('button', {
       name: /for god so loved the world/i,
     });
-    expect(verseMd).toHaveClass('reader-verse-paragraph');
+    expect(verseMd).toHaveClass('reader-verse-text-hit');
+    expect(verseMd.closest('.reader-verse-paragraph')).toBeTruthy();
     expect(verseMd.closest('.reader-root')).toHaveClass('reader-size-md');
     mdRender.unmount();
     window.sessionStorage.clear();
@@ -627,11 +583,9 @@ describe('App', () => {
     window.removeEventListener('app:telemetry', onTelemetry);
 
     const comfort = received.filter((e) =>
-      [
-        'reader_preference_changed',
-        'reader_preferences_reset',
-        'reader_break_tip_dismissed',
-      ].includes(e.name),
+      ['reader_preference_changed', 'reader_preferences_reset'].includes(
+        e.name,
+      ),
     );
     expect(comfort.length).toBeGreaterThan(0);
     for (const evt of comfort) {

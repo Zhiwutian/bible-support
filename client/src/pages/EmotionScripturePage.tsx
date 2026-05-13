@@ -218,7 +218,7 @@ export function EmotionScripturePage() {
 
   return (
     <div
-      className={`emotion-support-page rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
+      className={`emotion-support-page w-full min-w-0 rounded-none pb-6 pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))] md:rounded-xl md:p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
         title={emotion ? `Scriptures for ${emotion.name}` : 'Scriptures'}
         description="Use Previous and Next to move through these curated passages. Your translation choice is remembered across Support, Search, and Reader."
@@ -231,8 +231,8 @@ export function EmotionScripturePage() {
         }
       />
 
-      <div className="mb-4 flex w-full flex-col items-stretch gap-2">
-        <div className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 md:w-auto">
+      <div className="mb-4 flex w-full flex-col items-stretch gap-2 min-[569px]:mx-auto min-[569px]:max-w-prose">
+        <div className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
           <div className="mb-2 inline-flex items-center gap-2">
             Translation
             <SettingHelpButton
@@ -262,7 +262,7 @@ export function EmotionScripturePage() {
             ))}
           </select>
         </div>
-        <div className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 md:w-auto">
+        <div className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
           <div className="mb-2 inline-flex items-center gap-2">
             Actions
             <SettingHelpButton
@@ -314,24 +314,24 @@ export function EmotionScripturePage() {
 
       {!isLoading && !error && currentScripture && (
         <Card
-          className={`mx-auto max-w-prose border p-6 shadow-md ${theme.scriptureContainerClassName}`}>
+          className={`w-full max-w-none rounded-none border-x-0 border-y px-0 py-4 shadow-md min-[569px]:mx-auto min-[569px]:max-w-prose min-[569px]:rounded-md min-[569px]:border-x min-[569px]:py-6 ${theme.scriptureContainerClassName}`}>
           <p
-            className={`mb-4 text-sm font-semibold tracking-wide ${theme.referenceClassName}`}>
+            className={`mb-4 px-4 text-sm font-semibold tracking-wide min-[569px]:px-6 ${theme.referenceClassName}`}>
             {currentScripture.reference} ({currentScripture.translation})
           </p>
           {currentScripture.isTranslationFallback ? (
-            <p className="mb-3 text-xs text-amber-700">
+            <p className="mb-3 px-4 text-xs text-amber-700 min-[569px]:px-6">
               Selected translation not available for this reference. Showing{' '}
               {currentScripture.translation} instead.
             </p>
           ) : null}
-          <ReaderSurface className="mt-1">
+          <ReaderSurface className="mt-1" fullWidth>
             <p className="text-xl leading-9 md:text-2xl">
               {currentScripture.verseText}
             </p>
           </ReaderSurface>
 
-          <div className="mt-8 space-y-6">
+          <div className="mt-8 space-y-6 px-4 min-[569px]:px-6">
             <div className="flex justify-between gap-2">
               <Button
                 variant="ghost"

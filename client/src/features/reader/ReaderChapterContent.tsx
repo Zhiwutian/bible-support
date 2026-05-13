@@ -54,24 +54,28 @@ export function ReaderChapterContent({
     <div className="reader-chapter-text">
       {readingStyle === 'verse' &&
         payload.verses.map((verse) => (
-          <button
+          <div
             key={verse.reference}
-            type="button"
             data-verse-start={verse.verse}
             data-verse-end={verse.verse}
             className={verseRowClassName(
               verse.verse,
               isBookmarkedVerse,
               hasSavedScriptureForVerse,
-            )}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenVerseActions(verse.verse, verse.verseText);
-            }}>
+            )}>
             <sup className="mr-1 align-super text-[0.75em] font-semibold leading-none">
               {verse.verse}
             </sup>
-            {formatVerseText(verse.verseText)}
+            <button
+              type="button"
+              aria-label={`Open actions for ${book} ${chapter}:${verse.verse}`}
+              className="reader-verse-text-hit inline max-w-full cursor-pointer rounded border-0 bg-transparent px-0.5 py-0 text-left align-baseline font-inherit text-inherit focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenVerseActions(verse.verse, verse.verseText);
+              }}>
+              {formatVerseText(verse.verseText)}
+            </button>
             {hasSavedNoteForVerse(verse.verse) ? (
               <sup
                 aria-label={`Has note for ${book} ${chapter}:${verse.verse}`}
@@ -79,7 +83,7 @@ export function ReaderChapterContent({
                 n
               </sup>
             ) : null}
-          </button>
+          </div>
         ))}
       {readingStyle === 'standard' &&
         cleanParagraphs.map((paragraph) => (
@@ -101,30 +105,33 @@ export function ReaderChapterContent({
             {paragraph.verses.map((entry) => (
               <span
                 key={`${paragraph.key}-${entry.verse}`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
-                className={`reader-verse-inline-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${
+                className={`inline ${
                   isBookmarkedVerse(entry.verse) ? 'ring-1 ring-indigo-400' : ''
                 } ${
                   hasSavedScriptureForVerse(entry.verse)
                     ? 'bg-emerald-500/10'
                     : ''
-                }`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenVerseActions(entry.verse, entry.verseText);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onOpenVerseActions(entry.verse, entry.verseText);
-                }}>
+                }`}>
                 <sup className="mr-1 align-super text-[0.75em] font-semibold leading-none text-indigo-700">
                   {entry.verse}
                 </sup>
-                {entry.verseText}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
+                  className="reader-verse-text-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenVerseActions(entry.verse, entry.verseText);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onOpenVerseActions(entry.verse, entry.verseText);
+                  }}>
+                  {entry.verseText}
+                </span>
                 {hasSavedNoteForVerse(entry.verse) ? (
                   <sup
                     aria-label={`Has note for ${book} ${chapter}:${entry.verse}`}
@@ -156,27 +163,30 @@ export function ReaderChapterContent({
             {paragraph.verses.map((entry) => (
               <span
                 key={`${paragraph.key}-clean-${entry.verse}`}
-                role="button"
-                tabIndex={0}
-                aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
-                className={`reader-verse-inline-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400 ${
+                className={`inline ${
                   isBookmarkedVerse(entry.verse) ? 'ring-1 ring-indigo-400' : ''
                 } ${
                   hasSavedScriptureForVerse(entry.verse)
                     ? 'bg-emerald-500/10'
                     : ''
-                }`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenVerseActions(entry.verse, entry.verseText);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key !== 'Enter' && event.key !== ' ') return;
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onOpenVerseActions(entry.verse, entry.verseText);
-                }}>
-                {entry.verseText}
+                }`}>
+                <span
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
+                  className="reader-verse-text-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onOpenVerseActions(entry.verse, entry.verseText);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onOpenVerseActions(entry.verse, entry.verseText);
+                  }}>
+                  {entry.verseText}
+                </span>
                 {hasSavedNoteForVerse(entry.verse) ? (
                   <sup
                     aria-label={`Has note for ${book} ${chapter}:${entry.verse}`}

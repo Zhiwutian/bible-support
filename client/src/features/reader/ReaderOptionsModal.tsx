@@ -18,7 +18,6 @@ type ReaderOptionsModalProps = {
     value: ReaderPreferences[K],
   ) => void;
   onReadingStyleChanged: (nextStyle: ReaderReadingStyle) => void;
-  onBreakReminderToggle: (enabled: boolean) => void;
   onOpenHelp: (help: ReaderHelpContent) => void;
   onClearSyncedReaderData: () => Promise<void>;
 };
@@ -34,7 +33,6 @@ export function ReaderOptionsModal({
   onResetReaderPreferences,
   onUpdateReaderPreference,
   onReadingStyleChanged,
-  onBreakReminderToggle,
   onOpenHelp,
   onClearSyncedReaderData,
 }: ReaderOptionsModalProps) {
@@ -292,28 +290,6 @@ export function ReaderOptionsModal({
           <span className="font-medium">Menu → Display settings</span>. Reader
           theme (Light, Sepia, or Dark) still controls chapter reading colors.
         </p>
-      </div>
-      <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={readerPreferences.breakReminder}
-            onChange={(event) => {
-              onBreakReminderToggle(event.target.checked);
-            }}
-          />
-          Gentle break reminders
-        </label>
-        <SettingHelpButton
-          settingLabel="Gentle break reminders"
-          onClick={() =>
-            onOpenHelp({
-              title: 'Gentle break reminders',
-              description:
-                'Show a gentle 20-20-20 eye comfort reminder while reading.',
-            })
-          }
-        />
       </div>
       <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
         <label className="flex items-center gap-2">

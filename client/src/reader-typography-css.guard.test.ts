@@ -19,13 +19,13 @@ describe('reader typography CSS guardrails', () => {
     expect(indexCss).toContain('.reader-immersive-shell');
   });
 
-  it('verse row buttons use reader font tokens', () => {
+  it('verse text action buttons use reader font tokens', () => {
     expect(indexCss).toContain(
-      ".reader-root button[type='button'].reader-verse-paragraph",
+      ".reader-root button[type='button'].reader-verse-text-hit",
     );
     const block = indexCss.slice(
       indexCss.indexOf(
-        ".reader-root button[type='button'].reader-verse-paragraph",
+        ".reader-root button[type='button'].reader-verse-text-hit",
       ),
     );
     expect(block).toMatch(/font-size:\s*var\(--reader-font-size\)/);

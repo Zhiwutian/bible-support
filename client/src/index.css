@@ -418,7 +418,7 @@ body {
  * hover utilities, so global dark/high-contrast utility overrides cannot leak in.
  */
 .reader-root .reader-verse-paragraph:hover,
-.reader-root .reader-verse-inline-hit:hover {
+.reader-root .reader-verse-text-hit:hover {
   background-color: color-mix(in srgb, var(--reader-bg) 82%, #fff 18%);
 }
 
@@ -431,39 +431,15 @@ body {
   transition-duration: 0.01ms !important;
 }
 
-.reader-break-reminder {
-  background-color: color-mix(in srgb, var(--reader-bg) 70%, #fff 30%);
-  border-color: var(--reader-border);
-  color: var(--reader-text);
-}
-
-.reader-break-dismiss-button {
-  color: var(--reader-text) !important;
-  border: 1px solid var(--reader-border);
-  background-color: color-mix(in srgb, var(--reader-bg) 88%, #fff 12%);
-}
-
-.reader-break-dismiss-button:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--reader-bg) 78%,
-    #fff 22%
-  ) !important;
-}
-
 /* Preserve Reader theme colors (including sepia) under global modes. */
 .app-high-contrast .reader-content,
-.app-high-contrast .reader-break-reminder,
-.app-dark-mode .reader-content,
-.app-dark-mode .reader-break-reminder {
+.app-dark-mode .reader-content {
   background-color: var(--reader-bg) !important;
   border-color: var(--reader-border) !important;
 }
 
 .app-high-contrast .reader-chapter-text,
-.app-high-contrast .reader-break-reminder,
-.app-dark-mode .reader-chapter-text,
-.app-dark-mode .reader-break-reminder {
+.app-dark-mode .reader-chapter-text {
   color: var(--reader-text) !important;
 }
 
@@ -474,7 +450,7 @@ body {
  * 3) .app-text-scale-* — shell font-size + remapped .text-* steps; form controls.
  * 4) .ui-modal-* — shared modal layout utilities.
  * 5) .reader-* — theme/size/spacing tokens; .reader-content / .reader-chapter-text;
- *    immersive --reader-immersive-bottom-chrome-pad; verse hover; break reminder.
+ *    immersive --reader-immersive-bottom-chrome-pad; verse hover.
  * 6) GLOBAL DISPLAY MODES — .app-high-contrast / .app-dark-mode blocks use
  *    substring class matching and !important; order and specificity matter.
  * 6a) Reader: keep reader variables on .reader-content / .reader-chapter-text first.
@@ -482,7 +458,7 @@ body {
  * 6c) Dark mode — slate text; .emotion-support-page hue utilities; surfaces/
  *     borders/hover; .reader-root rescopes; .ui-modal-panel; tutorial callouts.
  * 7) Global cursor rules (must stay after .app-text-scale-* form rules; stylelint).
- * 8) .reader-root button.reader-verse-paragraph — reader font tokens on verse rows.
+ * 8) .reader-root button.reader-verse-text-hit — reader font tokens on verse text actions.
  * ───────────────────────────────────────────────────────────────────────────
  */
 
@@ -672,7 +648,7 @@ input[type='radio'] {
  * explicitly so reader font size / line height apply (inherit can lose to shell
  * form-control rules such as .app-text-scale-sm button).
  */
-.reader-root button[type='button'].reader-verse-paragraph {
+.reader-root button[type='button'].reader-verse-text-hit {
   cursor: pointer !important;
   font-family: var(--reader-font-family);
   font-size: var(--reader-font-size);
