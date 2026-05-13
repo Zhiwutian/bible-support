@@ -6,7 +6,6 @@
 export const READER_COMFORT_ROLLOUT_EVENTS = [
   'reader_preference_changed',
   'reader_preferences_reset',
-  'reader_break_tip_dismissed',
 ] as const;
 
 export type ReaderComfortRolloutEvent =
@@ -19,7 +18,7 @@ function isReaderComfortRolloutEvent(
 }
 
 /**
- * Returns true if the event is not one of the three rollout events, or if the
+ * Returns true if the event is not one of the reader comfort rollout events, or if the
  * payload matches the documented privacy-safe shape (no nested objects, no
  * arbitrary strings beyond preference keys/values).
  */
@@ -29,10 +28,7 @@ export function isPrivacySafeReaderComfortRolloutPayload(
 ): boolean {
   if (!isReaderComfortRolloutEvent(name)) return true;
 
-  if (
-    name === 'reader_preferences_reset' ||
-    name === 'reader_break_tip_dismissed'
-  ) {
+  if (name === 'reader_preferences_reset') {
     return payload === undefined || Object.keys(payload).length === 0;
   }
 

@@ -22,6 +22,7 @@ Suggested proposal structure:
 
 Current proposals:
 
+- `drive-gallery-v1-ai-build-proposal.md` — **Drive-backed photo gallery (independent app):** sequenced AI build slices, commit/testing discipline, slice estimates + dependency graph + branch naming + DoR/env/secrets/security/stop-the-line + PR template; Neon + Render + Vercel; see linked Cursor plan for locked product rules
 - `full-application-review.md` — phased full-stack review: code/docs cleanup, FE/BE optimization, functionality + test gaps, security, a11y, supply chain, telemetry, CI/release
 - `workout-tracker-build-plan.md` — pointer to **`workout-tracker/docs/proposals/workout-tracker-build-plan.md`** (course / standalone app build plan)
 - `oauth-email-login-minimal-pii.md`
@@ -35,5 +36,5 @@ Current proposals:
 - `reader-styles-bookmarks-account-sync.md`
 - `bible-support-reader-ui-hybrid.md` — hybrid reader (`/reader` + embedded `ReaderSurface`), Full Context → Reader, mobile overflow, prayer confirm modal, saved/support emphasis in chapter
 - `reader-mobile-fullscreen.md` — reader tools sheet + full viewport / Fullscreen API + safe-area fallback on **all viewports** (responsive sheet layout); verse click isolation
-- `reader-immersive-chrome-scroll.md` — immersive bottom chapter bar, deferred Exit control (**long press** or timeout + reduced motion), scroll-to-top when no saved offset for chapter key
+- `reader-immersive-chrome-scroll.md` — immersive bottom chapter bar, deferred Exit control (**shell click** or timeout + reduced motion), scroll-to-top when no saved offset for chapter key
 - `translation-support-tutorial-study-links.md` — global translation preference (localStorage, overrides URL), tutorial dark-mode prose, support scripture layout (no swipe), outbound Bible.com/BibleGateway study links (no YouVersion study API)

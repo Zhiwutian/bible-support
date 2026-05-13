@@ -18,7 +18,6 @@ export const readerPreferencesSchema = z.object({
   paragraphSpacing: readerParagraphSpacingSchema,
   contentWidth: readerContentWidthSchema,
   reducedMotion: z.boolean(),
-  breakReminder: z.boolean(),
   readingStyle: z.enum(READER_READING_STYLES),
   hideTranslationIndicators: z.boolean(),
 });

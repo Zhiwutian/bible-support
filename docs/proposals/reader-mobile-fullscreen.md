@@ -7,8 +7,8 @@
 ## Goal
 
 - Bible Reader users can enter a **distraction-minimized reading mode** that uses the **full viewport** instead of the capped **`max-h-[60vh]`** scroll area (on every breakpoint where the reader is shown).
-- Discovery: **click / tap on “empty” reader chrome** (the scroll area but not a verse control) **or** an explicit **Reader tools** control opens a **tools surface** with **Full screen** and, when reader comfort is enabled, **Reader options**.
-- **Verse actions** (click / tap verse, keyboard activation) must **not** open the tools surface—only the verse action flow.
+- Discovery: **click / tap on “empty” reader chrome** (the scroll area but not a **verse text** action target—see **`reader-verse-text-hit`** in [`ReaderChapterContent.tsx`](../client/src/features/reader/ReaderChapterContent.tsx)) **or** an explicit **Reader tools** control opens a **tools surface** with **Full screen** and, when reader comfort is enabled, **Reader options**.
+- **Verse actions** (click / tap **verse text**, keyboard activation on that target) must **not** open the tools surface—only the verse action flow.
 
 ## Non-goals
 
@@ -23,13 +23,13 @@
 ## Current state (summary)
 
 - Chapter text lives in a scroll container with **`max-h-[60vh] overflow-y-auto`** on [`client/src/pages/BibleReaderPage.tsx`](../client/src/pages/BibleReaderPage.tsx).
-- Verses are interactive (`button` / `role="button"` spans) in [`client/src/features/reader/ReaderChapterContent.tsx`](../client/src/features/reader/ReaderChapterContent.tsx); clicks bubble to ancestors.
+- Verses expose **verse text** as the interactive surface (`button` in verse-per-line style, `role="button"` spans in standard / clean) in [`client/src/features/reader/ReaderChapterContent.tsx`](../client/src/features/reader/ReaderChapterContent.tsx); clicks bubble to ancestors when the hit target is **outside** those controls (for example verse numbers or paragraph padding).
 - Modals use **`ui-modal-backdrop`** at **`z-50`** ([`client/src/index.css`](../client/src/index.css)).
 - Viewport meta does not set **`viewport-fit=cover`**, so **`env(safe-area-inset-*)`** is limited on notched devices until updated.
 
 ## Recommended approach
 
-1. **Event isolation:** `stopPropagation()` on verse **`onClick`** / **`onKeyDown`** handlers in `ReaderChapterContent` so parent “open tools” handlers do not run.
+1. **Event isolation:** `stopPropagation()` on **verse text** **`onClick`** / **`onKeyDown`** handlers in `ReaderChapterContent` so parent “open tools” handlers do not run.
 2. **No viewport gate for features:** Do **not** hide Reader tools / content-click / fullscreen behind `max-width: 767px`. Optional **`matchMedia`** only for **responsive layout** of the tools surface (bottom vs centered), not for enabling the feature.
 3. **Tools surface:** New component—dialog pattern (`role="dialog"`, `aria-modal`, labelled title), backdrop above reader content, **`z-[52]`**; **safe-area** padding where relevant; **Escape** and backdrop dismiss; **`prefers-reduced-motion`**-friendly transitions; **`md+`:** center panel + max width consistent with existing modals (reuse patterns from [`ModalShell`](../../client/src/components/ui/ModalShell.tsx)).
 4. **Full screen:** `useReaderFullscreen`—`requestFullscreen` on an immersive wrapper when available (**desktop and mobile**); **fixed `inset-0`** overlay fallback with **`100dvh`**, **`min-h-0` flex** scroll region, and **`env(safe-area-inset-*)`** on chrome; **`z-[60]`** for immersive shell so it sits above **`z-50`** modals when active (modals still **exit immersive** when opened to avoid stacking bugs).

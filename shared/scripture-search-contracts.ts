@@ -46,7 +46,6 @@ export type ReaderPreferencesPayload = {
   paragraphSpacing: 'tight' | 'normal' | 'loose';
   contentWidth: 'narrow' | 'balanced' | 'wide';
   reducedMotion: boolean;
-  breakReminder: boolean;
   readingStyle: ReaderReadingStyle;
   hideTranslationIndicators: boolean;
 };

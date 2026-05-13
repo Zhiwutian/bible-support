@@ -132,7 +132,8 @@ export function FullContextPage() {
   }, [context]);
 
   return (
-    <div className={`rounded-xl p-4 ${theme.viewBackgroundClassName}`}>
+    <div
+      className={`emotion-support-page w-full min-w-0 rounded-none pb-6 pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))] md:rounded-xl md:p-4 ${theme.viewBackgroundClassName}`}>
       <SectionHeader
         title="Full Context"
         description={`Reference: ${reference}${translation ? ` (${translation})` : ''}.`}
@@ -193,7 +194,7 @@ export function FullContextPage() {
 
       {!isLoading && !error && context && (
         <Card
-          className={`mx-auto max-w-prose border p-6 shadow-md ${theme.scriptureContextClassName}`}>
+          className={`w-full max-w-none rounded-none border-x-0 border-y p-4 shadow-md sm:rounded-md sm:border-x sm:p-6 md:mx-auto md:max-w-prose ${theme.scriptureContextClassName}`}>
           <p
             className={`mb-4 text-sm font-semibold ${theme.referenceClassName}`}>
             Context for {context.chapterReference}

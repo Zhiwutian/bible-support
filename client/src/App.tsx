@@ -165,6 +165,10 @@ export default function App() {
   const accountInitial = accountDisplayName.charAt(0).toUpperCase();
   const currentRouteIntent = `${location.pathname}${location.search}${location.hash}`;
   const isPublicShareRoute = location.pathname === '/verse';
+  /** Support scripture + full-context views: flush layout (no shell gutters). */
+  const isEmotionSupportRoute = /^\/emotions\/[^/]+(?:\/context)?$/.test(
+    location.pathname,
+  );
   const shouldShowLanding =
     !isAuthLoading &&
     !authSession &&
@@ -440,7 +444,10 @@ export default function App() {
   return (
     <div
       className={`min-h-screen w-full ${contrastClassName} ${textScaleClassName}`}>
-      <main className="mx-auto w-full min-w-0 max-w-[1400px] px-6 py-10">
+      <main
+        className={`mx-auto w-full min-w-0 max-w-[1400px] ${
+          isEmotionSupportRoute ? 'px-0 py-6 md:py-10' : 'px-6 py-10'
+        }`}>
         {isMobileMenuOpen && (
           <>
             <button
@@ -603,10 +610,20 @@ export default function App() {
             </aside>
           </>
         )}
-        <div className="mx-auto grid max-w-7xl grid-cols-1 xl:grid-cols-12">
-          <div className="min-w-0 xl:col-span-10 xl:col-start-2">
+        <div
+          className={`mx-auto grid w-full grid-cols-1 ${
+            isEmotionSupportRoute ? '' : 'max-w-7xl'
+          } xl:grid-cols-12`}>
+          <div
+            className={`min-w-0 ${
+              isEmotionSupportRoute
+                ? 'xl:col-span-12'
+                : 'xl:col-span-10 xl:col-start-2'
+            }`}>
             <header
-              className={`sticky top-0 z-40 -mx-6 mb-6 border-b px-6 py-3 backdrop-blur ${navClassName}`}>
+              className={`sticky top-0 z-40 mb-6 border-b py-3 backdrop-blur ${navClassName} ${
+                isEmotionSupportRoute ? 'px-4 sm:px-6' : '-mx-6 px-6'
+              }`}>
               <nav className="flex flex-row items-start justify-between gap-3">
                 <BrandLockup context="header" compact={isHeaderCompact} />
                 <Button
@@ -756,7 +773,7 @@ export default function App() {
                       setIsMobileMenuOpen(false);
                       navigate('/reader');
                     }}>
-                    More reader settings (font, spacing, break reminder)…
+                    More reader settings (font, spacing, and more)…
                   </Button>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-base font-medium text-slate-800">

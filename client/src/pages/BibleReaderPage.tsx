@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
@@ -30,7 +30,6 @@ import {
 import { ReaderChapterControls } from '@/features/reader/ReaderChapterControls';
 import { ReaderChapterNavigation } from '@/features/reader/ReaderChapterNavigation';
 import { useReaderAccountSync } from '@/features/reader/useReaderAccountSync';
-import { ReaderBreakReminder } from '@/features/reader/ReaderBreakReminder';
 import { ReaderNoteModal } from '@/features/reader/ReaderNoteModal';
 import { ReaderOptionsModal } from '@/features/reader/ReaderOptionsModal';
 import { ReaderStatusBar } from '@/features/reader/ReaderStatusBar';
@@ -109,13 +108,8 @@ function buildCleanParagraphs(
   return chunks;
 }
 
-/** Delay before showing Exit in immersive mode unless user long-presses (skipped if reduced motion). */
+/** Delay before showing Exit in immersive mode unless chrome is revealed earlier (skipped if reduced motion). */
 const IMMERSIVE_EXIT_REVEAL_DELAY_MS = 4000;
-
-/** Hold duration to reveal immersive bottom chrome; avoids showing it on scroll touches. */
-const IMMERSIVE_CHROME_LONG_PRESS_MS = 550;
-/** Cancel long-press if the pointer moves beyond this radius from touchdown (scroll slop). */
-const IMMERSIVE_CHROME_LONG_PRESS_MOVE_PX = 12;
 
 /** Render chapter reader view with URL-synced book/chapter/translation state. */
 export function BibleReaderPage() {
@@ -154,7 +148,6 @@ export function BibleReaderPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
-  const [isBreakTipDismissed, setIsBreakTipDismissed] = useState(false);
   const [readerSettingsHelp, setReaderSettingsHelp] = useState<{
     title: string;
     description: string;
@@ -262,7 +255,7 @@ export function BibleReaderPage() {
   }, []);
 
   const revealImmersiveExitControl = useCallback(
-    (reason: 'timeout' | 'long_press') => {
+    (reason: 'timeout' | 'surface_click') => {
       if (immersiveExitRevealTimeoutRef.current !== null) {
         clearTimeout(immersiveExitRevealTimeoutRef.current);
         immersiveExitRevealTimeoutRef.current = null;
@@ -279,59 +272,38 @@ export function BibleReaderPage() {
     [],
   );
 
-  const immersiveChromeLongPressTimerRef = useRef<number | null>(null);
-  const immersiveChromeLongPressOriginRef = useRef<{
-    x: number;
-    y: number;
-  } | null>(null);
+  const handleImmersiveShellClickCapture = useCallback(
+    (ev: ReactMouseEvent<HTMLDivElement>) => {
+      if (!isImmersiveReader || !payload) return;
+      if (ev.button !== 0) return;
+      const rawTarget = ev.target;
+      const el =
+        rawTarget instanceof Element
+          ? rawTarget
+          : rawTarget instanceof Text
+            ? rawTarget.parentElement
+            : null;
+      if (!el) return;
+      if (el.closest('[data-testid="reader-immersive-bottom-chrome"]')) {
+        return;
+      }
+      if (el.closest('[role="dialog"][aria-modal="true"]')) {
+        return;
+      }
 
-  const clearImmersiveChromeLongPressTimer = useCallback(() => {
-    if (immersiveChromeLongPressTimerRef.current !== null) {
-      clearTimeout(immersiveChromeLongPressTimerRef.current);
-      immersiveChromeLongPressTimerRef.current = null;
-    }
-    immersiveChromeLongPressOriginRef.current = null;
-  }, []);
+      setImmersiveBottomChromeVisible(true);
+      revealImmersiveExitControl('surface_click');
 
-  const handleImmersivePointerDownCapture = useCallback(
-    (ev: ReactPointerEvent<HTMLDivElement>) => {
-      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-      clearImmersiveChromeLongPressTimer();
-      immersiveChromeLongPressOriginRef.current = {
-        x: ev.clientX,
-        y: ev.clientY,
-      };
-      immersiveChromeLongPressTimerRef.current = window.setTimeout(() => {
-        immersiveChromeLongPressTimerRef.current = null;
-        immersiveChromeLongPressOriginRef.current = null;
-        setImmersiveBottomChromeVisible(true);
-        revealImmersiveExitControl('long_press');
-      }, IMMERSIVE_CHROME_LONG_PRESS_MS);
-    },
-    [clearImmersiveChromeLongPressTimer, revealImmersiveExitControl],
-  );
-
-  const handleImmersivePointerMoveCapture = useCallback(
-    (ev: ReactPointerEvent<HTMLDivElement>) => {
-      if (immersiveChromeLongPressOriginRef.current === null) return;
-      const origin = immersiveChromeLongPressOriginRef.current;
-      const dx = ev.clientX - origin.x;
-      const dy = ev.clientY - origin.y;
-      const slop = IMMERSIVE_CHROME_LONG_PRESS_MOVE_PX;
-      if (dx * dx + dy * dy > slop * slop) {
-        clearImmersiveChromeLongPressTimer();
+      const isVerseTextHit = Boolean(el.closest('.reader-verse-text-hit'));
+      if (isVerseTextHit) {
+        return;
       }
     },
-    [clearImmersiveChromeLongPressTimer],
+    [isImmersiveReader, payload, revealImmersiveExitControl],
   );
-
-  const handleImmersivePointerUpOrCancelCapture = useCallback(() => {
-    clearImmersiveChromeLongPressTimer();
-  }, [clearImmersiveChromeLongPressTimer]);
 
   useEffect(() => {
     if (!isImmersiveReader) {
-      clearImmersiveChromeLongPressTimer();
       clearImmersiveExitRevealTimeout();
       /* Reset chrome visibility when leaving immersive (any exit path: button, Esc, native FS). */
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sync UI state to fullscreen hook
@@ -340,7 +312,6 @@ export function BibleReaderPage() {
       immersiveExitRevealTrackedRef.current = false;
       return;
     }
-    clearImmersiveChromeLongPressTimer();
     clearImmersiveExitRevealTimeout();
     setImmersiveExitRevealed(false);
     setImmersiveBottomChromeVisible(true);
@@ -359,12 +330,10 @@ export function BibleReaderPage() {
       }, delayMs);
     }
     return () => {
-      clearImmersiveChromeLongPressTimer();
       clearImmersiveExitRevealTimeout();
     };
   }, [
     isImmersiveReader,
-    clearImmersiveChromeLongPressTimer,
     clearImmersiveExitRevealTimeout,
     revealImmersiveExitControl,
   ]);
@@ -977,10 +946,6 @@ export function BibleReaderPage() {
               readingStyle: nextStyle,
             });
           }}
-          onBreakReminderToggle={(enabled) => {
-            updateReaderPreference('breakReminder', enabled);
-            if (enabled) setIsBreakTipDismissed(false);
-          }}
           onOpenHelp={(help) => {
             setReaderSettingsHelp(help);
           }}
@@ -1068,10 +1033,7 @@ export function BibleReaderPage() {
             <div
               ref={immersiveContainerRef}
               data-testid="reader-immersive-shell"
-              onPointerDownCapture={handleImmersivePointerDownCapture}
-              onPointerMoveCapture={handleImmersivePointerMoveCapture}
-              onPointerUpCapture={handleImmersivePointerUpOrCancelCapture}
-              onPointerCancelCapture={handleImmersivePointerUpOrCancelCapture}
+              onClickCapture={handleImmersiveShellClickCapture}
               className={cn(
                 readerRootClassName,
                 'reader-immersive-shell fixed inset-0 z-[60] flex max-h-[100dvh] flex-col overflow-hidden',
@@ -1194,17 +1156,6 @@ export function BibleReaderPage() {
                 className="reader-content max-h-[60vh] cursor-default overflow-y-auto rounded-md border border-[var(--reader-border)] bg-[var(--reader-bg)] p-3 text-[var(--reader-text)]">
                 {readerChapter}
               </div>
-              <ReaderBreakReminder
-                isVisible={
-                  isReaderComfortEnabled &&
-                  readerPreferences.breakReminder &&
-                  !isBreakTipDismissed
-                }
-                onDismiss={() => {
-                  setIsBreakTipDismissed(true);
-                  trackEvent('reader_break_tip_dismissed');
-                }}
-              />
               <ReaderChapterNavigation
                 hasPrevious={payload.hasPrevious}
                 hasNext={payload.hasNext}

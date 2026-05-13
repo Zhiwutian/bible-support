@@ -2,17 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { isPrivacySafeReaderComfortRolloutPayload } from './reader-comfort-telemetry';
 
 describe('reader comfort rollout telemetry', () => {
-  it('accepts documented shapes for the three rollout events', () => {
+  it('accepts documented shapes for rollout events', () => {
     expect(
       isPrivacySafeReaderComfortRolloutPayload(
         'reader_preferences_reset',
         undefined,
-      ),
-    ).toBe(true);
-    expect(
-      isPrivacySafeReaderComfortRolloutPayload(
-        'reader_break_tip_dismissed',
-        {},
       ),
     ).toBe(true);
     expect(
