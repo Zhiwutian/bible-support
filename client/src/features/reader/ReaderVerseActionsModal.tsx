@@ -8,6 +8,11 @@ type ReaderVerseActionsModalProps = {
   isVerseAlreadySaved: boolean;
   /** When true, backdrop stacks above reader immersive shell (z-[60]). */
   stackAboveImmersiveReader?: boolean;
+  /**
+   * Immersive full-screen reader: center the sheet so it clears the bottom
+   * chapter/exit bar; non-immersive keeps the mobile bottom-sheet layout.
+   */
+  immersiveLayout?: boolean;
   onClose: () => void;
   onBookmarkHere: () => void;
   onSaveVerse: () => void;
@@ -24,6 +29,7 @@ export function ReaderVerseActionsModal({
   hasSavedNote,
   isVerseAlreadySaved,
   stackAboveImmersiveReader = false,
+  immersiveLayout = false,
   onClose,
   onBookmarkHere,
   onSaveVerse,
@@ -37,8 +43,15 @@ export function ReaderVerseActionsModal({
       title={reference}
       titleId="reader-verse-actions-title"
       onClose={onClose}
-      className={cn('p-0 md:p-4', stackAboveImmersiveReader && 'z-[70]')}
-      panelClassName="w-full max-w-none rounded-t-2xl rounded-b-none border-x-0 border-b-0 pb-[max(1rem,env(safe-area-inset-bottom))] md:max-w-md md:rounded-md md:border md:border-slate-200 md:pb-4">
+      className={cn(
+        immersiveLayout ? 'items-center justify-center p-4' : 'p-0 md:p-4',
+        stackAboveImmersiveReader && 'z-[70]',
+      )}
+      panelClassName={
+        immersiveLayout
+          ? 'max-h-[min(85dvh,36rem)] w-full max-w-md cursor-default overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-lg'
+          : 'w-full max-w-none rounded-t-2xl rounded-b-none border-x-0 border-b-0 pb-[max(1rem,env(safe-area-inset-bottom))] md:max-w-md md:rounded-md md:border md:border-slate-200 md:pb-4'
+      }>
       <div className="mt-3 space-y-3">
         <p className="text-sm text-slate-600">
           Choose what you would like to do with this verse.
