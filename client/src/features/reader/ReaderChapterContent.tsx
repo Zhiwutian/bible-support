@@ -68,7 +68,6 @@ export function ReaderChapterContent({
             </sup>
             <button
               type="button"
-              aria-label={`Open actions for ${book} ${chapter}:${verse.verse}`}
               className="reader-verse-text-hit inline max-w-full cursor-pointer rounded border-0 bg-transparent px-0.5 py-0 text-left align-baseline font-inherit text-inherit focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
               onClick={(event) => {
                 event.stopPropagation();
@@ -118,7 +117,6 @@ export function ReaderChapterContent({
                 <span
                   role="button"
                   tabIndex={0}
-                  aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
                   className="reader-verse-text-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                   onClick={(event) => {
                     event.stopPropagation();
@@ -173,7 +171,6 @@ export function ReaderChapterContent({
                 <span
                   role="button"
                   tabIndex={0}
-                  aria-label={`Open actions for ${book} ${chapter}:${entry.verse}`}
                   className="reader-verse-text-hit inline cursor-pointer rounded px-0.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-400"
                   onClick={(event) => {
                     event.stopPropagation();
